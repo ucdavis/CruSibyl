@@ -14,7 +14,7 @@ const FetchData = () => {
   // Takes the place of componentDidMount()
   useEffect(() => {
     const populateWeatherData = async () => {
-      const response = await fetch("weatherforecast");
+      const response = await fetch("api/weatherforecast");
       const data = await response.json();
       setForecasts(data);
       setLoading(false);

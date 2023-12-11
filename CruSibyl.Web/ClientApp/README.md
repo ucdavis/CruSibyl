@@ -5,24 +5,34 @@ You can find the most recent version of this guide [here](https://github.com/fac
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Updating to New Releases](#updating-to-new-releases)
 - [Sending Feedback](#sending-feedback)
 - [Folder Structure](#folder-structure)
 - [Available Scripts](#available-scripts)
-  - [npm start](#npm-start)
-  - [npm test](#npm-test)
-  - [npm run build](#npm-run-build)
-  - [npm run eject](#npm-run-eject)
+  - [`npm start`](#npm-start)
+  - [`npm test`](#npm-test)
+  - [`npm run build`](#npm-run-build)
+  - [`npm run eject`](#npm-run-eject)
 - [Supported Language Features and Polyfills](#supported-language-features-and-polyfills)
 - [Syntax Highlighting in the Editor](#syntax-highlighting-in-the-editor)
 - [Displaying Lint Output in the Editor](#displaying-lint-output-in-the-editor)
 - [Debugging in the Editor](#debugging-in-the-editor)
+  - [Visual Studio Code](#visual-studio-code)
+  - [WebStorm](#webstorm)
 - [Formatting Code Automatically](#formatting-code-automatically)
 - [Changing the Page `<title>`](#changing-the-page-title)
 - [Installing a Dependency](#installing-a-dependency)
 - [Importing a Component](#importing-a-component)
+  - [`Button.js`](#buttonjs)
+  - [`DangerButton.js`](#dangerbuttonjs)
 - [Code Splitting](#code-splitting)
+  - [`moduleA.js`](#moduleajs)
+  - [`App.js`](#appjs)
+  - [With React Router](#with-react-router)
 - [Adding a Stylesheet](#adding-a-stylesheet)
+  - [`Button.css`](#buttoncss)
+  - [`Button.js`](#buttonjs-1)
 - [Post-Processing CSS](#post-processing-css)
 - [Adding a CSS Preprocessor (Sass, Less etc.)](#adding-a-css-preprocessor-sass-less-etc)
 - [Adding Images, Fonts, and Files](#adding-images-fonts-and-files)
@@ -37,7 +47,10 @@ You can find the most recent version of this guide [here](https://github.com/fac
 - [Adding Custom Environment Variables](#adding-custom-environment-variables)
   - [Referencing Environment Variables in the HTML](#referencing-environment-variables-in-the-html)
   - [Adding Temporary Environment Variables In Your Shell](#adding-temporary-environment-variables-in-your-shell)
+    - [Windows (cmd.exe)](#windows-cmdexe)
+    - [Linux, macOS (Bash)](#linux-macos-bash)
   - [Adding Development Environment Variables In `.env`](#adding-development-environment-variables-in-env)
+    - [What other `.env` files can be used?](#what-other-env-files-can-be-used)
 - [Can I Use Decorators?](#can-i-use-decorators)
 - [Integrating with an API Backend](#integrating-with-an-api-backend)
   - [Node](#node)
@@ -47,6 +60,8 @@ You can find the most recent version of this guide [here](https://github.com/fac
   - [Configuring the Proxy Manually](#configuring-the-proxy-manually)
   - [Configuring a WebSocket Proxy](#configuring-a-websocket-proxy)
 - [Using HTTPS in Development](#using-https-in-development)
+    - [Windows (cmd.exe)](#windows-cmdexe-1)
+    - [Linux, macOS (Bash)](#linux-macos-bash-1)
 - [Generating Dynamic `<meta>` Tags on the Server](#generating-dynamic-meta-tags-on-the-server)
 - [Pre-Rendering into Static HTML Files](#pre-rendering-into-static-html-files)
 - [Injecting Data from the Server into the Page](#injecting-data-from-the-server-into-the-page)
@@ -56,11 +71,20 @@ You can find the most recent version of this guide [here](https://github.com/fac
   - [Version Control Integration](#version-control-integration)
   - [Writing Tests](#writing-tests)
   - [Testing Components](#testing-components)
+    - [`src/setupTests.js`](#srcsetuptestsjs)
   - [Using Third Party Assertion Libraries](#using-third-party-assertion-libraries)
   - [Initializing Test Environment](#initializing-test-environment)
+    - [`src/setupTests.js`](#srcsetuptestsjs-1)
   - [Focusing and Excluding Tests](#focusing-and-excluding-tests)
   - [Coverage Reporting](#coverage-reporting)
+    - [Configuration](#configuration)
   - [Continuous Integration](#continuous-integration)
+  - [On CI servers](#on-ci-servers)
+    - [Travis CI](#travis-ci)
+    - [CircleCI](#circleci)
+  - [On your own environment](#on-your-own-environment)
+      - [Windows (cmd.exe)](#windows-cmdexe-2)
+      - [Linux, macOS (Bash)](#linux-macos-bash-2)
   - [Disabling jsdom](#disabling-jsdom)
   - [Snapshot Testing](#snapshot-testing)
   - [Editor Integration](#editor-integration)
@@ -77,10 +101,20 @@ You can find the most recent version of this guide [here](https://github.com/fac
   - [Other Solutions](#other-solutions)
   - [Serving Apps with Client-Side Routing](#serving-apps-with-client-side-routing)
   - [Building for Relative Paths](#building-for-relative-paths)
+    - [Serving the Same Build from Different Paths](#serving-the-same-build-from-different-paths)
   - [Azure](#azure)
   - [Firebase](#firebase)
   - [GitHub Pages](#github-pages)
+    - [Step 1: Add `homepage` to `package.json`](#step-1-add-homepage-to-packagejson)
+    - [Step 2: Install `gh-pages` and add `deploy` to `scripts` in `package.json`](#step-2-install-gh-pages-and-add-deploy-to-scripts-in-packagejson)
+    - [Step 3: Deploy the site by running `npm run deploy`](#step-3-deploy-the-site-by-running-npm-run-deploy)
+    - [Step 4: Ensure your project’s settings use `gh-pages`](#step-4-ensure-your-projects-settings-use-gh-pages)
+    - [Step 5: Optionally, configure the domain](#step-5-optionally-configure-the-domain)
+    - [Notes on client-side routing](#notes-on-client-side-routing)
   - [Heroku](#heroku)
+    - [Resolving Heroku Deployment Errors](#resolving-heroku-deployment-errors)
+      - ["Module not found: Error: Cannot resolve 'file' or 'directory'"](#module-not-found-error-cannot-resolve-file-or-directory)
+      - ["Could not find a required file."](#could-not-find-a-required-file)
   - [Netlify](#netlify)
   - [Now](#now)
   - [S3 and CloudFront](#s3-and-cloudfront)
@@ -91,8 +125,8 @@ You can find the most recent version of this guide [here](https://github.com/fac
   - [`npm test` hangs on macOS Sierra](#npm-test-hangs-on-macos-sierra)
   - [`npm run build` exits too early](#npm-run-build-exits-too-early)
   - [`npm run build` fails on Heroku](#npm-run-build-fails-on-heroku)
-  - [`npm run build` fails to minify](#npm-run-build-fails-to-minify)
   - [Moment.js locales are missing](#momentjs-locales-are-missing)
+  - [`npm run build` fails to minify](#npm-run-build-fails-to-minify)
 - [Something Missing?](#something-missing)
 
 ## Updating to New Releases
@@ -697,14 +731,14 @@ Only files inside the `public` folder will be accessible by `%PUBLIC_URL%` prefi
 
 When you run `npm run build`, Create React App will substitute `%PUBLIC_URL%` with a correct absolute path so your project works even if you use client-side routing or host it at a non-root URL.
 
-In JavaScript code, you can use `process.env.PUBLIC_URL` for similar purposes:
+In JavaScript code, you can use `import.meta.env.PUBLIC_URL` for similar purposes:
 
 ```js
 render() {
   // Note: this is an escape hatch and should be used sparingly!
   // Normally we recommend using `import` for getting asset URLs
   // as described in “Adding Images and Fonts” above this section.
-  return <img src={process.env.PUBLIC_URL + '/img/logo.png'} />;
+  return <img src={import.meta.env.PUBLIC_URL + '/img/logo.png'} />;
 }
 ```
 
@@ -808,16 +842,16 @@ To learn more about Flow, check out [its documentation](https://flowtype.org/).
 
 Your project can consume variables declared in your environment as if they were declared locally in your JS files. By
 default you will have `NODE_ENV` defined for you, and any other environment variables starting with
-`REACT_APP_`.
+`VITE_`.
 
 **The environment variables are embedded during the build time**. Since Create React App produces a static HTML/CSS/JS bundle, it can’t possibly read them at runtime. To read them at runtime, you would need to load HTML into memory on the server and replace placeholders in runtime, just like [described here](#injecting-data-from-the-server-into-the-page). Alternatively you can rebuild the app on the server anytime you change them.
 
->Note: You must create custom environment variables beginning with `REACT_APP_`. Any other variables except `NODE_ENV` will be ignored to avoid accidentally [exposing a private key on the machine that could have the same name](https://github.com/facebookincubator/create-react-app/issues/865#issuecomment-252199527). Changing any environment variables will require you to restart the development server if it is running.
+>Note: You must create custom environment variables beginning with `VITE_`. Any other variables except `NODE_ENV` will be ignored to avoid accidentally [exposing a private key on the machine that could have the same name](https://github.com/facebookincubator/create-react-app/issues/865#issuecomment-252199527). Changing any environment variables will require you to restart the development server if it is running.
 
-These environment variables will be defined for you on `process.env`. For example, having an environment
-variable named `REACT_APP_SECRET_CODE` will be exposed in your JS as `process.env.REACT_APP_SECRET_CODE`.
+These environment variables will be defined for you on `import.meta.env`. For example, having an environment
+variable named `VITE_SECRET_CODE` will be exposed in your JS as `import.meta.env.VITE_SECRET_CODE`.
 
-There is also a special built-in environment variable called `NODE_ENV`. You can read it from `process.env.NODE_ENV`. When you run `npm start`, it is always equal to `'development'`, when you run `npm test` it is always equal to `'test'`, and when you run `npm run build` to make a production bundle, it is always equal to `'production'`. **You cannot override `NODE_ENV` manually.** This prevents developers from accidentally deploying a slow development build to production.
+There is also a special built-in environment variable called `NODE_ENV`. You can read it from `import.meta.env.NODE_ENV`. When you run `npm start`, it is always equal to `'development'`, when you run `npm test` it is always equal to `'test'`, and when you run `npm run build` to make a production bundle, it is always equal to `'production'`. **You cannot override `NODE_ENV` manually.** This prevents developers from accidentally deploying a slow development build to production.
 
 These environment variables can be useful for displaying information conditionally based on where the project is
 deployed or consuming sensitive data that lives outside of version control.
@@ -829,16 +863,16 @@ in the environment inside a `<form>`:
 render() {
   return (
     <div>
-      <small>You are running this application in <b>{process.env.NODE_ENV}</b> mode.</small>
+      <small>You are running this application in <b>{import.meta.env.NODE_ENV}</b> mode.</small>
       <form>
-        <input type="hidden" defaultValue={process.env.REACT_APP_SECRET_CODE} />
+        <input type="hidden" defaultValue={import.meta.env.VITE_SECRET_CODE} />
       </form>
     </div>
   );
 }
 ```
 
-During the build, `process.env.REACT_APP_SECRET_CODE` will be replaced with the current value of the `REACT_APP_SECRET_CODE` environment variable. Remember that the `NODE_ENV` variable will be set for you automatically.
+During the build, `import.meta.env.VITE_SECRET_CODE` will be replaced with the current value of the `VITE_SECRET_CODE` environment variable. Remember that the `NODE_ENV` variable will be set for you automatically.
 
 When you load the app in the browser and inspect the `<input>`, you will see its value set to `abcdef`, and the bold text will show the environment provided when using `npm start`:
 
@@ -851,14 +885,14 @@ When you load the app in the browser and inspect the `<input>`, you will see its
 </div>
 ```
 
-The above form is looking for a variable called `REACT_APP_SECRET_CODE` from the environment. In order to consume this
+The above form is looking for a variable called `VITE_SECRET_CODE` from the environment. In order to consume this
 value, we need to have it defined in the environment. This can be done using two ways: either in your shell or in
 a `.env` file. Both of these ways are described in the next few sections.
 
 Having access to the `NODE_ENV` is also useful for performing actions conditionally:
 
 ```js
-if (process.env.NODE_ENV !== 'production') {
+if (import.meta.env.NODE_ENV !== 'production') {
   analytics.disable();
 }
 ```
@@ -869,15 +903,15 @@ When you compile the app with `npm run build`, the minification step will strip 
 
 >Note: this feature is available with `react-scripts@0.9.0` and higher.
 
-You can also access the environment variables starting with `REACT_APP_` in the `public/index.html`. For example:
+You can also access the environment variables starting with `VITE_` in the `public/index.html`. For example:
 
 ```html
-<title>%REACT_APP_WEBSITE_NAME%</title>
+<title>%VITE_WEBSITE_NAME%</title>
 ```
 
 Note that the caveats from the above section apply:
 
-* Apart from a few built-in variables (`NODE_ENV` and `PUBLIC_URL`), variable names must start with `REACT_APP_` to work.
+* Apart from a few built-in variables (`NODE_ENV` and `PUBLIC_URL`), variable names must start with `VITE_` to work.
 * The environment variables are injected at build time. If you need to inject them at runtime, [follow this approach instead](#generating-dynamic-meta-tags-on-the-server).
 
 ### Adding Temporary Environment Variables In Your Shell
@@ -888,7 +922,7 @@ life of the shell session.
 #### Windows (cmd.exe)
 
 ```cmd
-set REACT_APP_SECRET_CODE=abcdef&&npm start
+set VITE_SECRET_CODE=abcdef&&npm start
 ```
 
 (Note: the lack of whitespace is intentional.)
@@ -896,7 +930,7 @@ set REACT_APP_SECRET_CODE=abcdef&&npm start
 #### Linux, macOS (Bash)
 
 ```bash
-REACT_APP_SECRET_CODE=abcdef npm start
+VITE_SECRET_CODE=abcdef npm start
 ```
 
 ### Adding Development Environment Variables In `.env`
@@ -906,7 +940,7 @@ REACT_APP_SECRET_CODE=abcdef npm start
 To define permanent environment variables, create a file called `.env` in the root of your project:
 
 ```
-REACT_APP_SECRET_CODE=abcdef
+VITE_SECRET_CODE=abcdef
 ```
 
 `.env` files **should be** checked into source control (with the exclusion of `.env*.local`).
