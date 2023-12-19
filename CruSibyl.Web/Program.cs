@@ -1,5 +1,19 @@
 using System.Diagnostics;
+using System.Security.Claims;
+using CruSibyl.Core.Data;
+using CruSibyl.Core.Models;
+using CruSibyl.Core.Models.Settings;
+using CruSibyl.Core.Services;
+using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
@@ -67,31 +81,202 @@ try
     });
     appBuilder.Services.AddEndpointsApiExplorer();
     appBuilder.Services.AddSwaggerGen();
+    appBuilder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+    })
+    .AddCookie()
+    .AddOpenIdConnect(oidc =>
+    {
+        oidc.ClientId = configuration["Authentication:ClientId"];
+        oidc.ClientSecret = configuration["Authentication:ClientSecret"];
+        oidc.Authority = configuration["Authentication:Authority"];
+        oidc.ResponseType = OpenIdConnectResponseType.Code;
+        oidc.Scope.Add("openid");
+        oidc.Scope.Add("profile");
+        oidc.Scope.Add("email");
+        oidc.Scope.Add("eduPerson");
+        oidc.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+        };
+        oidc.Events.OnTicketReceived = async context =>
+        {
+            if (context.Principal == null || context.Principal.Identity == null)
+            {
+                return;
+            }
+            var identity = (ClaimsIdentity)context.Principal.Identity;
 
-    var app = appBuilder.Build();
+            // Sometimes CAS doesn't return the required IAM ID
+            // If this happens, we take the reliable Kerberos (NameIdentifier claim) and use it to lookup IAM ID
+            if (!identity.HasClaim(c => c.Type == UserService.IamIdClaimType) ||
+                !identity.HasClaim(c => c.Type == ClaimTypes.Surname) ||
+                !identity.HasClaim(c => c.Type == ClaimTypes.GivenName) ||
+                !identity.HasClaim(c => c.Type == ClaimTypes.Email))
+            {
+                var identityService = context.HttpContext.RequestServices.GetRequiredService<IIdentityService>();
+                var kerbId = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+                if (kerbId != null)
+                {
+                    Log.Error($"CAS IAM Id Missing. For Kerb: {kerbId}");
+                    var identityUser = await identityService.GetByKerberos(kerbId.Value);
+
+                    if (identityUser != null)
+                    {
+                        if (!identity.HasClaim(c => c.Type == UserService.IamIdClaimType))
+                        {
+                            identity.AddClaim(new Claim(UserService.IamIdClaimType, identityUser.Iam));
+                        }
+                        //Check for other missing claims
+                        if (!identity.HasClaim(c => c.Type == ClaimTypes.Surname))
+                        {
+                            identity.AddClaim(new Claim(ClaimTypes.Surname, identityUser.LastName));
+                        }
+                        if (!identity.HasClaim(c => c.Type == ClaimTypes.GivenName))
+                        {
+                            identity.AddClaim(new Claim(ClaimTypes.GivenName, identityUser.FirstName));
+                        }
+                        if (!identity.HasClaim(c => c.Type == ClaimTypes.Email))
+                        {
+                            identity.AddClaim(new Claim(ClaimTypes.Email, identityUser.Email));
+                        }
+                    }
+                    else
+                    {
+                        Log.Error($"IAM Id Not Found with identity service. For Kerb: {kerbId}");
+                    }
+                }
+                else
+                {
+                    Log.Error($"CAS IAM Id Missing. Kerb Not Found");
+                }
+            }
+
+            // Ensure user exists in the db
+            var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
+            await userService.GetUser(identity.Claims.ToArray());
+        };
+    });
+
+
+    appBuilder.Services.AddAuthorization(options =>
+    {
+        options.AddAccessPolicy(AccessCodes.SystemAccess);
+        options.AddAccessPolicy(AccessCodes.AdminAccess);
+    });
+    appBuilder.Services.AddScoped<IAuthorizationHandler, VerifyRoleAccessHandler>();
+
+    // Migration scaffolding in EF Core 8 appears to instantiate a DbContext, so we're using
+    // an environment variable set by CreateMigration.sh to ensure the correct provider is used.
+    var migrationUseSql = configuration.GetValue<bool?>("Migration:UseSql");
+    var useSql = migrationUseSql.HasValue ? migrationUseSql.Value : configuration.GetValue<bool>("Dev:UseSql");
+
+    if (useSql)
+    {
+        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>((serviceProvider, o) =>
+        {
+            o.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
+                sqlOptions =>
+                {
+                    sqlOptions.MigrationsAssembly("CruSibyl.Core");
+                });
+#if DEBUG
+            o.EnableSensitiveDataLogging();
+#endif
+        });
+    }
+    else
+    {
+        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlite>((serviceProvider, o) =>
+        {
+            var connection = new SqliteConnection("Data Source=crusibyl.db");
+            o.UseSqlite(connection, sqliteOptions =>
+            {
+                sqliteOptions.MigrationsAssembly("CruSibyl.Core");
+            });
+
+#if DEBUG
+            o.EnableSensitiveDataLogging();
+#endif
+        });
+    }
+
+    appBuilder.Services.Configure<AuthSettings>(configuration.GetSection("Authentication"));
+
+    appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
+    appBuilder.Services.AddScoped<IUserService, UserService>();
+    appBuilder.Services.AddHttpContextAccessor();
+
+    WebApplication app = null!;
+
+    try
+    {
+        app = appBuilder.Build();
+    }
+    catch (HostAbortedException)
+    {
+        // swallow exception and return early when generating a new migration
+        if (migrationUseSql.HasValue)
+        {
+            return 0;
+        }
+        throw;
+    }
+
+    // ensure db is up to date
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var recreateDb = configuration.GetValue<bool>("Dev:RecreateDb");
+
+        if (recreateDb)
+        {
+            dbContext.Database.EnsureDeleted();
+            dbContext.Dispose();
+        }
+
+        dbContext.Database.Migrate();
+
+        var initializeDb = configuration.GetValue<bool>("Dev:InitializeDb");
+
+        if (initializeDb)
+        {
+            var initializer = new DbInitializer(dbContext);
+            initializer.Initialize(recreateDb).GetAwaiter().GetResult();
+        }
+    }
+
 
     // Configure the HTTP request pipeline.
-    if (!app.Environment.IsDevelopment())
+    if (app.Environment.IsDevelopment())
     {
+        app.UseDeveloperExceptionPage();
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+    else
+    {
+        app.UseExceptionHandler("/Error");
         // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
         app.UseHsts();
     }
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI();
-    }
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
     app.UseRouting();
 
-    //app.UseMiddleware<LogUserNameMiddleware>();
+    app.UseAuthentication();
+    app.UseAuthorization();
+
+    app.UseMiddleware<LogUserNameMiddleware>();
     app.UseSerilogRequestLogging();
 
     app.MapControllers();
 
+    //app.MapFallbackToController("Index", "Home");
     app.MapFallbackToFile("index.html");
 
     app.Run();

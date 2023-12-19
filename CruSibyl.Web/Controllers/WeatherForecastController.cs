@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using CruSibyl.Core.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -19,6 +21,7 @@ public class WeatherForecastController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Policy = AccessCodes.AdminAccess)]
     public IEnumerable<WeatherForecast> Get()
     {
         return Enumerable.Range(1, 5).Select(index => new WeatherForecast
