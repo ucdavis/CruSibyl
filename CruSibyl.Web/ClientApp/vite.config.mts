@@ -1,56 +1,49 @@
-import { defineConfig, loadEnv } from "vite";
+import { UserConfig, defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
-import eslint from "vite-plugin-eslint";
-import viteTsconfigPaths from "vite-tsconfig-paths";
-import { fileURLToPath, URL } from "node:url";
 import fs from "fs";
 import path from "path";
-import child_process from "child_process";
+import { spawn } from "child_process";
 
+// Get base folder for certificates.
 const baseFolder =
   process.env.APPDATA !== undefined && process.env.APPDATA !== ""
     ? `${process.env.APPDATA}/ASP.NET/https`
     : `${process.env.HOME}/.aspnet/https`;
 
-const certificateArg = process.argv
-  .map((arg) => arg.match(/--name=(?<value>.+)/i))
-  .filter(Boolean)[0];
-const certificateName = certificateArg
-  ? certificateArg.groups.value
-  : "reactapp3.client";
+// Generate the certificate name using the NPM package name
+const certificateName = process.env.npm_package_name;
 
-if (!certificateName) {
-  console.error(
-    "Invalid certificate name. Run this script in the context of an npm/yarn script or pass --name=<<app>> explicitly."
-  );
-  process.exit(-1);
-}
-
+// Define certificate filepath
 const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
+// Define key filepath
 const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 
-if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
-  if (
-    0 !==
-    child_process.spawnSync(
-      "dotnet",
-      [
-        "dev-certs",
-        "https",
-        "--export-path",
-        certFilePath,
-        "--format",
-        "Pem",
-        "--no-password",
-      ],
-      { stdio: "inherit" }
-    ).status
-  ) {
-    throw new Error("Could not create certificate.");
+export default defineConfig(async ({ mode }) => {
+  // Ensure the certificate and key exist
+  if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
+    // Wait for the certificate to be generated
+    await new Promise<void>((resolve) => {
+      spawn(
+        "dotnet",
+        [
+          "dev-certs",
+          "https",
+          "--export-path",
+          certFilePath,
+          "--format",
+          "Pem",
+          "--no-password",
+        ],
+        { stdio: "inherit" }
+      ).on("exit", (code) => {
+        resolve();
+        if (code) {
+          process.exit(code);
+        }
+      });
+    });
   }
-}
 
-export default defineConfig(({ mode }) => {
   // Load app-level env vars to node-level env vars.
   const env = { ...process.env, ...loadEnv(mode, process.cwd()) };
   process.env = env;
@@ -61,57 +54,65 @@ export default defineConfig(({ mode }) => {
     ? env.ASPNETCORE_URLS.split(";")[0]
     : "http://localhost:7182";
 
-  return {
+  const config: UserConfig = {
+    // appType: "custom",
+    root: "src",
+    publicDir: "public",
+    //base: "./",
     build: {
       outDir: "build",
     },
-    plugins: [react(), eslint(), viteTsconfigPaths()],
-    resolve: {
-      alias: {
-        "@": fileURLToPath(new URL("./src", import.meta.url)),
-      },
+    plugins: [react()],
+    optimizeDeps: {
+      include: [],
     },
     server: {
-      port: 5000,
-      https: {
-        key: fs.readFileSync(keyFilePath),
-        cert: fs.readFileSync(certFilePath),
+      port: 5173,
+      hmr: {
+        clientPort: 5173,
       },
       strictPort: true,
-      proxy: {
-        "/api": {
-          target: target,
-          // Handle errors to prevent the proxy middleware from crashing when
-          // the ASP NET Core webserver is unavailable
-          onError: (err, req, resp, target) => {
-            console.error(`${err.message}`);
-          },
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/api/, "/api"),
-          // Uncomment this line to add support for proxying websockets
-          //ws: true,
-          headers: {
-            Connection: "Keep-Alive",
-          },
-        },
-        "/swagger": {
-          target: target,
-          // Handle errors to prevent the proxy middleware from crashing when
-          // the ASP NET Core webserver is unavailable
-          onError: (err, req, resp, target) => {
-            console.error(`${err.message}`);
-          },
-          changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path.replace(/^\/swagger/, "/swagger"),
-          // Uncomment this line to add support for proxying websockets
-          //ws: true,
-          headers: {
-            Connection: "Keep-Alive",
-          },
-        },
-      },
+      // Uncomment the following to enable reverse proxy support
+      // https: {
+      //   cert: certFilePath,
+      //   key: keyFilePath,
+      // },
+      // proxy: {
+      //   "/api": {
+      //     target: target,
+      //     // Handle errors to prevent the proxy middleware from crashing when
+      //     // the ASP NET Core webserver is unavailable
+      //     onError: (err, req, resp, target) => {
+      //       console.error(`${err.message}`);
+      //     },
+      //     changeOrigin: true,
+      //     secure: false,
+      //     rewrite: (path) => path.replace(/^\/api/, "/api"),
+      //     // Uncomment this line to add support for proxying websockets
+      //     //ws: true,
+      //     headers: {
+      //       Connection: "Keep-Alive",
+      //     },
+      //   },
+      //   "/swagger": {
+      //     target: target,
+      //     // Handle errors to prevent the proxy middleware from crashing when
+      //     // the ASP NET Core webserver is unavailable
+      //     onError: (err, req, resp, target) => {
+      //       console.error(`${err.message}`);
+      //     },
+      //     changeOrigin: true,
+      //     secure: false,
+      //     rewrite: (path) => path.replace(/^\/swagger/, "/swagger"),
+      //     // Uncomment this line to add support for proxying websockets
+      //     //ws: true,
+      //     headers: {
+      //       Connection: "Keep-Alive",
+      //     },
+      //   },
+      // },
     },
   };
+
+  return config;
 });

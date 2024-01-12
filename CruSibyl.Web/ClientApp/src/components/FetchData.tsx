@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { AuthenticatedFetch } from "../util/api";
 
 interface Forecast {
   date: string;
@@ -14,7 +15,7 @@ const FetchData = () => {
   // Takes the place of componentDidMount()
   useEffect(() => {
     const populateWeatherData = async () => {
-      const response = await fetch("api/weatherforecast");
+      const response = await AuthenticatedFetch("api/weatherforecast");
       const data = await response.json();
       setForecasts(data);
       setLoading(false);

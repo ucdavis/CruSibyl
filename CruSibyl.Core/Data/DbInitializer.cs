@@ -1,4 +1,5 @@
 ﻿using CruSibyl.Core.Domain;
+using CruSibyl.Core.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -61,21 +62,45 @@ public class DbInitializer
             MothraId = "01259393",
         });
 
+        var systemRole = await CheckAndCreateRole(Role.Codes.System);
+        var adminRole = await CheckAndCreateRole(Role.Codes.Admin);
 
-        //for(int i = 1; i <= 5; i++)
-        //{
-        //    var user = new User { Email = $"fake{i}@ucdavis.edu",
-        //        FirstName = $"Fake{i}",
-        //        LastName = "Fake",
-        //        Kerberos = $"fake{i}",
-        //        Iam = $"100000000{i}",
-        //    };
-        //    await CheckAndCreateUser(user);
-        //}
+        await CheckAndCreatePermission(JasonUser, systemRole);
+        await CheckAndCreatePermission(ScottUser, systemRole);
+        await CheckAndCreatePermission(RiverUser, systemRole);
+        await CheckAndCreatePermission(SpruceUser, systemRole);
 
         await _dbContext.SaveChangesAsync();
 
-        await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<Permission> CheckAndCreatePermission(User user, Role role)
+    {
+        var permissionToCreate = await _dbContext.Permissions.SingleOrDefaultAsync(a => a.User == user && a.Role == role);
+        if (permissionToCreate == null)
+        {
+            permissionToCreate = new Permission
+            {
+                User = user,
+                Role = role,
+            };
+            await _dbContext.Permissions.AddAsync(permissionToCreate);
+        }
+        return permissionToCreate;
+    }
+
+    private async Task<Role> CheckAndCreateRole(string roleName)
+    {
+        var roleToCreate = await _dbContext.Roles.SingleOrDefaultAsync(a => a.Name == roleName);
+        if (roleToCreate == null)
+        {
+            roleToCreate = new Role
+            {
+                Name = roleName,
+            };
+            await _dbContext.Roles.AddAsync(roleToCreate);
+        }
+        return roleToCreate;
     }
 
     private async Task<User> CheckAndCreateUser(User user)

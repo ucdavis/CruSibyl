@@ -6,15 +6,7 @@ import "./custom.css";
 import { AppContextShape, Permission, User } from "./types";
 import AppContext from "./shared/AppContext";
 
-//TODO: uncomment this when we have actual data
-//declare var CruSibyl: AppContextShape;
-var CruSibyl = {
-  antiForgeryToken: "",
-  user: {
-    detail: {} as User,
-    permissions: [] as Permission[],
-  },
-} as AppContextShape;
+declare var CruSibyl: AppContextShape;
 
 const App = () => {
   const [context, setContext] = useState<AppContextShape>(CruSibyl);

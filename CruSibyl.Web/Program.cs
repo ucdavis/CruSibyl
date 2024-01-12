@@ -9,11 +9,14 @@ using CruSibyl.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.SqlServer;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using MvcReact;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
@@ -208,6 +211,7 @@ try
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddHttpContextAccessor();
+    appBuilder.Services.AddViteServices();
 
     WebApplication app = null!;
 
@@ -266,18 +270,42 @@ try
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
+    app.UseMvcReactStaticFiles();
     app.UseRouting();
 
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseMiddleware<LogUserNameMiddleware>();
+    // app.UseMiddleware<LogUserNameMiddleware>();
     app.UseSerilogRequestLogging();
 
-    app.MapControllers();
-
+    // app.MapControllers();
     //app.MapFallbackToController("Index", "Home");
-    app.MapFallbackToFile("index.html");
+    // app.MapFallbackToFile("index.html");
+
+    // default for MVC server-side endpoints
+    app.MapControllerRoute(
+        name: "default",
+        pattern: "{controller}/{action}/{id?}",
+        defaults: new { controller = "Home", action = "Index" },
+        constraints: new { controller = "(home|system)" }
+    );
+
+    // remaining API routes map to all other controllers and require cluster
+    app.MapControllerRoute(
+        name: "API",
+        pattern: "/api/{cluster}/{controller=Account}/{action=Index}/{id?}"
+        );
+
+    // any other nonfile route should be handled by the spa
+    app.MapControllerRoute(
+        name: "react",
+        pattern: "{*path:nonfile}",
+        defaults: new { controller = "Home", action = "Index" }
+    );
+
+    // During development, SPA will kick in for all remaining paths
+    app.UseMvcReact();
 
     app.Run();
 }

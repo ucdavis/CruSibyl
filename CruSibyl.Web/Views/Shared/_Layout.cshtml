@@ -19,6 +19,7 @@
 </script> *@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
     <title>CruSibyl</title>
 
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
@@ -49,14 +50,17 @@
 
 
     <script>
-        var CruSibyl = { user: {}};
+        var CruSibyl = { user: {
+            detail: {},
+            permissions: []
+        }};
 
         CruSibyl.user.detail = @Html.Raw(await UserService.GetCurrentUserJsonAsync());
         CruSibyl.user.permissions = @Html.Raw(await UserService.GetCurrentPermissionsJsonAsync());
         CruSibyl.antiForgeryToken = "@Xsrf.GetAndStoreTokens(Context).RequestToken";
     </script>
 
-    <script type="module" src="/src/index.tsx"></script>    
+    <react-scripts />
 
     @RenderSection("Scripts", required: false)
 </body>

@@ -2,7 +2,7 @@ import { AppContextShape } from "../types";
 
 declare var CruSibyl: AppContextShape;
 
-export const authenticatedFetch = async (
+export const AuthenticatedFetch = async (
   url: string,
   init?: RequestInit,
   additionalHeaders?: HeadersInit

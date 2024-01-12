@@ -1,5 +1,5 @@
 {
-  "name": "crusibyl.web",
+  "name": "crusibyl",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -40,7 +40,7 @@
     "nth-check": "^3.0.1"
   },
   "scripts": {
-    "start": "vite",
+    "start": "npx kill-port 5173 && vite",
     "build": "vite build",
     "test": "cross-env CI=true vitest --env=jsdom",
     "lint": "eslint ./src/"

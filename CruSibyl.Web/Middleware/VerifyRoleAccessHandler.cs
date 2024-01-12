@@ -32,7 +32,7 @@ public class VerifyRoleAccessHandler : AuthorizationHandler<VerifyRoleAccess>
 
         if (await _dbContext.Permissions.AnyAsync(p
             => p.User.Iam == userIamId
-            && requirement.RoleStrings.Contains(p.Role.Name)))
+            && (p.Role.Name == Role.Codes.System || requirement.RoleStrings.Contains(p.Role.Name))))
         {
             context.Succeed(requirement);
             return;

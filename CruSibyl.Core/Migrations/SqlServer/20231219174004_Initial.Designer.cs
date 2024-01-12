@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CruSibyl.Core.Migrations.SqlServer
 {
     [DbContext(typeof(AppDbContextSqlServer))]
-    [Migration("20231219174004_Initial")]
+    [Migration("20231218214009_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
