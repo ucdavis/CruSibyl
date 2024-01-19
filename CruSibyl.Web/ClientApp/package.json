@@ -27,7 +27,7 @@
     "eslint-plugin-react": "^7.32.2",
     "nan": "^2.17.0",
     "typescript": "^4.9.5",
-    "vite": "^5.0.6",
+    "vite": "^5.0.12",
     "vite-plugin-eslint": "^1.8.1",
     "vite-tsconfig-paths": "^4.2.2",
     "vitest": "^1.0.2"
