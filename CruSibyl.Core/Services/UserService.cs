@@ -1,17 +1,11 @@
 ﻿using CruSibyl.Core.Domain;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using CruSibyl.Core.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using CruSibyl.Core.Models;
 using Serilog;
-using CruSibyl.Core.Extensions;
 
 namespace CruSibyl.Core.Services;
 public interface IUserService

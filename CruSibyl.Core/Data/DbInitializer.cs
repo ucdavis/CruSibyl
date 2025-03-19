@@ -1,11 +1,5 @@
 ﻿using CruSibyl.Core.Domain;
-using CruSibyl.Core.Models;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CruSibyl.Core.Data;
 public class DbInitializer
