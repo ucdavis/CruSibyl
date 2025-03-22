@@ -20,4 +20,6 @@ public class Dependency
 
     [ForeignKey(nameof(PackageVersionId))]
     public PackageVersion PackageVersion { get; set; } = null!;
+
+    public bool? IsDevDependency { get; set; } = null;
 }

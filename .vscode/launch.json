@@ -27,6 +27,19 @@
       }
     },
     {
+      "name": ".NET Core Launch (manifest sync job)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "buildManifestSync",
+      "program": "${workspaceFolder}/CruSibyl.Jobs.ManifestSync/bin/Debug/net8.0/CruSibyl.Jobs.ManifestSync.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/CruSibyl.Jobs.ManifestSync",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
       "name": ".NET Core Attach",
       "type": "coreclr",
       "request": "attach"

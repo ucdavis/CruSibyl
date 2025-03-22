@@ -49,7 +49,7 @@ var configureLogging = (LoggerConfiguration cfg) =>
         .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
         .MinimumLevel.Override("System", LogEventLevel.Warning)
         .Enrich.FromLogContext()
-        .Enrich.WithClientIp()
+        .Enrich.With()
         .Enrich.WithExceptionDetails()
         .Enrich.WithProperty("Application", loggingSection.GetValue<string>("AppName"))
         .Enrich.WithProperty("AppEnvironment", loggingSection.GetValue<string>("Environment"))
