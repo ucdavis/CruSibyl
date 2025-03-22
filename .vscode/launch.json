@@ -43,17 +43,6 @@
       "name": ".NET Core Attach",
       "type": "coreclr",
       "request": "attach"
-    },
-    {
-      "name": "Debug CRA Tests",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "${workspaceRoot}/CruSibyl.Web/ClientApp/node_modules/.bin/react-scripts",
-      "args": ["test", "--runInBand", "--no-cache", "--watchAll=false"],
-      "cwd": "${workspaceRoot}/CruSibyl.Web/ClientApp",
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "env": { "CI": "true" }
     }
   ]
 }

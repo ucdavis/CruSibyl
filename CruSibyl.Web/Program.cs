@@ -16,7 +16,6 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
-using MvcReact;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
@@ -26,19 +25,9 @@ using Serilog.Sinks.Elasticsearch;
 Serilog.Debugging.SelfLog.Enable(msg => Debug.WriteLine(msg));
 #endif
 
-var isDevelopment = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "development", StringComparison.OrdinalIgnoreCase);
-var configBuilder = new ConfigurationBuilder()
-    .SetBasePath(System.IO.Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json")
-    .AddEnvironmentVariables();
+var builder = WebApplication.CreateBuilder(args);
 
-//only add secrets in development
-if (isDevelopment)
-{
-    configBuilder.AddUserSecrets<Program>();
-}
-var configuration = configBuilder.Build();
-var loggingSection = configuration.GetSection("Serilog");
+var loggingSection = builder.Configuration.GetSection("Serilog");
 
 // configure logging as delegate so it can be applied to both Log.Logger and appBuilder.Host.UseSerilog()
 var configureLogging = (LoggerConfiguration cfg) =>
@@ -92,9 +81,9 @@ try
     .AddCookie()
     .AddOpenIdConnect(oidc =>
     {
-        oidc.ClientId = configuration["Authentication:ClientId"];
-        oidc.ClientSecret = configuration["Authentication:ClientSecret"];
-        oidc.Authority = configuration["Authentication:Authority"];
+        oidc.ClientId = builder.Configuration["Authentication:ClientId"];
+        oidc.ClientSecret = builder.Configuration["Authentication:ClientSecret"];
+        oidc.Authority = builder.Configuration["Authentication:Authority"];
         oidc.ResponseType = OpenIdConnectResponseType.Code;
         oidc.Scope.Add("openid");
         oidc.Scope.Add("profile");
@@ -173,14 +162,14 @@ try
 
     // Migration scaffolding in EF Core 8 appears to instantiate a DbContext, so we're using
     // an environment variable set by CreateMigration.sh to ensure the correct provider is used.
-    var migrationUseSql = configuration.GetValue<bool?>("Migration:UseSql");
-    var useSql = migrationUseSql.HasValue ? migrationUseSql.Value : configuration.GetValue<bool>("Dev:UseSql");
+    var migrationUseSql = builder.Configuration.GetValue<bool?>("Migration:UseSql");
+    var useSql = migrationUseSql.HasValue ? migrationUseSql.Value : builder.Configuration.GetValue<bool>("Dev:UseSql");
 
     if (useSql)
     {
         appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>((serviceProvider, o) =>
         {
-            o.UseSqlServer(configuration.GetConnectionString("DefaultConnection"),
+            o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
                 sqlOptions =>
                 {
                     sqlOptions.MigrationsAssembly("CruSibyl.Core");
@@ -206,12 +195,11 @@ try
         });
     }
 
-    appBuilder.Services.Configure<AuthSettings>(configuration.GetSection("Authentication"));
+    appBuilder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Authentication"));
 
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddHttpContextAccessor();
-    appBuilder.Services.AddViteServices();
 
     WebApplication app = null!;
 
@@ -233,7 +221,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var recreateDb = configuration.GetValue<bool>("Dev:RecreateDb");
+        var recreateDb = builder.Configuration.GetValue<bool>("Dev:RecreateDb");
 
         if (recreateDb)
         {
@@ -243,7 +231,7 @@ try
 
         dbContext.Database.Migrate();
 
-        var initializeDb = configuration.GetValue<bool>("Dev:InitializeDb");
+        var initializeDb = builder.Configuration.GetValue<bool>("Dev:InitializeDb");
 
         if (initializeDb)
         {
@@ -270,7 +258,6 @@ try
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
-    app.UseMvcReactStaticFiles();
     app.UseRouting();
 
     app.UseAuthentication();
@@ -279,33 +266,13 @@ try
     // app.UseMiddleware<LogUserNameMiddleware>();
     app.UseSerilogRequestLogging();
 
-    // app.MapControllers();
-    //app.MapFallbackToController("Index", "Home");
-    // app.MapFallbackToFile("index.html");
-
     // default for MVC server-side endpoints
     app.MapControllerRoute(
         name: "default",
         pattern: "{controller}/{action}/{id?}",
-        defaults: new { controller = "Home", action = "Index" },
-        constraints: new { controller = "(home|system)" }
+        defaults: new { controller = "Dashboard", action = "Index" },
+        constraints: new { controller = "(dashboard|admin)" }
     );
-
-    // remaining API routes map to all other controllers and require cluster
-    app.MapControllerRoute(
-        name: "API",
-        pattern: "/api/{cluster}/{controller=Account}/{action=Index}/{id?}"
-        );
-
-    // any other nonfile route should be handled by the spa
-    app.MapControllerRoute(
-        name: "react",
-        pattern: "{*path:nonfile}",
-        defaults: new { controller = "Home", action = "Index" }
-    );
-
-    // During development, SPA will kick in for all remaining paths
-    app.UseMvcReact();
 
     app.Run();
 }

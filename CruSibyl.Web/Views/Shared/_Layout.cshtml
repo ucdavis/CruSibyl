@@ -19,13 +19,18 @@
 </script> *@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="htmx-config" 
+          historyCacheSize="20"
+          indicatorClass="htmx-indicator"
+          includeAspNetAntiforgeryToken="true"
+          />
     <base href="/" />
     <title>CruSibyl</title>
 
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css">
-    <react-styles />
 
     @RenderSection("Styles", required: false)
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
 </head>
 
 <body>
@@ -33,15 +38,12 @@
         <header>
         </header>
         
-        @* Main Content Area for non-react routes *@
-        <main role="main" class="main-content-wrapper container">
-
-            @* Inject React *@
-            <div id="root"></div>
-            @RenderBody()
+        <partial name="_Tabs" />
+        
+        <main id="tab-content">
+            @RenderBody()  @* Initial content - first tab loads by default *@
         </main>
     </div>
-
 
     <footer class="container text-center footer">
         <p>Copyright &copy; <span id="copywrite-year"></span> The Regents of the University of California, Davis campus.
@@ -49,18 +51,7 @@
     </footer>
 
 
-    <script>
-        var CruSibyl = { user: {
-            detail: {},
-            permissions: []
-        }};
-
-        CruSibyl.user.detail = @Html.Raw(await UserService.GetCurrentUserJsonAsync());
-        CruSibyl.user.permissions = @Html.Raw(await UserService.GetCurrentPermissionsJsonAsync());
-        CruSibyl.antiForgeryToken = "@Xsrf.GetAndStoreTokens(Context).RequestToken";
-    </script>
-
-    <react-scripts />
+    @Html.HtmxAntiforgeryScript()
 
     @RenderSection("Scripts", required: false)
 </body>
