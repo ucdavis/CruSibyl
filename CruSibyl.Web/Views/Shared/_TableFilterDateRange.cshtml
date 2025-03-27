@@ -1,0 +1,21 @@
+<div class="flex space-x-1">
+    <input type="date"
+           class="input input-bordered input-sm w-1/2"
+           name="rangeFilters[@Model.Header].Min"
+           placeholder="From"
+           hx-get="@Url.Action("LoadData")"
+           hx-trigger="input changed delay:500ms"
+           hx-target="#table-container"
+           hx-swap="outerHTML"
+           hx-include="[name^='rangeFilters']" />
+    
+    <input type="date"
+           class="input input-bordered input-sm w-1/2"
+           name="rangeFilters[@Model.Header].Max"
+           placeholder="To"
+           hx-get="@Url.Action("LoadData")"
+           hx-trigger="input changed delay:500ms"
+           hx-target="#table-container"
+           hx-swap="outerHTML"
+           hx-include="[name^='rangeFilters']" />
+</div>

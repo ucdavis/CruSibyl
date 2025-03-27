@@ -1,0 +1,13 @@
+<div class="flex justify-center items-center mt-4 space-x-2">
+    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "1"}'>First</button>
+    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@(Model.Page - 1)"}'>Prev</button>
+
+    <input type="number" min="1" max="@Math.Ceiling((double)Model.Data.Count / Model.PageSize)"
+           class="input input-bordered input-sm text-center w-12"
+           hx-get="@Url.Action("LoadData")"
+           hx-trigger="change"
+           hx-vals='{"page": this.value}' />
+
+    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@(Model.Page + 1)"}'>Next</button>
+    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@Math.Ceiling((double)Model.Data.Count / Model.PageSize)"}'>Last</button>
+</div>

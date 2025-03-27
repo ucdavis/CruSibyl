@@ -1,0 +1,9 @@
+<input type="text"
+       class="input input-bordered input-sm w-full"
+       name="filters[@Model.Header]"
+       placeholder="Filter @Model.Header"
+       hx-get="@Url.Action("LoadData")"
+       hx-trigger="input changed delay:500ms"
+       hx-target="#table-container"
+       hx-swap="outerHTML"
+       hx-include="[name^='filters']" />
