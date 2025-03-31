@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FastExpressionCompiler" Version="5.0.3" />
     <PackageReference Include="Htmx" Version="1.8.1" />
     <PackageReference Include="Htmx.TagHelpers" Version="1.8.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.0" />
@@ -26,7 +27,7 @@
     <ProjectReference Include="..\CruSibyl.Core\CruSibyl.Core.csproj" />
   </ItemGroup>
 
-  <Target Name="BuildTailwind" BeforeTargets="Build">
+  <Target Name="BuildTailwind" BeforeTargets="Build" Condition="!Exists('wwwroot/css/site.css')">
       <Exec Command="cd Tools &amp;&amp; npm run build:css" />
   </Target>
 
@@ -34,11 +35,8 @@
   <!-- File with mtime of last successful npm install -->
   <NpmInstallStampFile>Tools/node_modules/.install-stamp</NpmInstallStampFile>
 </PropertyGroup>
-<Target Name="EnsureNpmPackages"
-  BeforeTargets="BuildTailwind"
-  Inputs="Tools\package.json"
-  Outputs="$(NpmInstallStampFile)">
-  <Exec Command="npm install" WorkingDirectory="Tools"/>
+<Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json" Outputs="$(NpmInstallStampFile)">
+  <Exec Command="npm install" WorkingDirectory="Tools" />
   <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
 </Target>
 

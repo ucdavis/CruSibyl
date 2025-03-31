@@ -1,13 +1,60 @@
-<div class="flex justify-center items-center mt-4 space-x-2">
-    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "1"}'>First</button>
-    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@(Model.Page - 1)"}'>Prev</button>
+@using CruSibyl.Web.Models
+@model TableModel
+<div id="table-pagination">
+    <div class="flex justify-center items-center mt-4 space-x-2">
+        <button class="btn btn-sm" 
+                hx-get="@Url.Action("LoadData")"
+                hx-swap="none"
+                hx-vals='{"page": 1}'
+                disabled="@(Model.Query.Page <= 1)"
+                hx-disabled-elt="this"
+                hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">First</button>
+        <button class="btn btn-sm" 
+                hx-get="@Url.Action("LoadData")"
+                hx-swap="none"
+                hx-vals='{"page": @(Model.Query.Page - 1)}'
+                disabled="@(Model.Query.Page <= 1)"
+                hx-disabled-elt="this"
+                hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">Prev</button>
 
-    <input type="number" min="1" max="@Math.Ceiling((double)Model.Data.Count / Model.PageSize)"
-           class="input input-bordered input-sm text-center w-12"
-           hx-get="@Url.Action("LoadData")"
-           hx-trigger="change"
-           hx-vals='{"page": this.value}' />
+        <input type="number" min="1" max="@Model.PageCount"
+              id="table-page"
+              name="page"
+              class="input input-bordered input-sm text-left w-16"
+              value="@Model.Query.Page"
+              hx-get="@Url.Action("LoadData")"
+              hx-swap="none"
+              hx-trigger="change, input changed delay:500ms"
+              hx-include="[name^='filters'], [name='pageSize'], [name^='sort']"
+               />
 
-    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@(Model.Page + 1)"}'>Next</button>
-    <button class="btn btn-sm" hx-get="@Url.Action("LoadData")" hx-vals='{"page": "@Math.Ceiling((double)Model.Data.Count / Model.PageSize)"}'>Last</button>
+        <select class="select select-bordered select-sm w-16"
+          id="table-page-Size"
+          name="pageSize"
+          hx-get="@Url.Action("LoadData")"
+          hx-swap="none"
+          hx-trigger="change"
+          hx-include="[name^='filters'], [name='page'], [name^='sort']">
+            <option value="2" selected="@(Model.Query.PageSize == 2)">2</option>
+            <option value="10" selected="@(Model.Query.PageSize == 10)">10</option>
+            <option value="25" selected="@(Model.Query.PageSize == 25)">25</option>
+            <option value="50" selected="@(Model.Query.PageSize == 50)">50</option>
+            <option value="100" selected="@(Model.Query.PageSize == 100)">100</option>
+        </select>
+
+        <button class="btn btn-sm" 
+                hx-get="@Url.Action("LoadData")"
+                hx-swap="none"
+                hx-vals='{"page": @(Model.Query.Page + 1)}'
+                disabled="@(Model.Query.Page >= Model.PageCount)"
+                hx-disabled-elt="this"
+                hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">Next</button>
+        <button class="btn btn-sm" 
+                hx-get="@Url.Action("LoadData")"
+                hx-swap="none"
+                hx-vals='{"page": @Model.PageCount}'
+                disabled="@(Model.Query.Page >= Model.PageCount)"
+                hx-disabled-elt="this"
+                hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">Last</button>
+    </div>
 </div>

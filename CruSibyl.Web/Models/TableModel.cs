@@ -5,22 +5,16 @@ public class TableModel
 {
     public List<object> Data { get; set; } = new();
     public List<ITableColumnModel> Columns { get; set; } = new();
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-    public int TotalCount { get; set; }
-    public string? Sort { get; set; }
-    public string? SortDirection { get; set; } = "asc";
+    public int PageCount { get; set; }
+    public TableQueryParams Query { get; set; } = new TableQueryParams();    
 }
 
 public class TableModel<T> where T : class
 {
     public List<T> Data { get; set; } = new();
     public List<TableColumnModel<T>> Columns { get; set; } = new();
-    public int Page { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
-    public int TotalCount { get; set; }
-    public string? Sort { get; set; }
-    public string? SortDirection { get; set; } = "asc";
+    public int PageCount { get; set; } = 1;
+    public TableQueryParams Query { get; set; } = new TableQueryParams();    
 
     // Converts to a non-generic TableModel for the view
     public TableModel ToNonGeneric()
@@ -29,11 +23,8 @@ public class TableModel<T> where T : class
         {
             Data = Data.Cast<object>().ToList(),
             Columns = Columns.Cast<ITableColumnModel>().ToList(),
-            Page = Page,
-            PageSize = PageSize,
-            TotalCount = TotalCount,
-            Sort = Sort,
-            SortDirection = SortDirection
+            PageCount = PageCount,
+            Query = Query
         };
     }
 }

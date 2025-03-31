@@ -1,0 +1,33 @@
+@using CruSibyl.Web.Models
+@model TableModel
+
+<div id="table-container">
+    <form>
+    <table class="table w-full">
+        <thead>
+            @await Html.PartialAsync("_TableHeader", Model)
+            <tr>
+                @foreach (var column in Model.Columns)
+                {
+                    <th>
+                        @if (column.Filterable)
+                        {
+                            @if (!string.IsNullOrEmpty(column.FilterPartialView))
+                            {
+                                @await Html.PartialAsync(column.FilterPartialView, column)
+                            }
+                            else
+                            {
+                                @await Html.PartialAsync("_TableFilterText", column)
+                            }
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        @await Html.PartialAsync("_TableBody", Model)
+    </table>
+
+    @await Html.PartialAsync("_TablePagination", Model)
+    </form>
+ </div>

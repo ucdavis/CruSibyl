@@ -1,8 +1,11 @@
-﻿using CruSibyl.Core.Data;
+﻿using Azure;
+using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Web.Models;
+using CruSibyl.Web.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -16,40 +19,65 @@ public class AdminController : TabController
         _dbContext = dbContext;
     }
 
+    static int pageNum = 0;
+
 
     public IActionResult Index() => HandleTabRequest("_Content");
 
-    public IActionResult LoadData([FromQuery] TableQueryParams query)
+    public async Task<IActionResult> LoadTable()
+    {
+        TableModel<Repo> tableModel = await GetData(new TableQueryParams()
+        {
+            PageSize = 2
+        });
+
+        return PartialView("_Table", tableModel.ToNonGeneric());
+    }
+
+
+    public async Task<IActionResult> LoadData([FromQuery] TableQueryParams query)
+    {
+        var tableModel = (await GetData(query)).ToNonGeneric();
+
+        return new MultiSwapViewResult(
+            ("_TableBody", tableModel),
+            ("_TablePagination", tableModel),
+            ("_TableHeader", tableModel)
+        );
+    }
+
+    private async Task<TableModel<Repo>> GetData(TableQueryParams query)
     {
         var columns = GetRepoColumns();
 
         IQueryable<Repo> data = _dbContext.Repos.AsQueryable();
 
         // **Apply Filters**
-    if (query.Filters != null)
-    {
-        foreach (var filter in query.Filters)
+        if (query.Filters != null)
         {
-            var column = columns.FirstOrDefault(c => c.Header == filter.Key);
-            if (column?.FilterExpression != null)
+            foreach (var filter in query.Filters.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
             {
-                data = column.FilterExpression(data, filter.Value);
+                var column = columns.FirstOrDefault(c => c.Header == filter.Key);
+                if (column?.FilterExpression != null)
+                {
+                    data = column.FilterExpression(data, filter.Value);
+                }
             }
         }
-    }
 
-    // **Apply Range Filters**
-    if (query.RangeFilters != null)
-    {
-        foreach (var rangeFilter in query.RangeFilters)
+        // **Apply Range Filters**
+        if (query.RangeFilters != null)
         {
-            var column = columns.FirstOrDefault(c => c.Header == rangeFilter.Key);
-            if (column?.RangeFilterExpression != null)
+            foreach (var rangeFilter in query.RangeFilters.Where(f => !string.IsNullOrWhiteSpace(f.Value.Min)
+                    && !string.IsNullOrWhiteSpace(f.Value.Max)))
             {
-                data = column.RangeFilterExpression(data, rangeFilter.Value.Min, rangeFilter.Value.Max);
+                var column = columns.FirstOrDefault(c => c.Header == rangeFilter.Key);
+                if (column?.RangeFilterExpression != null)
+                {
+                    data = column.RangeFilterExpression(data, rangeFilter.Value.Min, rangeFilter.Value.Max);
+                }
             }
         }
-    }
 
         // **Apply Sorting**
         if (!string.IsNullOrEmpty(query.SortColumn))
@@ -63,21 +91,21 @@ public class AdminController : TabController
             }
         }
 
+        // **Get Total Count Before Pagination**
+        var totalCount = await data.CountAsync();
+
         // **Apply Pagination**
-        var paginatedData = data.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToList();
+        var paginatedData = await data.Skip((query.Page - 1) * query.PageSize).Take(query.PageSize).ToListAsync();
+
 
         var tableModel = new TableModel<Repo>
         {
             Data = paginatedData,
             Columns = columns,
-            Page = query.Page,
-            PageSize = query.PageSize,
-            TotalCount = data.Count(),
-            Sort = query.SortColumn,
-            SortDirection = query.SortDirection
+            PageCount = Math.Max(1, (int)Math.Ceiling((double)totalCount / query.PageSize)),
+            Query = query
         };
-
-        return PartialView("_TableView", tableModel.ToNonGeneric());
+        return tableModel;
     }
 
     private List<TableColumnModel<Repo>> GetRepoColumns()

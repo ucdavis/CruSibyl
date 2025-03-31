@@ -1,9 +1,9 @@
 <input type="text"
        class="input input-bordered input-sm w-full"
+       id="table-filter-@Model.Header"
        name="filters[@Model.Header]"
        placeholder="Filter @Model.Header"
        hx-get="@Url.Action("LoadData")"
+       hx-swap="none"
        hx-trigger="input changed delay:500ms"
-       hx-target="#table-container"
-       hx-swap="outerHTML"
-       hx-include="[name^='filters']" />
+       hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />

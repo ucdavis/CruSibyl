@@ -1,0 +1,23 @@
+@using CruSibyl.Web.Models
+@model TableModel
+
+<tbody id="table-body">
+@foreach (var item in Model.Data)
+{
+    <tr>
+        @foreach (var column in Model.Columns)
+        {
+            <td>
+                @if (!string.IsNullOrEmpty(column.CellPartialView))
+                {
+                    @await Html.PartialAsync(column.CellPartialView, column.GetValue(item))
+                }
+                else
+                {
+                    @(column.GetValue(item))
+                }
+            </td>
+        }
+    </tr>
+}
+</tbody>

@@ -31,9 +31,11 @@
     <link rel="stylesheet" href="./css/site.css">
 
     @RenderSection("Styles", required: false)
-    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
+    @* <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/multi-swap.js"></script> *@
 </head>
 
+@* <body hx-ext="multi-swap"> *@
 <body>
     <div class="page-wrap">
         <header>
