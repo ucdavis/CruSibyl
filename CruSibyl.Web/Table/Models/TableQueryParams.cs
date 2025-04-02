@@ -1,4 +1,4 @@
-namespace CruSibyl.Web.Models;
+namespace CruSibyl.Web.Table.Models;
 
 public class TableQueryParams
 {

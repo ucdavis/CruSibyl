@@ -1,4 +1,4 @@
-namespace CruSibyl.Web.Models;
+namespace CruSibyl.Web.Table.Models;
 
 // We have a separate, non-generic class, since razor views don't support generic type params
 public class TableModel

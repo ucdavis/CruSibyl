@@ -1,11 +1,11 @@
-@using CruSibyl.Web.Models
+@using CruSibyl.Web.Table.Models
 @model TableModel
 
 <tbody id="table-body">
 @foreach (var item in Model.Data)
 {
     <tr>
-        @foreach (var column in Model.Columns)
+        @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
         {
             <td>
                 @if (!string.IsNullOrEmpty(column.CellPartialView))

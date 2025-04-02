@@ -1,8 +1,8 @@
-@using CruSibyl.Web.Models
+@using CruSibyl.Web.Table.Models
 @model TableModel
 
 <tr id="table-header">
-    @foreach (var column in Model.Columns)
+    @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
     {
         var isCurrentSort = Model.Query.SortColumn == column.Header;
         var nextSortDirection = isCurrentSort && Model.Query.SortDirection == "asc" ? "desc" : "asc";

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
@@ -9,6 +10,7 @@ using CruSibyl.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -196,6 +198,24 @@ try
     }
 
     appBuilder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Authentication"));
+
+    // table-related code and views are stored under one folder, so let razor know where to find them...
+    appBuilder.Services.Configure<RazorViewEngineOptions>(options =>
+    {
+        var existingLocations = options.ViewLocationFormats.ToList();
+        foreach (var location in existingLocations)
+        {
+            var adjustedLocation = Regex.Replace(location, @"^/Views/", "/Table/Views/");
+            options.ViewLocationFormats.Add(adjustedLocation);
+        }
+
+    // Debugging: Log the final list of view locations
+    Console.WriteLine($"IsReadonly: {options.ViewLocationFormats.IsReadOnly}");
+    foreach (var location in options.ViewLocationFormats)
+    {
+        Console.WriteLine($"View location registered: {location}");
+    }        
+    });
 
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();

@@ -1,4 +1,4 @@
-@using CruSibyl.Web.Models
+@using CruSibyl.Web.Table.Models
 @model TableModel
 
 <div id="table-container">
@@ -7,7 +7,7 @@
         <thead>
             @await Html.PartialAsync("_TableHeader", Model)
             <tr>
-                @foreach (var column in Model.Columns)
+                @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
                 {
                     <th>
                         @if (column.Filterable)
