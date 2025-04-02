@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Web.Table;
 
+
+/// <summary>
+/// Abstracts the process of creating a <see cref="TableModel<typeparamref name="T"/>"/>
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public class TableModelBuilder<T> where T : class
 {
     private readonly IQueryable<T> _queryable;
@@ -16,6 +21,13 @@ public class TableModelBuilder<T> where T : class
         _queryParams = queryParams;
     }
 
+    /// <summary>
+    /// Adds a TableColumnModel configured to be used as a value selector
+    /// </summary>
+    /// <param name="header"></param>
+    /// <param name="selector"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
     public TableModelBuilder<T> AddSelectorColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
     {
         var builder = new ColumnModelBuilder<T>(header);
@@ -25,6 +37,13 @@ public class TableModelBuilder<T> where T : class
         return this;
     }
 
+    /// <summary>
+    /// Adds a TableColumnModel configured to be used as a hidden column
+    /// </summary>
+    /// <param name="header"></param>
+    /// <param name="selector"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
     public TableModelBuilder<T> AddHiddenColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
     {
         var builder = new ColumnModelBuilder<T>(header);
@@ -37,6 +56,12 @@ public class TableModelBuilder<T> where T : class
         return this;
     }
 
+    /// <summary>
+    /// Adds a TableColumnModel configured to be used as a display column
+    /// </summary>
+    /// <param name="header"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
     public TableModelBuilder<T> AddDisplayColumn(string header, Action<ColumnModelBuilder<T>>? configure = null)
     {
         var builder = new ColumnModelBuilder<T>(header);
@@ -47,6 +72,14 @@ public class TableModelBuilder<T> where T : class
         return this;
     }
 
+    /// <summary>
+    /// Uses the given columns and query params to extend the given queryable for appropriate
+    /// filtering and sorting, and then executes the query twice; once with .CountAsync() so that
+    /// PageCount can be calculated, and once with pagination applied.
+    /// </summary>
+    /// <returns>
+    /// A fully configured <see cref="TableModel<typeparamref name="T"/>"/>  that's ready to be passed to a view
+    /// </returns>
     public async Task<TableModel<T>> BuildAsync()
     {
         var query = _queryable;

@@ -43,12 +43,12 @@ public class TableColumnModel<T> : ITableColumnModel where T : class
     public string? FilterPartialView { get; set; } // Custom rendering for filter
 
     /// <summary>
-    /// A delegate that extends filtering of a <see cref="IQueryable&lt;T&gt;"/>  using a single value comparison
+    /// A delegate that extends filtering of a <see cref="IQueryable<typeparamref name="T"/>"/>   using a single value comparison
     /// </summary>
     public Func<IQueryable<T>, string, IQueryable<T>>? Filter { get; set; }
 
     /// <summary>
-    /// A delegate that extends filtering of a <see cref="IQueryable&lt;T&gt;"/>  using a two value range comparison
+    /// A delegate that extends filtering of a <see cref="IQueryable<typeparamref name="T"/>"/>  using a two value range comparison
     /// </summary>
     public Func<IQueryable<T>, string, string, IQueryable<T>>? RangeFilter { get; set; }
 
