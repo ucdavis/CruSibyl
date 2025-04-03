@@ -2,6 +2,7 @@
 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using CruSibyl.Core.Extensions;
@@ -39,8 +40,9 @@ public class GitHubService : IGitHubService
 
     Task<GitHubClient> GetGitHubClient()
     {
-        // implementing as Task in case we have to do auth in the future
-        return Task.FromResult(new GitHubClient(new ProductHeaderValue("YourAppName")));
+        var gitHubClient = new GitHubClient(new ProductHeaderValue("YourAppName"));
+        gitHubClient.Credentials = new Credentials(_settings.AccessToken);
+        return Task.FromResult(gitHubClient);
     }
 
     static async Task<List<ManifestData>> GetCSProjManifests(GitHubClient client, string owner, string repo)
@@ -113,7 +115,9 @@ public class GitHubService : IGitHubService
     static async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
         var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
-        return contents.FirstOrDefault()?.Content ?? string.Empty;
+        var content = contents.FirstOrDefault()?.Content ?? string.Empty;
+        // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
+        return content.TrimStart('\uFEFF');
     }
 
     static List<Dependency> ExtractCsprojDependencies(XDocument xmlDoc)
