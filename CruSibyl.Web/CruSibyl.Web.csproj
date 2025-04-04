@@ -12,9 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FastExpressionCompiler" Version="5.0.3" />
-    <PackageReference Include="Htmx" Version="1.8.1" />
-    <PackageReference Include="Htmx.TagHelpers" Version="1.8.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,18 +22,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CruSibyl.Core\CruSibyl.Core.csproj" />
+    <ProjectReference Include="..\Htmx.Components\Htmx.Components.csproj" />
   </ItemGroup>
 
   <!-- Only run build:css when cshtml files have been edited -->
   <PropertyGroup>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
+    <!-- Use project reference if Table project exists -->
+    <HtmxProjectDir>../Htmx.Components</HtmxProjectDir>
+    <HtmxViews Condition="Exists('$(HtmxProjectDir)/Views')">$(HtmxProjectDir)/Views</HtmxViews>
   </PropertyGroup>
   <ItemGroup>
     <TailwindSources Include="Views/**/*.cshtml" />
-    <TailwindSources Include="Table/Views/**/*.cshtml" />
+    <TailwindSources Include="$(HtmxViews)/**/*.cshtml" Condition="Exists('$(HtmxViews)')" />
   </ItemGroup>
-  <Target Name="BuildTailwind" BeforeTargets="Build" 
-        Inputs="@(TailwindSources)" Outputs="$(TailwindOutputFile)">
+  <Target Name="BuildTailwind" BeforeTargets="Build" Inputs="@(TailwindSources)" Outputs="$(TailwindOutputFile)">
     <Exec Command="cd Tools &amp;&amp; npm run build:css" />
   </Target>
 

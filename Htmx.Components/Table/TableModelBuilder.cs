@@ -1,8 +1,8 @@
 using System.Linq.Expressions;
-using CruSibyl.Web.Table.Models;
+using Htmx.Components.Table.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace CruSibyl.Web.Table;
+namespace Htmx.Components.Table;
 
 
 /// <summary>

@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
 
-namespace CruSibyl.Web.Table.Models;
+namespace Htmx.Components.Table.Models;
 
 // We have a non-generic interface, since razor views don't support generic type params
 public interface ITableColumnModel

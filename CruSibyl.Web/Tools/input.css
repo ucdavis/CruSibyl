@@ -1,3 +1,4 @@
 @import "tailwindcss" source(none);
 @source "../{Views,wwwroot}/**/*.{html,cshtml}";
+@source "../../Htmx.Components/Views/**/*.{html,cshtml}";
 @plugin "daisyui";
