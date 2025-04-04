@@ -15,12 +15,15 @@ namespace CruSibyl.Core.Migrations.Sqlite
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.14");
 
             modelBuilder.Entity("CruSibyl.Core.Domain.Dependency", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("IsDevDependency")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ManifestId")

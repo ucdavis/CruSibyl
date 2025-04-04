@@ -7,6 +7,7 @@ namespace CruSibyl.Core.Domain;
 [Index(nameof(RepoId), nameof(FilePath), IsUnique = true)]
 public class Manifest
 {
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
 
     [Required]

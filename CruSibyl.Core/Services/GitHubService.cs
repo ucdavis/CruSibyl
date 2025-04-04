@@ -120,10 +120,10 @@ public class GitHubService : IGitHubService
         return content.TrimStart('\uFEFF');
     }
 
-    static List<Dependency> ExtractCsprojDependencies(XDocument xmlDoc)
+    static List<DependencyData> ExtractCsprojDependencies(XDocument xmlDoc)
     {
         return xmlDoc.Descendants("PackageReference")
-                     .Select(p => new Dependency
+                     .Select(p => new DependencyData
                      {
                          Name = p.Attribute("Include")?.Value ?? "Unknown",
                          Version = p.Attribute("Version")?.Value ?? "Unknown"
@@ -131,14 +131,14 @@ public class GitHubService : IGitHubService
                      .ToList();
     }
 
-    static List<Dependency> ExtractNPMDependencies(JsonDocument doc)
+    static List<DependencyData> ExtractNPMDependencies(JsonDocument doc)
     {
-        var packages = new List<Dependency>();
+        var packages = new List<DependencyData>();
         if (doc.RootElement.TryGetProperty("dependencies", out var dependencies))
         {
             foreach (var property in dependencies.EnumerateObject())
             {
-                packages.Add(new Dependency
+                packages.Add(new DependencyData
                 {
                     Name = property.Name,
                     Version = property.Value.GetString() ?? "Unknown",
@@ -150,7 +150,7 @@ public class GitHubService : IGitHubService
         {
             foreach (var property in devDependencies.EnumerateObject())
             {
-                packages.Add(new Dependency
+                packages.Add(new DependencyData
                 {
                     Name = property.Name,
                     Version = property.Value.GetString() ?? "Unknown",
@@ -167,10 +167,10 @@ public class ManifestData
     public string Platform { get; set; } = "";
     public string PlatformVersion { get; set; } = "";
     public string Path { get; set; } = "";
-    public List<Dependency> Dependencies { get; set; } = new();
+    public List<DependencyData> Dependencies { get; set; } = new();
 }
 
-public class Dependency
+public class DependencyData
 {
     public string Name { get; set; } = "Unknown";
     public string Version { get; set; } = "Unknown";
