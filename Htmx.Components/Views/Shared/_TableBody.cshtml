@@ -10,7 +10,8 @@
             <td>
                 @if (!string.IsNullOrEmpty(column.CellPartialView))
                 {
-                    @await Html.PartialAsync(column.CellPartialView, column.GetValue(item))
+                    var cellModel = new TableCellPartialModel { Row = item, Column = column };
+                    @await Html.PartialAsync(column.CellPartialView, cellModel)
                 }
                 else
                 {

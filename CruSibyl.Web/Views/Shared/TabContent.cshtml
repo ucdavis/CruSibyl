@@ -1,0 +1,7 @@
+@{
+    ViewData["Title"] = "Tabbed App";
+}
+
+<div id="tab-content">
+    @await Html.PartialAsync(ViewData["InitialTabPartial"]?.ToString() ?? "FallbackPartial", ViewData["InitialTabModel"])
+</div>

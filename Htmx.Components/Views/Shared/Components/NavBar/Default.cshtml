@@ -1,0 +1,81 @@
+@using Htmx.Components.Action
+@model IActionSet
+
+<nav id="navbar" class="navbar bg-base-100 shadow-md rounded-box px-4">
+    <div class="flex-1">
+        <a class="text-xl font-bold">MyApp</a>
+    </div>
+    <div class="flex-none gap-2">
+        <ul class="menu menu-horizontal px-1">
+            @foreach (var item in Model.Items)
+            {
+                if (item is ActionModel actionModel)
+                {
+                    <li>
+                        <a 
+                           @(string.IsNullOrEmpty(actionModel.CssClass) ? "" : $"class=\"{actionModel.CssClass}\"")
+                           @foreach (var attr in actionModel.Attributes)
+                           {
+                               @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
+                           }>
+                            @if (!string.IsNullOrEmpty(actionModel.Icon))
+                            {
+                                <i class="model.Icon"></i>
+                                <span class="ml-1">@actionModel.Label</span>
+                            }
+                            else
+                            {
+                                @item.Label
+                            }
+                        </a>
+                    </li>
+                }
+                else if (item is ActionGroup group)
+                {
+                    <li>
+                        <details>
+                            <summary 
+                                @(string.IsNullOrEmpty(group.CssClass) ? "" : $"class=\"{group.CssClass}\"")>
+                                @if (!string.IsNullOrEmpty(group.Icon))
+                                {
+                                    <i class="@group.Icon"></i>
+                                    <span class="ml-1">@group.Label</span>
+                                }
+                                else
+                                {
+                                    @group.Label
+                                }
+                            </summary>
+                            <ul class="p-2 bg-base-100 z-50">
+                                @foreach (var sub in group.Items)
+                                {
+                                    if (sub is ActionModel subModel)
+                                    {
+                                        <li>
+                                            <a 
+                                               @(string.IsNullOrEmpty(subModel.CssClass) ? "" : $"class=\"{subModel.CssClass}\"")
+                                               @foreach (var attr in subModel.Attributes)
+                                               {
+                                                   @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
+                                               }>
+                                                @if (!string.IsNullOrEmpty(subModel.Icon))
+                                                {
+                                                    <i class="@subModel.Icon"></i>
+                                                    <span class="ml-1">@subModel.Label</span>
+                                                }
+                                                else
+                                                {
+                                                    @subModel.Label
+                                                }
+                                            </a>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </details>
+                    </li>
+                }
+            }
+        </ul>
+    </div>
+</nav>

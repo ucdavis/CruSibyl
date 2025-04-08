@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
+using Htmx.Components.Action;
 
 namespace Htmx.Components.Table.Models;
 
@@ -12,9 +13,15 @@ public interface ITableColumnModel
     public bool IsHidden { get; set; }
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
+    IEnumerable<ActionModel> GetActions(object item);
     object GetValue(object item);  // Extracts value dynamically
 }
 
+public class TableCellPartialModel
+{
+    public required object Row { get; init; }
+    public required ITableColumnModel Column { get; init; }
+}
 
 public class TableColumnModel<T> : ITableColumnModel where T : class
 {
@@ -51,6 +58,20 @@ public class TableColumnModel<T> : ITableColumnModel where T : class
     /// A delegate that extends filtering of a <see cref="IQueryable<typeparamref name="T"/>"/>  using a two value range comparison
     /// </summary>
     public Func<IQueryable<T>, string, string, IQueryable<T>>? RangeFilter { get; set; }
+
+    /// <summary>
+    /// A delegate that generates one or more <see cref="ActionModel"/>s that can be mapped to buttons in a view
+    /// </summary>
+    public Func<T, IEnumerable<ActionModel>> ActionsFactory { get; set; } = _ => [];
+
+    public IEnumerable<ActionModel> GetActions(object item)
+    {
+        if (item is T typedItem)
+        {
+            return ActionsFactory(typedItem);
+        }
+        return [];
+    }
 
     // Implement the interface method for non-generic use
     public object GetValue(object item)

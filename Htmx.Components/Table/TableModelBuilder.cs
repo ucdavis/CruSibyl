@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Htmx.Components.Action;
 using Htmx.Components.Table.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -202,6 +203,12 @@ public class ColumnModelBuilder<T> where T : class
     public ColumnModelBuilder<T> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
     {
         Column.RangeFilter = rangeFilter;
+        return this;
+    }
+
+    public ColumnModelBuilder<T> WithActions(Func<T, IEnumerable<ActionModel>> actionsFactory)
+    {
+        Column.ActionsFactory = actionsFactory;
         return this;
     }
 

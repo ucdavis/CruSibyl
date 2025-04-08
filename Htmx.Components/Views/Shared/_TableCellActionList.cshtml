@@ -1,0 +1,20 @@
+@using Htmx.Components.Table.Models
+@using Htmx.Components.Action
+
+@model TableCellPartialModel
+
+@foreach (var action in Model.Column.GetActions(Model.Row))
+{
+    <button
+        class="btn btn-sm @action.CssClass"
+        @foreach (var attr in action.Attributes)
+        {
+            @($"{attr.Key}=\"{attr.Value}\"")
+        }>
+        @if (!string.IsNullOrWhiteSpace(action.Icon))
+        {
+            <i class="@action.Icon"></i>
+        }
+        @action.Label
+    </button>
+}

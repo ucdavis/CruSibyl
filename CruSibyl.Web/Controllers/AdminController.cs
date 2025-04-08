@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Htmx.Components.Table;
+using Htmx.Components.Action;
+using Htmx;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -20,7 +22,20 @@ public class AdminController : TabController
         _dbContext = dbContext;
     }
 
-    public IActionResult Index() => HandleTabRequest("_Content");
+    public async Task<IActionResult> Index()
+    {
+        TableModel<Repo> tableModel = await GetData(new TableQueryParams()
+        {
+            PageSize = 2
+        });
+
+        if (Request.IsHtmx())
+        {
+            return await HtmxOobHelper.WithUpdatedNavbar("_Table", tableModel.ToNonGeneric());
+        }
+
+        return RenderInitialTabContent("_Table", tableModel.ToNonGeneric());
+    }
 
     public async Task<IActionResult> LoadTable()
     {
@@ -49,6 +64,29 @@ public class AdminController : TabController
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
             .AddSelectorColumn("Description", x => x.Description!)
+            .AddDisplayColumn("Actions", col =>
+            {
+                col.WithActions(row => new[]
+                {
+                    new ActionModelBuilder()
+                        .WithLabel("Edit")
+                        .WithIcon("edit")
+                        .WithHxGet($"/items/edit/{row.Id}")
+                        .WithHxTarget("#modal")
+                        .WithHxSwap("innerHTML")
+                        .Build(),
+
+                    new ActionModelBuilder()
+                        .WithLabel("Delete")
+                        .WithIcon("trash")
+                        .WithClass("text-red-600") // TODO: tailwind won't pick up stuff like this
+                        .WithHxPost($"/items/delete/{row.Id}")
+                        .WithHxTarget("closest tr")
+                        .WithHxSwap("outerHTML")
+                        .Build()
+                })
+                .WithCellPartial("_TableCellActionList");
+            })
             .BuildAsync();
 
         return tableModel;

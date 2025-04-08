@@ -1,8 +1,10 @@
+using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Mvc.ViewComponents;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,9 +14,6 @@ namespace Htmx.Components.Results;
 /// <summary>
 /// Returns multple htmx views within a single response
 /// </summary>
-/// <remarks>
-/// Requires the htmx multi-swap extension. <see cref="https://v1.htmx.org/extensions/multi-swap/"/>
-/// </remarks>
 public class MultiSwapViewResult : IActionResult
 {
     private readonly (string PartialView, object Model)[] _views;
@@ -30,13 +29,39 @@ public class MultiSwapViewResult : IActionResult
         response.ContentType = "text/html";
 
         var writer = new StringWriter();
-        foreach (var (partialView, model) in _views)
+        foreach (var (viewName, model) in _views)
         {
-            var content = await RenderPartialViewToString(context, partialView, model);
+            string content;
+
+            // Try to determine if the view is a view component or a regular view
+            if (IsViewComponent(context, viewName))
+            {
+                content = await RenderViewComponentToString(context, viewName, model);
+            }
+            else
+            {
+                content = await RenderPartialViewToString(context, viewName, model);
+            }
+
             writer.Write(AddHxSwapToOuterElement(content.Trim()));
         }
 
         await response.WriteAsync(writer.ToString());
+    }
+
+    private static bool IsViewComponent(ActionContext context, string viewName)
+    {
+        // Try to resolve the view name to a view component
+        try
+        {
+            var viewComponentSelector = context.HttpContext.RequestServices.GetRequiredService<IViewComponentSelector>();
+            return viewComponentSelector.SelectComponent(viewName) != null;
+        }
+        catch
+        {
+            // If resolving fails, it's a regular view
+            return false;
+        }
     }
 
     private static string AddHxSwapToOuterElement(string html)
@@ -90,4 +115,42 @@ public class MultiSwapViewResult : IActionResult
         return sw.ToString();
     }
 
+    private static async Task<string> RenderViewComponentToString(ActionContext context, string viewComponentName, object arguments)
+    {
+        var httpContext = context.HttpContext;
+
+        var viewComponentHelper = httpContext.RequestServices.GetRequiredService<IViewComponentHelper>();
+
+        // Contextualize the helper so it knows about the current request
+        if (viewComponentHelper is IViewContextAware viewContextAware)
+        {
+            var viewData = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+            {
+                Model = null // you can pass in a real model if needed
+            };
+
+            var tempDataProvider = httpContext.RequestServices.GetRequiredService<ITempDataProvider>();
+            var tempData = new TempDataDictionary(httpContext, tempDataProvider);
+
+            using var sw = new StringWriter();
+            var viewContext = new ViewContext(context, NullView.Instance, viewData, tempData, sw, new HtmlHelperOptions());
+
+            viewContextAware.Contextualize(viewContext);
+
+            var content = await viewComponentHelper.InvokeAsync(viewComponentName, arguments);
+            content.WriteTo(sw, HtmlEncoder.Default);
+            return sw.ToString();
+        }
+
+        throw new InvalidOperationException("ViewComponentHelper does not implement IViewContextAware.");
+    }
+}
+
+
+public class NullView : IView
+{
+    public static readonly NullView Instance = new();
+    public string Path => "NullView";
+
+    public Task RenderAsync(ViewContext context) => Task.CompletedTask;
 }

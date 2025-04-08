@@ -7,6 +7,8 @@ using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
+using Htmx.Components;
+using Htmx.Components.Action;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -69,9 +71,40 @@ try
 
     // Add services to the container.
 
+    appBuilder.Services.AddBuilderNavProvider(context =>
+    {
+        var path = context.HttpContext.Request.Path.ToString();
+
+        var navBuilder = new ActionSetBuilder()
+            .AddModel(m => m
+                .WithLabel("Home")
+                .WithIcon("fas fa-home")
+                .WithHxGet("/Dashboard")
+                .WithHxTarget("#tab-content")
+                .WithHxSwap("outerHTML")
+                .WithHxPushUrl())
+
+            .AddGroup(g => g
+                .WithLabel("Admin")
+                .WithIcon("fas fa-cogs")
+                .AddModel(m => m
+                    .WithLabel("Repos")
+                    .WithHxGet("/Admin")
+                    .WithHxTarget("#tab-content")
+                    .WithHxSwap("outerHTML")
+                    .WithHxPushUrl()));
+
+        return Task.FromResult(navBuilder);
+    });
+
     appBuilder.Services.AddControllersWithViews(options =>
     {
         options.Filters.Add<SerilogControllerActionFilter>();
+    }).AddRazorOptions(options =>
+    {
+        // Add view locations for Razor Class Libraries or other custom directories
+        options.ViewLocationFormats.Add("/Views/{1}/{0}.cshtml");
+        options.ViewLocationFormats.Add("/Views/Shared/{0}.cshtml");
     });
     appBuilder.Services.AddEndpointsApiExplorer();
     appBuilder.Services.AddSwaggerGen();
@@ -202,6 +235,8 @@ try
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddHttpContextAccessor();
+
+    appBuilder.Services.AddHtmxComponents();
 
     WebApplication app = null!;
 
