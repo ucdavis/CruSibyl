@@ -16,11 +16,48 @@ namespace Htmx.Components.Results;
 /// </summary>
 public class MultiSwapViewResult : IActionResult
 {
-    private readonly (string PartialView, object Model)[] _views;
+    private (string PartialView, object Model)? _main;
+    private readonly List<(string PartialView, object Model)> _oobs = new();
 
-    public MultiSwapViewResult(params (string PartialView, object Model)[] views)
+    public MultiSwapViewResult()
+    { }
+
+    protected MultiSwapViewResult(
+        (string PartialView, object Model)? main = null,
+        params (string PartialView, object Model)[] oobs)
     {
-        _views = views;
+        _main = main;
+        _oobs.AddRange(oobs);
+    }
+
+    public MultiSwapViewResult WithMainContent(string viewName, object model)
+    {
+        _main = (viewName, model);
+        return this;
+    }
+
+    public MultiSwapViewResult WithMainContent((string viewName, object model) main)
+    {
+        _main = main;
+        return this;
+    }
+
+    public MultiSwapViewResult WithOobContent(string viewName, object model)
+    {
+        _oobs.Add((viewName, model));
+        return this;
+    }
+
+    public MultiSwapViewResult WithOobContent((string viewName, object model) oob)
+    {
+        _oobs.Add(oob);
+        return this;
+    }
+
+    public MultiSwapViewResult WithOobContent(IEnumerable<(string viewName, object model)> oobList)
+    {
+        _oobs.AddRange(oobList);
+        return this;
     }
 
     public async Task ExecuteResultAsync(ActionContext context)
@@ -29,25 +66,33 @@ public class MultiSwapViewResult : IActionResult
         response.ContentType = "text/html";
 
         var writer = new StringWriter();
-        foreach (var (viewName, model) in _views)
+
+        // Render main view without OOB wrapping
+        if (_main is not null)
         {
-            string content;
+            var (mainViewName, mainModel) = _main.Value;
+            string mainHtml = await RenderViewSmart(context, mainViewName, mainModel);
+            writer.WriteLine(mainHtml.Trim());
+        }
 
-            // Try to determine if the view is a view component or a regular view
-            if (IsViewComponent(context, viewName))
-            {
-                content = await RenderViewComponentToString(context, viewName, model);
-            }
-            else
-            {
-                content = await RenderPartialViewToString(context, viewName, model);
-            }
-
-            writer.Write(AddHxSwapToOuterElement(content.Trim()));
+        // Render OOB views
+        foreach (var (viewName, model) in _oobs)
+        {
+            string html = await RenderViewSmart(context, viewName, model);
+            string wrapped = AddHxSwapToOuterElement(html.Trim());
+            writer.WriteLine(wrapped);
         }
 
         await response.WriteAsync(writer.ToString());
     }
+
+    private static Task<string> RenderViewSmart(ActionContext context, string viewName, object model)
+    {
+        return IsViewComponent(context, viewName)
+            ? RenderViewComponentToString(context, viewName, model)
+            : RenderPartialViewToString(context, viewName, model);
+    }
+
 
     private static bool IsViewComponent(ActionContext context, string viewName)
     {

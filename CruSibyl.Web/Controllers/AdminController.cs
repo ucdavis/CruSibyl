@@ -31,7 +31,10 @@ public class AdminController : TabController
 
         if (Request.IsHtmx())
         {
-            return await HtmxOobHelper.WithUpdatedNavbar("_Table", tableModel.ToNonGeneric());
+            return await HtmxResultBuilder
+                .WithUpdatedNavbar()
+                .WithUpdatedNavContent("_Table", tableModel.ToNonGeneric())
+                .BuildAsync();
         }
 
         return RenderInitialTabContent("_Table", tableModel.ToNonGeneric());

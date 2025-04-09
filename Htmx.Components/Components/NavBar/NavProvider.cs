@@ -9,6 +9,12 @@ public interface INavProvider
     Task<IActionSet> BuildAsync(ActionContext context);
 }
 
+
+/// <summary>
+/// A default INavProvider that builds it's IActionSet via a given builderFactory delegate
+/// </summary> <summary>
+/// 
+/// </summary>
 public class BuilderBasedNavProvider : INavProvider
 {
     private readonly IActionContextAccessor _actionContextAccessor;

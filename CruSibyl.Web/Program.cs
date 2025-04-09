@@ -71,30 +71,33 @@ try
 
     // Add services to the container.
 
-    appBuilder.Services.AddBuilderNavProvider(context =>
+    appBuilder.Services.AddHtmxComponents(config =>
     {
-        var path = context.HttpContext.Request.Path.ToString();
+        config.WithNavBuilder(context =>
+        {
+            var path = context.HttpContext.Request.Path.ToString();
 
-        var navBuilder = new ActionSetBuilder()
-            .AddModel(m => m
-                .WithLabel("Home")
-                .WithIcon("fas fa-home")
-                .WithHxGet("/Dashboard")
-                .WithHxTarget("#tab-content")
-                .WithHxSwap("outerHTML")
-                .WithHxPushUrl())
-
-            .AddGroup(g => g
-                .WithLabel("Admin")
-                .WithIcon("fas fa-cogs")
+            var navBuilder = new ActionSetBuilder()
                 .AddModel(m => m
-                    .WithLabel("Repos")
-                    .WithHxGet("/Admin")
-                    .WithHxTarget("#tab-content")
-                    .WithHxSwap("outerHTML")
-                    .WithHxPushUrl()));
+                    .WithLabel("Home")
+                    .WithIcon("fas fa-home")
+                    .WithHxGet("/Dashboard")
+                    // .WithHxTarget("#tab-content")
+                    // .WithHxSwap("outerHTML")
+                    .WithHxPushUrl())
 
-        return Task.FromResult(navBuilder);
+                .AddGroup(g => g
+                    .WithLabel("Admin")
+                    .WithIcon("fas fa-cogs")
+                    .AddModel(m => m
+                        .WithLabel("Repos")
+                        .WithHxGet("/Admin")
+                        // .WithHxTarget("#tab-content")
+                        // .WithHxSwap("outerHTML")
+                        .WithHxPushUrl()));
+
+            return Task.FromResult(navBuilder);
+        });
     });
 
     appBuilder.Services.AddControllersWithViews(options =>
@@ -236,7 +239,6 @@ try
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddHttpContextAccessor();
 
-    appBuilder.Services.AddHtmxComponents();
 
     WebApplication app = null!;
 

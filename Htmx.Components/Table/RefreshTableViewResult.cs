@@ -10,6 +10,7 @@ namespace Htmx.Components.Table;
 public class RefreshTableViewResult : MultiSwapViewResult
 {
     public RefreshTableViewResult(TableModel tableModel) : base(
+            main: null,
             ("_TableBody", tableModel),
             ("_TablePagination", tableModel),
             ("_TableHeader", tableModel)

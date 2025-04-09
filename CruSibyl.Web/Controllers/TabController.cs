@@ -8,8 +8,7 @@ namespace CruSibyl.Web.Controllers;
 
 public abstract class TabController : Controller
 {
-    protected HtmxOobHelper HtmxOobHelper => HttpContext.RequestServices.GetRequiredService<HtmxOobHelper>();
-    protected INavProvider NavProvider => HttpContext.RequestServices.GetRequiredService<INavProvider>();
+    protected HtmxResultBuilder HtmxResultBuilder => HttpContext.RequestServices.GetRequiredService<HtmxResultBuilder>();
 
     public IActionResult RenderInitialTabContent(string partialName, object model)
     {
