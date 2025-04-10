@@ -82,8 +82,6 @@ try
                     .WithLabel("Home")
                     .WithIcon("fas fa-home")
                     .WithHxGet("/Dashboard")
-                    // .WithHxTarget("#tab-content")
-                    // .WithHxSwap("outerHTML")
                     .WithHxPushUrl())
 
                 .AddGroup(g => g
@@ -92,8 +90,6 @@ try
                     .AddModel(m => m
                         .WithLabel("Repos")
                         .WithHxGet("/Admin")
-                        // .WithHxTarget("#tab-content")
-                        // .WithHxSwap("outerHTML")
                         .WithHxPushUrl()));
 
             return Task.FromResult(navBuilder);
