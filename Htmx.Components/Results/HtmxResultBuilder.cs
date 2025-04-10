@@ -47,16 +47,10 @@ public class HtmxResultBuilder
         return this;
     }
 
-    public HtmxResultBuilder WithUpdatedNavbar(string navComponentName = "NavBar")
+    public HtmxResultBuilder WithOobNavbar(string navComponentName = "NavBar")
     {
         _partials.Add(GetNavbarPartial(navComponentName));
         return this;
-    }
-
-    public HtmxResultBuilder WithUpdatedNavContent(string contentPartialView, object contentModel, string navComponentName = "NavBar")
-    {
-        WithContent(contentPartialView, contentModel);
-        return WithUpdatedNavbar(navComponentName);
     }
 
     public async Task<MultiSwapViewResult> BuildAsync()
@@ -80,10 +74,10 @@ public class HtmxResultBuilder
         return result;
     }
 
-    private Task<(string PartialView, object Model)> GetNavbarPartial(string navComponentName)
+    private async Task<(string PartialView, object Model)> GetNavbarPartial(string navComponentName)
     {
-        return _navProvider.BuildAsync(_actionContextAccessor.GetValidActionContext())
-                           .ContinueWith(t => (navComponentName, (object)new { Nav = t.Result }));
+        var nav = await _navProvider.BuildAsync(_actionContextAccessor.GetValidActionContext());
+        return (navComponentName, new { Nav = nav });
     }
 
 }

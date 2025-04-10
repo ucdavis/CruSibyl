@@ -32,12 +32,12 @@ public class AdminController : TabController
         if (Request.IsHtmx())
         {
             return await HtmxResultBuilder
-                .WithUpdatedNavbar()
-                .WithUpdatedNavContent("_Table", tableModel.ToNonGeneric())
+                .WithOobNavbar()
+                .WithOob("_Content", tableModel.ToNonGeneric())
                 .BuildAsync();
         }
 
-        return RenderInitialTabContent("_Table", tableModel.ToNonGeneric());
+        return RenderInitialTabContent("_Content", tableModel.ToNonGeneric());
     }
 
     public async Task<IActionResult> LoadTable()

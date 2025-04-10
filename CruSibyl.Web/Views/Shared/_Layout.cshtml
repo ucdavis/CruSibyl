@@ -33,14 +33,17 @@
         
         @await Component.InvokeAsync("NavBar")
         
-        <main id="tab-content">
+        <main id="tab-content" class="px-4">
             @RenderBody()  @* Initial content - first tab loads by default *@
         </main>
     </div>
 
-    <footer class="container text-center footer">
-        <p>Copyright &copy; <span id="copywrite-year"></span> The Regents of the University of California, Davis campus.
-            All rights reserved. <br> <a href="https://wiki.cse.ucdavis.edu/support/contact/home" target="_blank">Questions? Contact Us</a></p> 
+    <footer class="bg-gray-800 text-white p-4 text-center fixed bottom-0 w-full">
+      <p class="text-sm">
+        Copyright &copy; <span id="copywrite-year"></span> The Regents of the University of California, Davis campus.
+        All rights reserved. <br>
+        <a href="https://wiki.cse.ucdavis.edu/support/contact/home" target="_blank" class="text-blue-400 hover:underline">Questions? Contact Us</a>
+      </p>
     </footer>
 
 

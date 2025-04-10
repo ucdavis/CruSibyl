@@ -10,8 +10,8 @@ public class DashboardController : TabController
         if (Request.IsHtmx())
         {
             return await HtmxResultBuilder
-                .WithUpdatedNavbar()
-                .WithUpdatedNavContent("_Content", new { })
+                .WithOobNavbar()
+                .WithOob("_Content", new { })
                 .BuildAsync();
         }
 

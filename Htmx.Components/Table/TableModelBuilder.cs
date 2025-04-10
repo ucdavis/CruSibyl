@@ -90,6 +90,8 @@ public class TableModelBuilder<T> where T : class
 
         var totalCount = await query.CountAsync();
         var pageCount = (int)Math.Ceiling((double)totalCount / _queryParams.PageSize);
+        // make sure we're not trying to exceed the available pages
+        _queryParams.Page = Math.Min(_queryParams.Page, pageCount);
         var pagedData = await query
             .Skip((_queryParams.Page - 1) * _queryParams.PageSize)
             .Take(_queryParams.PageSize)
