@@ -12,14 +12,12 @@ namespace Htmx.Components.Table;
 /// <typeparam name="T"></typeparam>
 public class TableModelBuilder<T> where T : class
 {
-    private readonly IQueryable<T> _queryable;
-    private readonly TableQueryParams _queryParams;
     private readonly List<TableColumnModel<T>> _columns = new();
+    private readonly TableViewPaths _paths;
 
-    public TableModelBuilder(IQueryable<T> query, TableQueryParams queryParams)
+    internal TableModelBuilder(TableViewPaths paths)
     {
-        _queryable = query;
-        _queryParams = queryParams;
+        _paths = paths;
     }
 
     /// <summary>
@@ -31,7 +29,7 @@ public class TableModelBuilder<T> where T : class
     /// <returns></returns>
     public TableModelBuilder<T> AddSelectorColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header);
+        var builder = new ColumnModelBuilder<T>(header, _paths);
         builder.Column.SelectorExpression = selector;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
@@ -47,7 +45,7 @@ public class TableModelBuilder<T> where T : class
     /// <returns></returns>
     public TableModelBuilder<T> AddHiddenColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header);
+        var builder = new ColumnModelBuilder<T>(header, _paths);
         builder.Column.SelectorExpression = selector;
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
@@ -65,7 +63,7 @@ public class TableModelBuilder<T> where T : class
     /// <returns></returns>
     public TableModelBuilder<T> AddDisplayColumn(string header, Action<ColumnModelBuilder<T>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header);
+        var builder = new ColumnModelBuilder<T>(header, _paths);
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
         configure?.Invoke(builder);
@@ -81,20 +79,19 @@ public class TableModelBuilder<T> where T : class
     /// <returns>
     /// A fully configured <see cref="TableModel<typeparamref name="T"/>"/>  that's ready to be passed to a view
     /// </returns>
-    public async Task<TableModel<T>> BuildAsync()
+    internal async Task<TableModel<T>> BuildAsync(IQueryable<T> query, TableQueryParams queryParams)
     {
-        var query = _queryable;
-        query = ApplyFiltering(query);
-        query = ApplyRangeFiltering(query);
-        query = ApplySorting(query);
+        query = ApplyFiltering(query, queryParams);
+        query = ApplyRangeFiltering(query, queryParams);
+        query = ApplySorting(query, queryParams);
 
         var totalCount = await query.CountAsync();
-        var pageCount = (int)Math.Ceiling((double)totalCount / _queryParams.PageSize);
+        var pageCount = (int)Math.Ceiling((double)totalCount / queryParams.PageSize);
         // make sure we're not trying to exceed the available pages
-        _queryParams.Page = Math.Min(_queryParams.Page, pageCount);
+        queryParams.Page = Math.Min(queryParams.Page, pageCount);
         var pagedData = await query
-            .Skip((_queryParams.Page - 1) * _queryParams.PageSize)
-            .Take(_queryParams.PageSize)
+            .Skip((queryParams.Page - 1) * queryParams.PageSize)
+            .Take(queryParams.PageSize)
             .ToListAsync();
 
         return new TableModel<T>
@@ -102,17 +99,17 @@ public class TableModelBuilder<T> where T : class
             Data = pagedData,
             Columns = _columns,
             PageCount = pageCount,
-            Query = _queryParams
+            Query = queryParams
         };
     }
 
-    private IQueryable<T> ApplyRangeFiltering(IQueryable<T> queryable)
+    private IQueryable<T> ApplyRangeFiltering(IQueryable<T> queryable, TableQueryParams queryParams)
     {
         // Find and pass any query param range filter values to their corresponding column range filter delegate
         // to apply it to the query
-        if (_queryParams.RangeFilters != null)
+        if (queryParams.RangeFilters != null)
         {
-            foreach (var rangeFilter in _queryParams.RangeFilters.Where(f => !string.IsNullOrWhiteSpace(f.Value.Min)
+            foreach (var rangeFilter in queryParams.RangeFilters.Where(f => !string.IsNullOrWhiteSpace(f.Value.Min)
                     && !string.IsNullOrWhiteSpace(f.Value.Max)))
             {
                 var column = _columns.FirstOrDefault(c => c.Header == rangeFilter.Key);
@@ -126,36 +123,36 @@ public class TableModelBuilder<T> where T : class
         return queryable;
     }
 
-    private IQueryable<T> ApplyFiltering(IQueryable<T> queryable)
+    private IQueryable<T> ApplyFiltering(IQueryable<T> query, TableQueryParams queryParams)
     {
         // Find and pass any query param filter values to their corresponding column filter delegate
         // to apply it to the query
-        if (_queryParams.Filters != null)
+        if (queryParams.Filters != null)
         {
-            foreach (var filter in _queryParams.Filters.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
+            foreach (var filter in queryParams.Filters.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
             {
                 var column = _columns.FirstOrDefault(c => c.Header == filter.Key);
                 if (column?.Filter != null)
                 {
-                    queryable = column.Filter(queryable, filter.Value);
+                    query = column.Filter(query, filter.Value);
                 }
             }
         }
 
-        return queryable;
+        return query;
     }
 
-    private IQueryable<T> ApplySorting(IQueryable<T> queryable)
+    private IQueryable<T> ApplySorting(IQueryable<T> query, TableQueryParams queryParams)
     {
         // In order for pagination to be consistent, we need to always define a sort.
-        if (!string.IsNullOrEmpty(_queryParams.SortColumn))
+        if (!string.IsNullOrEmpty(queryParams.SortColumn))
         {
-            var column = _columns.FirstOrDefault(c => c.Header == _queryParams.SortColumn);
+            var column = _columns.FirstOrDefault(c => c.Header == queryParams.SortColumn);
             if (column != null)
             {
-                queryable = _queryParams.SortDirection == "asc"
-                    ? queryable.OrderBy(column.SelectorExpression)
-                    : queryable.OrderByDescending(column.SelectorExpression);
+                query = queryParams.SortDirection == "asc"
+                    ? query.OrderBy(column.SelectorExpression)
+                    : query.OrderByDescending(column.SelectorExpression);
             }
         }
         else
@@ -164,19 +161,22 @@ public class TableModelBuilder<T> where T : class
             var column = _columns.FirstOrDefault(c => c.SelectorExpression != null);
             if (column == null)
                 throw new InvalidOperationException("No selector column found for default sorting.");
-            queryable = queryable.OrderBy(column.SelectorExpression);
+            query = query.OrderBy(column.SelectorExpression);
         }
 
-        return queryable;
+        return query;
     }
 }
 
 public class ColumnModelBuilder<T> where T : class
 {
     internal readonly TableColumnModel<T> Column = new();
+    private readonly TableViewPaths _paths;
 
-    public ColumnModelBuilder(string header)
+    internal ColumnModelBuilder(string header, TableViewPaths paths)
     {
+        _paths = paths;
+
         Column.Header = header;
         // Default to Sortable and Filterable being true
         Column.Sortable = true;
@@ -204,13 +204,23 @@ public class ColumnModelBuilder<T> where T : class
 
     public ColumnModelBuilder<T> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
     {
+        //TODO: not tested and probably won't work. need to figure out how to support different column types
         Column.RangeFilter = rangeFilter;
+        Column.Filterable = true;
+        if (string.IsNullOrWhiteSpace(Column.FilterPartialView))
+        {
+            Column.FilterPartialView = _paths.FilterDateRange;
+        }
         return this;
     }
 
     public ColumnModelBuilder<T> WithActions(Func<T, IEnumerable<ActionModel>> actionsFactory)
     {
         Column.ActionsFactory = actionsFactory;
+        if (string.IsNullOrWhiteSpace(Column.CellPartialView))
+        {
+            Column.CellPartialView = _paths.CellActionList;
+        }
         return this;
     }
 

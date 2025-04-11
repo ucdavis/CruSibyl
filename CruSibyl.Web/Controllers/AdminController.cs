@@ -16,10 +16,12 @@ namespace CruSibyl.Web.Controllers;
 public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
+    private readonly ITableProvider _tableProvider;
 
-    public AdminController(AppDbContext dbContext)
+    public AdminController(AppDbContext dbContext, ITableProvider tableProvider)
     {
         _dbContext = dbContext;
+        _tableProvider = tableProvider;
     }
 
     public async Task<IActionResult> Index()
@@ -37,7 +39,7 @@ public class AdminController : TabController
                 .BuildAsync();
         }
 
-        return RenderInitialTabContent("_Content", tableModel.ToNonGeneric());
+        return RenderInitialMainContent("_Content", tableModel.ToNonGeneric());
     }
 
     public async Task<IActionResult> LoadTable()
@@ -62,7 +64,7 @@ public class AdminController : TabController
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 
-        var tableModel = await new TableModelBuilder<Repo>(queryable, query)
+        var tableModel = await _tableProvider.BuildAsync(queryable, query, config => config
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
@@ -87,10 +89,8 @@ public class AdminController : TabController
                         .WithHxTarget("closest tr")
                         .WithHxSwap("outerHTML")
                         .Build()
-                })
-                .WithCellPartial("_TableCellActionList");
-            })
-            .BuildAsync();
+                });
+            }));
 
         return tableModel;
     }

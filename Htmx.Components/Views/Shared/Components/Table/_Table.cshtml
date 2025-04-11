@@ -5,7 +5,7 @@
     <form>
     <table class="table w-full">
         <thead>
-            @await Html.PartialAsync("_TableHeader", Model)
+            @await Html.PartialAsync((string)ViewData["HeaderPartial"]!, Model)
             <tr>
                 @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
                 {
@@ -18,16 +18,16 @@
                             }
                             else
                             {
-                                @await Html.PartialAsync("_TableFilterText", column)
+                                @await Html.PartialAsync((string)ViewData["FilterTextPartial"]!, column)
                             }
                         }
                     </th>
                 }
             </tr>
         </thead>
-        @await Html.PartialAsync("_TableBody", Model)
+        @await Html.PartialAsync((string)ViewData["BodyPartial"]!, Model)
     </table>
 
-    @await Html.PartialAsync("_TablePagination", Model)
+    @await Html.PartialAsync((string)ViewData["PaginationPartial"]!, Model)
     </form>
  </div>

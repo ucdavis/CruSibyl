@@ -1,5 +1,7 @@
 using Htmx.Components.Action;
 using Htmx.Components.NavBar;
+using Htmx.Components.Table;
+using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -15,9 +17,16 @@ public static class ServiceCollectionExtensions
         services.AddSafeActionContextAccessor(nameof(AddHtmxComponents));
         services.AddHttpContextAccessor();
         services.AddTransient<HtmxResultBuilder>();
+        services.Configure<RazorViewEngineOptions>(options =>
+        {
+            options.ViewLocationFormats.Add("/Views/Shared/Components/Table/{0}.cshtml");
+        });
 
         var options = new HtmxComponentOptions();
         configure?.Invoke(options);
+
+        services.AddSingleton(options.TableViews);
+        services.AddScoped<ITableProvider, TableProvider>();
 
         if (options.NavBuilderFactory is not null)
         {
@@ -28,9 +37,10 @@ public static class ServiceCollectionExtensions
             });
         }
 
-        return services;    }
+        return services;
+    }
 
-    public static IServiceCollection AddSafeActionContextAccessor(this IServiceCollection services, 
+    public static IServiceCollection AddSafeActionContextAccessor(this IServiceCollection services,
         string extensionMethodName = nameof(AddSafeActionContextAccessor))
     {
         // IActionContextAccessor needs to be registered prior to MVC infrastructure in order to be properly initialized.
@@ -59,10 +69,17 @@ public static class ServiceCollectionExtensions
 public class HtmxComponentOptions
 {
     internal Func<ActionContext, Task<ActionSetBuilder>>? NavBuilderFactory { get; private set; }
+    internal TableViewPaths TableViews { get; } = new();
 
     public HtmxComponentOptions WithNavBuilder(Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
     {
         NavBuilderFactory = builderFactory;
+        return this;
+    }
+
+    public HtmxComponentOptions WithTableOverrides(Action<TableViewPaths> configure)
+    {
+        configure(TableViews);
         return this;
     }
 }

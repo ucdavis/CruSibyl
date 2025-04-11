@@ -99,12 +99,8 @@ try
     appBuilder.Services.AddControllersWithViews(options =>
     {
         options.Filters.Add<SerilogControllerActionFilter>();
-    }).AddRazorOptions(options =>
-    {
-        // Add view locations for Razor Class Libraries or other custom directories
-        options.ViewLocationFormats.Add("/Views/{1}/{0}.cshtml");
-        options.ViewLocationFormats.Add("/Views/Shared/{0}.cshtml");
     });
+
     appBuilder.Services.AddEndpointsApiExplorer();
     appBuilder.Services.AddSwaggerGen();
     appBuilder.Services.AddAuthentication(options =>

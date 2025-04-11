@@ -15,6 +15,6 @@ public class DashboardController : TabController
                 .BuildAsync();
         }
 
-        return RenderInitialTabContent("_Content", new { });
+        return RenderInitialMainContent("_Content", new { });
     }
 }

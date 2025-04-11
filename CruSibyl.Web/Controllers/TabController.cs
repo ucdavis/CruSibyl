@@ -10,10 +10,10 @@ public abstract class TabController : Controller
 {
     protected HtmxResultBuilder HtmxResultBuilder => HttpContext.RequestServices.GetRequiredService<HtmxResultBuilder>();
 
-    public IActionResult RenderInitialTabContent(string partialName, object model)
+    public IActionResult RenderInitialMainContent(string partialName, object model)
     {
-        ViewData["InitialTabPartial"] = partialName;
-        ViewData["InitialTabModel"] = model;
-        return View("TabContent");
+        ViewData["InitialMainPartial"] = partialName;
+        ViewData["InitialMainModel"] = model;
+        return View("MainContent");
     }
 }
