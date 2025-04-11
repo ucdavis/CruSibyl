@@ -2,20 +2,20 @@
 @model TableModel
 
 <tbody id="table-body">
-@foreach (var item in Model.Data)
+@foreach (var rowContext in Model.Data)
 {
-    <tr>
+    <tr id="@rowContext.RowId">
         @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
         {
             <td>
                 @if (!string.IsNullOrEmpty(column.CellPartialView))
                 {
-                    var cellModel = new TableCellPartialModel { Row = item, Column = column };
+                    var cellModel = new TableCellPartialModel { Row = rowContext, Column = column };
                     @await Html.PartialAsync(column.CellPartialView, cellModel)
                 }
                 else
                 {
-                    @(column.GetValue(item))
+                    @(column.GetValue(rowContext.Item))
                 }
             </td>
         }

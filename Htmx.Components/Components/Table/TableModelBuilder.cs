@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
+using FastExpressionCompiler;
 using Htmx.Components.Action;
+using Htmx.Components.Extensions;
 using Htmx.Components.Table.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,10 +16,20 @@ public class TableModelBuilder<T> where T : class
 {
     private readonly List<TableColumnModel<T>> _columns = new();
     private readonly TableViewPaths _paths;
+    private List<Expression<Func<T, object>>> _idSelectors = new();
 
     internal TableModelBuilder(TableViewPaths paths)
     {
         _paths = paths;
+    }
+
+    /// <summary>
+    /// Specifies what properties should be used to uniquely identify a row
+    /// </summary>
+    public TableModelBuilder<T> WithIdFields(params Expression<Func<T, object>>[] selectors)
+    {
+        _idSelectors = selectors.ToList();
+        return this;
     }
 
     /// <summary>
@@ -96,7 +108,17 @@ public class TableModelBuilder<T> where T : class
 
         return new TableModel<T>
         {
-            Data = pagedData,
+            Data = pagedData.Select((item, index) =>
+            {
+                var keys = _idSelectors.ToDictionary(sel => sel.GetPropertyName(), sel => sel.CompileFast()(item));
+                return new TableRowContext<T>
+                {
+                    Item = item,
+                    RowId = "row_" + string.Join("_", keys.Values),
+                    PageIndex = 0,
+                    Keys = keys
+                };
+            }).ToList(),
             Columns = _columns,
             PageCount = pageCount,
             Query = queryParams

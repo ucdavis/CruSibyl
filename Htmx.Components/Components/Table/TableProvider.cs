@@ -1,4 +1,7 @@
+using Htmx.Components.Results;
 using Htmx.Components.Table.Models;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Htmx.Components.Table;
 
@@ -9,9 +12,10 @@ public interface ITableProvider
             TableQueryParams queryParams,
             Action<TableModelBuilder<T>> config)
             where T : class;
+    IActionResult RefreshView(TableModel tableModel);
 }
 
-public class TableProvider: ITableProvider
+public class TableProvider : ITableProvider
 {
     private readonly TableViewPaths _paths;
 
@@ -30,5 +34,13 @@ public class TableProvider: ITableProvider
         config.Invoke(tableModelBuilder);
         var tableModel = await tableModelBuilder.BuildAsync(query, queryParams);
         return tableModel;
+    }
+
+    public IActionResult RefreshView(TableModel tableModel)
+    {
+        return new MultiSwapViewResult()
+            .WithOobContent(_paths.Body, tableModel)
+            .WithOobContent(_paths.Pagination, tableModel)
+            .WithOobContent(_paths.Header, tableModel);
     }
 }

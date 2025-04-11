@@ -13,13 +13,14 @@ public interface ITableColumnModel
     public bool IsHidden { get; set; }
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
+    public string? CellEditPartialView { get; set; }
     IEnumerable<ActionModel> GetActions(object item);
     object GetValue(object item);  // Extracts value dynamically
 }
 
 public class TableCellPartialModel
 {
-    public required object Row { get; init; }
+    public required ITableRowContext Row { get; init; }
     public required ITableColumnModel Column { get; init; }
 }
 
@@ -48,6 +49,7 @@ public class TableColumnModel<T> : ITableColumnModel where T : class
     public bool IsHidden { get; set; } = false;
     public string? CellPartialView { get; set; } // Custom rendering for cell
     public string? FilterPartialView { get; set; } // Custom rendering for filter
+    public string? CellEditPartialView { get; set; }
 
     /// <summary>
     /// A delegate that extends filtering of a <see cref="IQueryable<typeparamref name="T"/>"/>   using a single value comparison

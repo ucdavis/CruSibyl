@@ -57,7 +57,7 @@ public class AdminController : TabController
     {
         var tableModel = (await GetData(query)).ToNonGeneric();
 
-        return new RefreshTableViewResult(tableModel);
+        return _tableProvider.RefreshView(tableModel);
     }
 
     private async Task<TableModel<Repo>> GetData(TableQueryParams query)
