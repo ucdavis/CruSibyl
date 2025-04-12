@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build:css": "npx tailwindcss -i input.css -o site.css --minify && npx ncp site.css ../wwwroot/css/site.css",
-    "watch:css": "npx tailwindcss -i input.css -o site.css --watch"
+    "build:findcss": "node extract-classes.js",
+    "build:css": "npm run build:findcss && npx tailwindcss -i input.css -o site.css --minify && npx ncp site.css ../wwwroot/css/site.css",
+    "watch:css": "npm run build:findcss && npx tailwindcss -i input.css -o site.css --watch"
   },
   "keywords": [],
   "author": "",
