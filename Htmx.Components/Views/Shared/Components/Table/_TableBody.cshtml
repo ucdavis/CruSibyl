@@ -4,21 +4,10 @@
 <tbody id="table-body">
 @foreach (var rowContext in Model.Data)
 {
-    <tr id="@rowContext.RowId">
-        @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
-        {
-            <td>
-                @if (!string.IsNullOrEmpty(column.CellPartialView))
-                {
-                    var cellModel = new TableCellPartialModel { Row = rowContext, Column = column };
-                    @await Html.PartialAsync(column.CellPartialView, cellModel)
-                }
-                else
-                {
-                    @(column.GetValue(rowContext))
-                }
-            </td>
-        }
-    </tr>
+    // individual rows are split out into separate view in order to support single-row editing  
+    @if (!string.IsNullOrEmpty(Model.TableViewPaths.Row))
+    {
+      @await Html.PartialAsync(Model.TableViewPaths.Row, (Model, rowContext))
+    }
 }
 </tbody>

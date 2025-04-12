@@ -42,29 +42,40 @@ public class AdminController : TabController
         return RenderInitialMainContent("_Content", tableModel.ToNonGeneric());
     }
 
-    public async Task<IActionResult> LoadTable()
+    public async Task<IActionResult> EditRepo(int key)
     {
-        TableModel<Repo, int> tableModel = await GetData(new TableQueryParams()
+        var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
+        var tableModel = _tableProvider.Build(r => r.Id, GetRepoConfig());
+        tableModel.Data.Add(new TableRowContext<Repo, int>
         {
-            PageSize = 2
+            Item = repo,
+            Key = key,
+            IsEditing = true
         });
 
-        return PartialView("_Table", tableModel.ToNonGeneric());
-    }
+        return _tableProvider.RefreshEditViews(tableModel.ToNonGeneric());
 
+    }
 
     public async Task<IActionResult> LoadData([FromQuery] TableQueryParams query)
     {
         var tableModel = (await GetData(query)).ToNonGeneric();
 
-        return _tableProvider.RefreshView(tableModel);
+        return _tableProvider.RefreshAllViews(tableModel);
     }
 
     private async Task<TableModel<Repo, int>> GetData(TableQueryParams query)
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 
-        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, config => config
+        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetRepoConfig());
+
+        return tableModel;
+    }
+
+    private static Action<TableModelBuilder<Repo, int>> GetRepoConfig()
+    {
+        return config => config
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
@@ -72,23 +83,35 @@ public class AdminController : TabController
             .AddDisplayColumn("Actions", col =>
             {
                 col.WithActions(row =>
+                row.IsEditing ?
+                [
+                    new ActionModelBuilder()
+                        .WithLabel("Save")
+                        //.WithIcon("trash")
+                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
+                        .Build(),
+
+                    new ActionModelBuilder()
+                        .WithLabel("Cancel")
+                        //.WithIcon("trash")
+                        .WithHxPost($"/Admin/ReloadRepo?key={row.Key}")
+                        .Build()
+                ]
+                :
                 [
                     new ActionModelBuilder()
                         .WithLabel("Edit")
                         .WithIcon("edit")
-                        .WithHxGet($"/Admin/EditRepo?key={row.Key}&rowId={row.RowId}")
+                        .WithHxGet($"/Admin/EditRepo?key={row.Key}")
                         .Build(),
 
                     new ActionModelBuilder()
                         .WithLabel("Delete")
                         .WithIcon("trash")
                         .WithClass("text-red-600") // TODO: tailwind won't pick up stuff like this
-                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}&rowId={row.RowId}")
+                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
                         .Build()
                 ]);
-            }));
-
-        return tableModel;
+            });
     }
-
 }

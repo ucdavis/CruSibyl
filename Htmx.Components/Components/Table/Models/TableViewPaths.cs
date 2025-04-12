@@ -11,4 +11,5 @@ public class TableViewPaths
     public string Pagination { get; set; } = "_TablePagination";
     public string CellEditText { get; set; } = "_TableCellEditText";
     public string HiddenValues { get; set; } = "_TableHiddenValues";
+    public string Row { get; set; } = "_TableRow";
 }

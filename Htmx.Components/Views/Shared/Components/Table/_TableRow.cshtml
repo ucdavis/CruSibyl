@@ -1,0 +1,19 @@
+@using Htmx.Components.Table.Models
+@model (TableModel table, ITableRowContext row)
+
+<tr id="@Model.row.RowId">
+    @foreach (var column in Model.table.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
+    {
+        <td>
+            @if (!string.IsNullOrEmpty(column.CellPartialView))
+            {
+                var cellModel = new TableCellPartialModel { Row = Model.row, Column = column };
+                @await Html.PartialAsync(column.CellPartialView, cellModel)
+            }
+            else
+            {
+                @(column.GetValue(Model.row))
+            }
+        </td>
+    }
+</tr>

@@ -1,5 +1,6 @@
 @using Htmx.Components.Table.Models
 @using Htmx.Components.Action
+@using System.Text.Encodings.Web
 
 @model TableCellPartialModel
 
@@ -9,7 +10,8 @@
         class="btn btn-sm @action.CssClass"
         @foreach (var attr in action.Attributes)
         {
-            @($"{attr.Key}=\"{attr.Value}\"")
+            var encodedValue = HtmlEncoder.Default.Encode(attr.Value);
+            @Html.Raw($"{attr.Key}=\"{encodedValue}\"")
         }>
         @if (!string.IsNullOrWhiteSpace(action.Icon))
         {

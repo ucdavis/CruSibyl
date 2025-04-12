@@ -1,6 +1,7 @@
 @using Htmx.Components.Table.Models
 @model TableModel
 
+
 <div id="table-hidden-values">
   @{
     var editRow = Model.Data.Where(r => r.IsEditing).SingleOrDefault();

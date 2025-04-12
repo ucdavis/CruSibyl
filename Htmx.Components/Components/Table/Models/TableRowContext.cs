@@ -16,7 +16,7 @@ public class TableRowContext<T, TKey> : ITableRowContext
 {
     public required T Item { get; init; }
     public string RowId => "row_" + _stringKey.SanitizeForHtmlId();
-    public required int PageIndex { get; init; } // Row's index within current page
+    public int PageIndex { get; set; } = 0; // Row's index within current page
     private TKey _key = default!;
     public required TKey Key
     {
