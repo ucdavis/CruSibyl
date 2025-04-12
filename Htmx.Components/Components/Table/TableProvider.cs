@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Htmx.Components.Results;
 using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Http;
@@ -7,11 +8,18 @@ namespace Htmx.Components.Table;
 
 public interface ITableProvider
 {
-    Task<TableModel<T>> BuildAsync<T>(
-            IQueryable<T> query,
-            TableQueryParams queryParams,
-            Action<TableModelBuilder<T>> config)
-            where T : class;
+    TableModel<T, TKey> Build<T, TKey>(
+        Expression<Func<T, TKey>> keySelector,
+        Action<TableModelBuilder<T, TKey>> config)
+        where T : class;
+
+    Task<TableModel<T, TKey>> BuildAndFetchPage<T, TKey>(
+        Expression<Func<T, TKey>> keySelector,
+        IQueryable<T> query,
+        TableQueryParams queryParams,
+        Action<TableModelBuilder<T, TKey>> config)
+        where T : class;
+
     IActionResult RefreshView(TableModel tableModel);
 }
 
@@ -24,15 +32,27 @@ public class TableProvider : ITableProvider
         _paths = paths;
     }
 
-    public async Task<TableModel<T>> BuildAsync<T>(
-        IQueryable<T> query,
-        TableQueryParams queryParams,
-        Action<TableModelBuilder<T>> config)
+    public TableModel<T, TKey> Build<T, TKey>(
+        Expression<Func<T, TKey>> keySelector,
+        Action<TableModelBuilder<T, TKey>> config)
         where T : class
     {
-        var tableModelBuilder = new TableModelBuilder<T>(_paths);
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(keySelector, _paths);
         config.Invoke(tableModelBuilder);
-        var tableModel = await tableModelBuilder.BuildAsync(query, queryParams);
+        var tableModel = tableModelBuilder.Build();
+        return tableModel;
+    }
+
+    public async Task<TableModel<T, TKey>> BuildAndFetchPage<T, TKey>(
+        Expression<Func<T, TKey>> keySelector,
+        IQueryable<T> query,
+        TableQueryParams queryParams,
+        Action<TableModelBuilder<T, TKey>> config)
+        where T : class
+    {
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(keySelector, _paths);
+        config.Invoke(tableModelBuilder);
+        var tableModel = await tableModelBuilder.BuildAndFetchPage(query, queryParams);
         return tableModel;
     }
 

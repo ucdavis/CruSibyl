@@ -1,3 +1,6 @@
+using System.Text.Json;
+using Htmx.Components.Extensions;
+
 namespace Htmx.Components.Table.Models;
 
 public interface ITableRowContext
@@ -5,14 +8,28 @@ public interface ITableRowContext
     object Item { get; }
     string RowId { get; } // E.g., "row_5f3e"
     int PageIndex { get; } // Row's index within current page
-    Dictionary<string, object> Keys { get; } // ID fields
+    string Key { get; }
 }
 
-public class TableRowContext<T> : ITableRowContext
+public class TableRowContext<T, TKey> : ITableRowContext
 {
     public required T Item { get; init; }
-    public required string RowId { get; init; } // E.g., "row_5f3e"
+    public string RowId => "row_" + _stringKey.SanitizeForHtmlId();
     public required int PageIndex { get; init; } // Row's index within current page
-    public Dictionary<string, object> Keys { get; init; } = new(); // ID fields
+    private TKey _key = default!;
+    public required TKey Key
+    {
+        get => _key;
+        init
+        {
+            _key = value;
+            _stringKey = JsonSerializer.Serialize(value);
+        }
+    }
+
+    private string _stringKey = "";
+    string ITableRowContext.Key => _stringKey;
     object ITableRowContext.Item => Item!;
+
+
 }

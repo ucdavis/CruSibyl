@@ -9,10 +9,10 @@ public class TableModel
     public TableQueryParams Query { get; set; } = new TableQueryParams();    
 }
 
-public class TableModel<T> where T : class
+public class TableModel<T, TKey> where T : class
 {
-    public List<TableRowContext<T>> Data { get; set; } = new();
-    public List<TableColumnModel<T>> Columns { get; set; } = new();
+    public List<TableRowContext<T, TKey>> Data { get; set; } = new();
+    public List<TableColumnModel<T, TKey>> Columns { get; set; } = new();
     public int PageCount { get; set; } = 1;
     public TableQueryParams Query { get; set; } = new TableQueryParams();    
 

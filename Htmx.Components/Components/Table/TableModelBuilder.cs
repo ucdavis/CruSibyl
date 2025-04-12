@@ -12,25 +12,18 @@ namespace Htmx.Components.Table;
 /// Abstracts the process of creating a <see cref="TableModel<typeparamref name="T"/>"/>
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class TableModelBuilder<T> where T : class
+public class TableModelBuilder<T, TKey> where T : class
 {
-    private readonly List<TableColumnModel<T>> _columns = new();
+    private readonly List<TableColumnModel<T, TKey>> _columns = new();
     private readonly TableViewPaths _paths;
-    private List<Expression<Func<T, object>>> _idSelectors = new();
+    private Expression<Func<T, TKey>> _keySelector;
 
-    internal TableModelBuilder(TableViewPaths paths)
+    internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths)
     {
+        _keySelector = keySelector;
         _paths = paths;
     }
 
-    /// <summary>
-    /// Specifies what properties should be used to uniquely identify a row
-    /// </summary>
-    public TableModelBuilder<T> WithIdFields(params Expression<Func<T, object>>[] selectors)
-    {
-        _idSelectors = selectors.ToList();
-        return this;
-    }
 
     /// <summary>
     /// Adds a TableColumnModel configured to be used as a value selector
@@ -39,9 +32,10 @@ public class TableModelBuilder<T> where T : class
     /// <param name="selector"></param>
     /// <param name="configure"></param>
     /// <returns></returns>
-    public TableModelBuilder<T> AddSelectorColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
+    public TableModelBuilder<T, TKey> AddSelectorColumn(string header, Expression<Func<T, object>> selector, 
+        Action<ColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header, _paths);
+        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.SelectorExpression = selector;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
@@ -55,9 +49,10 @@ public class TableModelBuilder<T> where T : class
     /// <param name="selector"></param>
     /// <param name="configure"></param>
     /// <returns></returns>
-    public TableModelBuilder<T> AddHiddenColumn(string header, Expression<Func<T, object>> selector, Action<ColumnModelBuilder<T>>? configure = null)
+    public TableModelBuilder<T, TKey> AddHiddenColumn(string header, Expression<Func<T, object>> selector, 
+        Action<ColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header, _paths);
+        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.SelectorExpression = selector;
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
@@ -73,14 +68,25 @@ public class TableModelBuilder<T> where T : class
     /// <param name="header"></param>
     /// <param name="configure"></param>
     /// <returns></returns>
-    public TableModelBuilder<T> AddDisplayColumn(string header, Action<ColumnModelBuilder<T>>? configure = null)
+    public TableModelBuilder<T, TKey> AddDisplayColumn(string header, Action<ColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T>(header, _paths);
+        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
         return this;
+    }
+
+    /// <summary>
+    /// Returns a TableModel with the configured columns
+    /// </summary>
+    public TableModel<T, TKey> Build()
+    {
+        return new TableModel<T, TKey>
+        {
+            Columns = _columns,
+        };        
     }
 
     /// <summary>
@@ -91,7 +97,7 @@ public class TableModelBuilder<T> where T : class
     /// <returns>
     /// A fully configured <see cref="TableModel<typeparamref name="T"/>"/>  that's ready to be passed to a view
     /// </returns>
-    internal async Task<TableModel<T>> BuildAsync(IQueryable<T> query, TableQueryParams queryParams)
+    internal async Task<TableModel<T, TKey>> BuildAndFetchPage(IQueryable<T> query, TableQueryParams queryParams)
     {
         query = ApplyFiltering(query, queryParams);
         query = ApplyRangeFiltering(query, queryParams);
@@ -106,18 +112,20 @@ public class TableModelBuilder<T> where T : class
             .Take(queryParams.PageSize)
             .ToListAsync();
 
-        return new TableModel<T>
+        var keySelector = _keySelector.CompileFast();
+
+        return new TableModel<T, TKey>
         {
             Data = pagedData.Select((item, index) =>
             {
-                var keys = _idSelectors.ToDictionary(sel => sel.GetPropertyName(), sel => sel.CompileFast()(item));
-                return new TableRowContext<T>
+                var key = keySelector(item);
+                var rowContext = new TableRowContext<T, TKey>
                 {
                     Item = item,
-                    RowId = "row_" + string.Join("_", keys.Values),
                     PageIndex = 0,
-                    Keys = keys
+                    Key = key
                 };
+                return rowContext;
             }).ToList(),
             Columns = _columns,
             PageCount = pageCount,
@@ -190,9 +198,9 @@ public class TableModelBuilder<T> where T : class
     }
 }
 
-public class ColumnModelBuilder<T> where T : class
+public class ColumnModelBuilder<T, TKey> where T : class
 {
-    internal readonly TableColumnModel<T> Column = new();
+    internal readonly TableColumnModel<T, TKey> Column = new();
     private readonly TableViewPaths _paths;
 
     internal ColumnModelBuilder(string header, TableViewPaths paths)
@@ -205,26 +213,26 @@ public class ColumnModelBuilder<T> where T : class
         Column.Filterable = false;
     }
 
-    public ColumnModelBuilder<T> WithCellPartial(string cellPartial)
+    public ColumnModelBuilder<T, TKey> WithCellPartial(string cellPartial)
     {
         Column.CellPartialView = cellPartial;
         return this;
     }
 
-    public ColumnModelBuilder<T> WithFilterPartial(string filterPartial)
+    public ColumnModelBuilder<T, TKey> WithFilterPartial(string filterPartial)
     {
         Column.FilterPartialView = filterPartial;
         return this;
     }
 
-    public ColumnModelBuilder<T> WithFilter(Func<IQueryable<T>, string, IQueryable<T>> filter)
+    public ColumnModelBuilder<T, TKey> WithFilter(Func<IQueryable<T>, string, IQueryable<T>> filter)
     {
         Column.Filter = filter;
         Column.Filterable = true;
         return this;
     }
 
-    public ColumnModelBuilder<T> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
+    public ColumnModelBuilder<T, TKey> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
     {
         //TODO: not tested and probably won't work. need to figure out how to support different column types
         Column.RangeFilter = rangeFilter;
@@ -236,7 +244,7 @@ public class ColumnModelBuilder<T> where T : class
         return this;
     }
 
-    public ColumnModelBuilder<T> WithActions(Func<T, IEnumerable<ActionModel>> actionsFactory)
+    public ColumnModelBuilder<T, TKey> WithActions(Func<TableRowContext<T, TKey>, IEnumerable<ActionModel>> actionsFactory)
     {
         Column.ActionsFactory = actionsFactory;
         if (string.IsNullOrWhiteSpace(Column.CellPartialView))
@@ -246,7 +254,7 @@ public class ColumnModelBuilder<T> where T : class
         return this;
     }
 
-    public TableColumnModel<T> Build() => Column;
+    public TableColumnModel<T, TKey> Build() => Column;
 }
 
 

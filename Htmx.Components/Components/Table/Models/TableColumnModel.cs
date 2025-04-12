@@ -14,8 +14,8 @@ public interface ITableColumnModel
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
-    IEnumerable<ActionModel> GetActions(object item);
-    object GetValue(object item);  // Extracts value dynamically
+    IEnumerable<ActionModel> GetActions(ITableRowContext rowContext);
+    object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
 }
 
 public class TableCellPartialModel
@@ -24,7 +24,7 @@ public class TableCellPartialModel
     public required ITableColumnModel Column { get; init; }
 }
 
-public class TableColumnModel<T> : ITableColumnModel where T : class
+public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
 {
     private Expression<Func<T, object>> _selectorExpression = x => x!;
 
@@ -64,21 +64,21 @@ public class TableColumnModel<T> : ITableColumnModel where T : class
     /// <summary>
     /// A delegate that generates one or more <see cref="ActionModel"/>s that can be mapped to buttons in a view
     /// </summary>
-    public Func<T, IEnumerable<ActionModel>> ActionsFactory { get; set; } = _ => [];
+    public Func<TableRowContext<T, TKey>, IEnumerable<ActionModel>> ActionsFactory { get; set; } = _ => [];
 
-    public IEnumerable<ActionModel> GetActions(object item)
+    public IEnumerable<ActionModel> GetActions(ITableRowContext rowContext)
     {
-        if (item is T typedItem)
+        if (rowContext.Item is T typedItem)
         {
-            return ActionsFactory(typedItem);
+            return ActionsFactory((TableRowContext<T, TKey>)rowContext);
         }
         return [];
     }
 
     // Implement the interface method for non-generic use
-    public object GetValue(object item)
+    public object GetValue(ITableRowContext rowContext)
     {
-        if (item is T typedItem)
+        if (rowContext.Item is T typedItem)
         {
             return SelectorFunc(typedItem);
         }

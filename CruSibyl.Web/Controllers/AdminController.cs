@@ -26,7 +26,7 @@ public class AdminController : TabController
 
     public async Task<IActionResult> Index()
     {
-        TableModel<Repo> tableModel = await GetData(new TableQueryParams()
+        TableModel<Repo, int> tableModel = await GetData(new TableQueryParams()
         {
             PageSize = 2
         });
@@ -44,7 +44,7 @@ public class AdminController : TabController
 
     public async Task<IActionResult> LoadTable()
     {
-        TableModel<Repo> tableModel = await GetData(new TableQueryParams()
+        TableModel<Repo, int> tableModel = await GetData(new TableQueryParams()
         {
             PageSize = 2
         });
@@ -60,36 +60,32 @@ public class AdminController : TabController
         return _tableProvider.RefreshView(tableModel);
     }
 
-    private async Task<TableModel<Repo>> GetData(TableQueryParams query)
+    private async Task<TableModel<Repo, int>> GetData(TableQueryParams query)
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 
-        var tableModel = await _tableProvider.BuildAsync(queryable, query, config => config
+        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, config => config
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
             .AddSelectorColumn("Description", x => x.Description!)
             .AddDisplayColumn("Actions", col =>
             {
-                col.WithActions(row => new[]
-                {
+                col.WithActions(row =>
+                [
                     new ActionModelBuilder()
                         .WithLabel("Edit")
                         .WithIcon("edit")
-                        .WithHxGet($"/items/edit/{row.Id}")
-                        .WithHxTarget("#modal")
-                        .WithHxSwap("innerHTML")
+                        .WithHxGet($"/Admin/EditRepo?key={row.Key}&rowId={row.RowId}")
                         .Build(),
 
                     new ActionModelBuilder()
                         .WithLabel("Delete")
                         .WithIcon("trash")
                         .WithClass("text-red-600") // TODO: tailwind won't pick up stuff like this
-                        .WithHxPost($"/items/delete/{row.Id}")
-                        .WithHxTarget("closest tr")
-                        .WithHxSwap("outerHTML")
+                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}&rowId={row.RowId}")
                         .Build()
-                });
+                ]);
             }));
 
         return tableModel;
