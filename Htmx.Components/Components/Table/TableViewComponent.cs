@@ -20,6 +20,7 @@ public class TableViewComponent : ViewComponent
         ViewData["FilterTextPartial"] = _viewPaths.FilterText;
         ViewData["HeaderPartial"] = _viewPaths.Header;
         ViewData["PaginationPartial"] = _viewPaths.Pagination;
+        ViewData["HiddenValuesPartial"] = _viewPaths.HiddenValues;
 
         return View(_viewPaths.Table, model);
     }

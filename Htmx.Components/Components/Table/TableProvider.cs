@@ -61,6 +61,7 @@ public class TableProvider : ITableProvider
         return new MultiSwapViewResult()
             .WithOobContent(_paths.Body, tableModel)
             .WithOobContent(_paths.Pagination, tableModel)
-            .WithOobContent(_paths.Header, tableModel);
+            .WithOobContent(_paths.Header, tableModel)
+            .WithOobContent(_paths.HiddenValues, tableModel);
     }
 }

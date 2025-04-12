@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Text.Json;
 using FastExpressionCompiler;
 using Htmx.Components.Action;
 
@@ -10,12 +11,21 @@ public interface ITableColumnModel
     string Header { get; set; }
     bool Sortable { get; set; }
     bool Filterable { get; set; }
-    public bool IsHidden { get; set; }
+    bool Editable { get; set; }
+    ColumnType ColumnType { get; set; }
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
     IEnumerable<ActionModel> GetActions(ITableRowContext rowContext);
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
+    string GetSerializedValue(ITableRowContext rowContext);
+}
+
+public enum ColumnType
+{
+    ValueSelector,
+    Hidden,
+    Display
 }
 
 public class TableCellPartialModel
@@ -46,7 +56,8 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     public string Header { get; set; } = "";
     public bool Sortable { get; set; } = true;
     public bool Filterable { get; set; } = true;
-    public bool IsHidden { get; set; } = false;
+    public bool Editable { get; set; } = false;
+    public ColumnType ColumnType { get; set; }
     public string? CellPartialView { get; set; } // Custom rendering for cell
     public string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
@@ -83,5 +94,14 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
             return SelectorFunc(typedItem);
         }
         return string.Empty;
-    }    
+    }
+
+    public string GetSerializedValue(ITableRowContext rowContext)
+    {
+        if (rowContext.Item is T typedItem)
+        {
+            return JsonSerializer.Serialize(SelectorFunc(typedItem));
+        }
+        return string.Empty;
+    }
 }

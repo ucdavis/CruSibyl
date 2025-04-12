@@ -37,6 +37,7 @@ public class TableModelBuilder<T, TKey> where T : class
     {
         var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.SelectorExpression = selector;
+        builder.Column.ColumnType = ColumnType.ValueSelector;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
         return this;
@@ -56,7 +57,7 @@ public class TableModelBuilder<T, TKey> where T : class
         builder.Column.SelectorExpression = selector;
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
-        builder.Column.IsHidden = true;
+        builder.Column.ColumnType = ColumnType.Hidden;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
         return this;
@@ -73,6 +74,7 @@ public class TableModelBuilder<T, TKey> where T : class
         var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
+        builder.Column.ColumnType = ColumnType.Display;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
         return this;
@@ -222,6 +224,7 @@ public class ColumnModelBuilder<T, TKey> where T : class
     public ColumnModelBuilder<T, TKey> WithFilterPartial(string filterPartial)
     {
         Column.FilterPartialView = filterPartial;
+        Column.Editable = true;
         return this;
     }
 

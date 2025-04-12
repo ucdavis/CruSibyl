@@ -3,11 +3,12 @@
 
 <div id="table-container">
     <form>
+    @await Html.PartialAsync((string)ViewData["HiddenValuesPartial"]!, Model)
     <table class="table w-full">
         <thead>
             @await Html.PartialAsync((string)ViewData["HeaderPartial"]!, Model)
             <tr>
-                @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
+                @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
                 {
                     <th>
                         @if (column.Filterable)

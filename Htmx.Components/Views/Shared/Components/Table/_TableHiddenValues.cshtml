@@ -1,0 +1,20 @@
+@using Htmx.Components.Table.Models
+@model TableModel
+
+<div id="table-hidden-values">
+  @{
+    var editRow = Model.Data.Where(r => r.IsEditing).SingleOrDefault();
+    if (editRow != null)
+    {
+      // We want to have hidden inputs for every column that doesn't have an editable input.
+      // TODO: Automate creation of "shadow" ValueSelector columns that get replaced 
+      // as they're explicitly configured in order to guarantee all properties get passed
+      // with row data.
+      foreach (var column in Model.Columns.Where(c => 
+        c.ColumnType == ColumnType.Hidden || (c.ColumnType == ColumnType.ValueSelector && !c.Editable)))
+      {
+        <input type="hidden" name="row.Item.@column.Header" value="@column.GetSerializedValue(editRow)" />
+      }
+    }
+  }
+</div>

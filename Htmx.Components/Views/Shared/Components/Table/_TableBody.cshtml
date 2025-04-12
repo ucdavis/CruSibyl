@@ -5,7 +5,7 @@
 @foreach (var rowContext in Model.Data)
 {
     <tr id="@rowContext.RowId">
-        @foreach (var column in Model.Columns.Where(c => !c.IsHidden))
+        @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
         {
             <td>
                 @if (!string.IsNullOrEmpty(column.CellPartialView))

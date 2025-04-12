@@ -9,6 +9,7 @@ public interface ITableRowContext
     string RowId { get; } // E.g., "row_5f3e"
     int PageIndex { get; } // Row's index within current page
     string Key { get; }
+    bool IsEditing { get; }
 }
 
 public class TableRowContext<T, TKey> : ITableRowContext
@@ -26,6 +27,7 @@ public class TableRowContext<T, TKey> : ITableRowContext
             _stringKey = JsonSerializer.Serialize(value);
         }
     }
+    public bool IsEditing { get; set; }
 
     private string _stringKey = "";
     string ITableRowContext.Key => _stringKey;
