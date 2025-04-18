@@ -1,0 +1,4 @@
+@using Htmx.Components.Table.Models
+@model TableViewModel
+
+<div id="table-edit-class-toggle" class="@(Model.Data.Any(r => r.IsEditing) ? "editing-mode" : "")"></div>

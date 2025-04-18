@@ -1,13 +1,14 @@
 @using Htmx.Components.Table.Models
-@model TableModel
+@model TableViewModel
 
-<div id="table-container">
+<div id="table-container" class="relative">
+    @await Html.PartialAsync((string)ViewData["EditClassTogglePartial"]!, Model)
     <form>
     @await Html.PartialAsync((string)ViewData["HiddenValuesPartial"]!, Model)
     <table class="table w-full">
         <thead>
             @await Html.PartialAsync((string)ViewData["HeaderPartial"]!, Model)
-            <tr>
+            <tr id="table-filter-row">
                 @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
                 {
                     <th>

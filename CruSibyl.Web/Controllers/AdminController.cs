@@ -35,11 +35,11 @@ public class AdminController : TabController
         {
             return await HtmxResultBuilder
                 .WithOobNavbar()
-                .WithOob("_Content", tableModel.ToNonGeneric())
+                .WithOob("_Content", tableModel.ToViewModel())
                 .BuildAsync();
         }
 
-        return RenderInitialMainContent("_Content", tableModel.ToNonGeneric());
+        return RenderInitialMainContent("_Content", tableModel.ToViewModel());
     }
 
     public async Task<IActionResult> EditRepo(int key)
@@ -53,13 +53,27 @@ public class AdminController : TabController
             IsEditing = true
         });
 
-        return _tableProvider.RefreshEditViews(tableModel.ToNonGeneric());
-
+        return _tableProvider.RefreshEditViews(tableModel.ToViewModel());
     }
+
+    public async Task<IActionResult> ReloadRepo(int key)
+    {
+        var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
+        var tableModel = _tableProvider.Build(r => r.Id, GetRepoConfig());
+        tableModel.Data.Add(new TableRowContext<Repo, int>
+        {
+            Item = repo,
+            Key = key,
+            IsEditing = false
+        });
+        var viewModel = tableModel.ToViewModel();
+
+        return _tableProvider.RefreshEditViews(viewModel);
+    }    
 
     public async Task<IActionResult> LoadData([FromQuery] TableQueryParams query)
     {
-        var tableModel = (await GetData(query)).ToNonGeneric();
+        var tableModel = (await GetData(query)).ToViewModel();
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
@@ -94,7 +108,7 @@ public class AdminController : TabController
                     new ActionModelBuilder()
                         .WithLabel("Cancel")
                         //.WithIcon("trash")
-                        .WithHxPost($"/Admin/ReloadRepo?key={row.Key}")
+                        .WithHxGet($"/Admin/ReloadRepo?key={row.Key}")
                         .Build()
                 ]
                 :

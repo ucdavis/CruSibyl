@@ -21,8 +21,8 @@ public interface ITableProvider
         Action<TableModelBuilder<T, TKey>> config)
         where T : class;
 
-    IActionResult RefreshAllViews(TableModel tableModel);
-    IActionResult RefreshEditViews(TableModel tableModel);
+    IActionResult RefreshAllViews(TableViewModel tableModel);
+    IActionResult RefreshEditViews(TableViewModel tableModel);
 }
 
 public class TableProvider : ITableProvider
@@ -60,9 +60,10 @@ public class TableProvider : ITableProvider
         return tableModel;
     }
 
-    public IActionResult RefreshAllViews(TableModel tableModel)
+    public IActionResult RefreshAllViews(TableViewModel tableModel)
     {
         return new MultiSwapViewResult()
+            .WithOobContent(_paths.EditClassToggle, tableModel)
             .WithOobContent(_paths.Body, tableModel)
             .WithOobContent(_paths.Pagination, tableModel)
             .WithOobContent(_paths.Header, tableModel)
@@ -70,12 +71,16 @@ public class TableProvider : ITableProvider
     }
 
 
-    public IActionResult RefreshEditViews(TableModel tableModel)
+    public IActionResult RefreshEditViews(TableViewModel tableModel)
     {
-        var editRow = tableModel.Data.Where(r => r.IsEditing).SingleOrDefault();
+        if (tableModel.Data.Count != 1)
+        {
+            throw new InvalidOperationException("RefreshEditViews requires exactly one row of data.");
+        }
 
         return new MultiSwapViewResult()
+            .WithOobContent(_paths.EditClassToggle, tableModel)
             .WithOobContent(_paths.HiddenValues, tableModel)
-            .WithOobContent(_paths.Row, (tableModel, editRow));
+            .WithOobContent(_paths.Row, (tableModel, tableModel.Data[0]));
     }
 }

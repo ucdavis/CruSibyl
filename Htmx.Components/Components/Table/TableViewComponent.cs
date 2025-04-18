@@ -12,8 +12,9 @@ public class TableViewComponent : ViewComponent
         _viewPaths = viewPaths;
     }
 
-    public IViewComponentResult Invoke(TableModel model)
+    public IViewComponentResult Invoke(TableViewModel model)
     {
+        ViewData["EditClassTogglePartial"] = _viewPaths.EditClassToggle;
         ViewData["BodyPartial"] = _viewPaths.Body;
         ViewData["CellActionListPartial"] = _viewPaths.CellActionList;
         ViewData["FilterDateRangePartial"] = _viewPaths.FilterDateRange;

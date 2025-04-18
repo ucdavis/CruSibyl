@@ -1,7 +1,7 @@
 namespace Htmx.Components.Table.Models;
 
 // We have a separate, non-generic class, since razor views don't support generic type params
-public class TableModel
+public class TableViewModel
 {
     public List<ITableRowContext> Data { get; set; } = new();    
     public List<ITableColumnModel> Columns { get; set; } = new();
@@ -19,9 +19,9 @@ public class TableModel<T, TKey> where T : class
     public TableViewPaths TableViewPaths { get; set; } = new();
 
     // Converts to a non-generic TableModel for the view
-    public TableModel ToNonGeneric()
+    public TableViewModel ToViewModel()
     {
-        return new TableModel
+        return new TableViewModel
         {
             Data = Data.Cast<ITableRowContext>().ToList(),
             Columns = Columns.Cast<ITableColumnModel>().ToList(),

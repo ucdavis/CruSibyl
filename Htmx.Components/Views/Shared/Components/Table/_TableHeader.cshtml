@@ -1,5 +1,5 @@
 @using Htmx.Components.Table.Models
-@model TableModel
+@model TableViewModel
 
 <tr id="table-header">
     @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
