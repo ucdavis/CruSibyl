@@ -1,10 +1,11 @@
 @using Htmx.Components.Table.Models
-@model TableViewModel
+@model ITableModel
 
 <div id="table-container" class="relative">
     @await Html.PartialAsync((string)ViewData["EditClassTogglePartial"]!, Model)
     <form>
     @await Html.PartialAsync((string)ViewData["HiddenValuesPartial"]!, Model)
+    @await Html.PartialAsync((string)ViewData["TableActionListPartial"]!, Model)
     <table class="table w-full">
         <thead>
             @await Html.PartialAsync((string)ViewData["HeaderPartial"]!, Model)

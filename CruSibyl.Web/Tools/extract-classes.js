@@ -4,7 +4,7 @@ const path = require("path");
 const sourceDir = path.resolve(__dirname, ".."); // adjust if your .cs files live elsewhere
 const outputFile = path.join(__dirname, "tailwind.extra-classes.txt");
 
-const CLASS_PATTERN = /\.WithClass\s*\(\s*"([^"]*)"/g;
+const CLASS_PATTERN = /\.With(Class|Icon)\s*\(\s*"([^"]*)"/g;
 const STYLE_PATTERN = /\.WithStyle\s*\(\s*"([^"]*)"/g;
 
 function walk(dir, fileCallback) {

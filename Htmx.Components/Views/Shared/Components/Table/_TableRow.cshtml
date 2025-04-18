@@ -1,5 +1,5 @@
 @using Htmx.Components.Table.Models
-@model (TableViewModel table, ITableRowContext row)
+@model (ITableModel table, ITableRowContext row)
 
 <tr id="@Model.row.RowId" class="@(Model.row.IsEditing ? "editing-row" : "")">
   @foreach (var column in Model.table.Columns.Where(c => c.ColumnType != ColumnType.Hidden))

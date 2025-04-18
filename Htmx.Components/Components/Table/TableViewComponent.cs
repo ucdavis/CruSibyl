@@ -12,7 +12,7 @@ public class TableViewComponent : ViewComponent
         _viewPaths = viewPaths;
     }
 
-    public IViewComponentResult Invoke(TableViewModel model)
+    public IViewComponentResult Invoke(ITableModel model)
     {
         ViewData["EditClassTogglePartial"] = _viewPaths.EditClassToggle;
         ViewData["BodyPartial"] = _viewPaths.Body;
@@ -22,6 +22,7 @@ public class TableViewComponent : ViewComponent
         ViewData["HeaderPartial"] = _viewPaths.Header;
         ViewData["PaginationPartial"] = _viewPaths.Pagination;
         ViewData["HiddenValuesPartial"] = _viewPaths.HiddenValues;
+        ViewData["TableActionListPartial"] = _viewPaths.TableActionList;
 
         return View(_viewPaths.Table, model);
     }

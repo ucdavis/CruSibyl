@@ -1,8 +1,8 @@
 @using Htmx.Components.Table.Models
-@model TableViewModel
+@model ITableModel
 
 <tbody id="table-body">
-@foreach (var rowContext in Model.Data)
+@foreach (var rowContext in Model.Rows)
 {
     // individual rows are split out into separate view in order to support single-row editing  
     @if (!string.IsNullOrEmpty(Model.TableViewPaths.Row))

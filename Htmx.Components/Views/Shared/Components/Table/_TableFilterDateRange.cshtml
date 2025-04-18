@@ -4,7 +4,7 @@
            id="table-filter-@Model.Header-min"
            name="rangeFilters[@Model.Header].Min"
            placeholder="From"
-           hx-get="@Url.Action("LoadData")"
+           hx-get="@Url.Action("ReloadRepoTable")"
            hx-swap="none"
            hx-trigger="input changed delay:500ms"
            hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />
@@ -14,7 +14,7 @@
            id="table-filter-@Model.Header-max"
            name="rangeFilters[@Model.Header].Max"
            placeholder="To"
-           hx-get="@Url.Action("LoadData")"
+           hx-get="@Url.Action("ReloadRepoTable")"
            hx-swap="none"
            hx-trigger="input changed delay:500ms"
            hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />

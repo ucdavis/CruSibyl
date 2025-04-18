@@ -24,9 +24,11 @@ public class AdminController : TabController
         _tableProvider = tableProvider;
     }
 
-    public async Task<IActionResult> Index()
+    public Task<IActionResult> Index() => RepoTable();
+
+    public async Task<IActionResult> RepoTable()
     {
-        TableModel<Repo, int> tableModel = await GetData(new TableQueryParams()
+        TableModel<Repo, int> tableModel = await GetRepoData(new TableQueryParams()
         {
             PageSize = 2
         });
@@ -35,61 +37,73 @@ public class AdminController : TabController
         {
             return await HtmxResultBuilder
                 .WithOobNavbar()
-                .WithOob("_Content", tableModel.ToViewModel())
+                .WithOob("_Content", tableModel)
                 .BuildAsync();
         }
 
-        return RenderInitialMainContent("_Content", tableModel.ToViewModel());
+        return RenderInitialMainContent("_Content", tableModel);
     }
 
-    public async Task<IActionResult> EditRepo(int key)
+    public async Task<IActionResult> EditRepoTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var tableModel = _tableProvider.Build(r => r.Id, GetRepoConfig());
-        tableModel.Data.Add(new TableRowContext<Repo, int>
+        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
             Key = key,
             IsEditing = true
         });
 
-        return _tableProvider.RefreshEditViews(tableModel.ToViewModel());
+        return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> ReloadRepo(int key)
+    public async Task<IActionResult> ReloadRepoTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var tableModel = _tableProvider.Build(r => r.Id, GetRepoConfig());
-        tableModel.Data.Add(new TableRowContext<Repo, int>
+        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
             Key = key,
             IsEditing = false
         });
-        var viewModel = tableModel.ToViewModel();
 
-        return _tableProvider.RefreshEditViews(viewModel);
-    }    
+        return _tableProvider.RefreshEditViews(tableModel);
+    }
 
-    public async Task<IActionResult> LoadData([FromQuery] TableQueryParams query)
+    public async Task<IActionResult> ReloadRepoTable([FromQuery] TableQueryParams query)
     {
-        var tableModel = (await GetData(query)).ToViewModel();
+        var tableModel = await GetRepoData(query);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    private async Task<TableModel<Repo, int>> GetData(TableQueryParams query)
+    private async Task<TableModel<Repo, int>> GetRepoData(TableQueryParams query)
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 
-        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetRepoConfig());
+        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetRepoTableConfig());
 
         return tableModel;
     }
 
-    private static Action<TableModelBuilder<Repo, int>> GetRepoConfig()
+    private static Action<TableModelBuilder<Repo, int>> GetRepoTableConfig()
     {
         return config => config
+            .WithActions(table =>
+            {
+                var isEditing = table.Rows.Any(r => r.IsEditing);
+                return isEditing
+                    ? []
+                    : [
+                        new ActionModelBuilder()
+                            .WithLabel("Add New")
+                            .WithIcon("fas fa-plus mr-1")
+                            .WithHxGet($"/Admin/NewRepo")
+                            .Build()
+                    ];
+            })
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
@@ -108,7 +122,7 @@ public class AdminController : TabController
                     new ActionModelBuilder()
                         .WithLabel("Cancel")
                         //.WithIcon("trash")
-                        .WithHxGet($"/Admin/ReloadRepo?key={row.Key}")
+                        .WithHxGet($"/Admin/ReloadRepoTableRow?key={row.Key}")
                         .Build()
                 ]
                 :
@@ -116,7 +130,7 @@ public class AdminController : TabController
                     new ActionModelBuilder()
                         .WithLabel("Edit")
                         .WithIcon("edit")
-                        .WithHxGet($"/Admin/EditRepo?key={row.Key}")
+                        .WithHxGet($"/Admin/EditRepoTableRow?key={row.Key}")
                         .Build(),
 
                     new ActionModelBuilder()

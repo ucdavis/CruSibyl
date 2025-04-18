@@ -17,6 +17,7 @@ public class TableModelBuilder<T, TKey> where T : class
     private readonly List<TableColumnModel<T, TKey>> _columns = new();
     private readonly TableViewPaths _paths;
     private Expression<Func<T, TKey>> _keySelector;
+    private Func<TableModel<T, TKey>, IEnumerable<ActionModel>> _actionsFactory = _ => [];
 
     internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths)
     {
@@ -80,6 +81,13 @@ public class TableModelBuilder<T, TKey> where T : class
         return this;
     }
 
+
+    public TableModelBuilder<T, TKey> WithActions(Func<TableModel<T, TKey>, IEnumerable<ActionModel>> actionsFactory)
+    {
+        _actionsFactory = actionsFactory;
+        return this;
+    }
+
     /// <summary>
     /// Returns a TableModel with the configured columns
     /// </summary>
@@ -88,6 +96,7 @@ public class TableModelBuilder<T, TKey> where T : class
         return new TableModel<T, TKey>
         {
             Columns = _columns,
+            ActionsFactory = _actionsFactory
         };        
     }
 
@@ -118,7 +127,7 @@ public class TableModelBuilder<T, TKey> where T : class
 
         return new TableModel<T, TKey>
         {
-            Data = pagedData.Select((item, index) =>
+            Rows = pagedData.Select((item, index) =>
             {
                 var key = keySelector(item);
                 var rowContext = new TableRowContext<T, TKey>
@@ -130,6 +139,7 @@ public class TableModelBuilder<T, TKey> where T : class
                 return rowContext;
             }).ToList(),
             Columns = _columns,
+            ActionsFactory = _actionsFactory,
             PageCount = pageCount,
             Query = queryParams
         };

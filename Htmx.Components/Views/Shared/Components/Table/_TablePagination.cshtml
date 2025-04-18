@@ -1,16 +1,16 @@
 @using Htmx.Components.Table.Models
-@model TableViewModel
+@model ITableModel
 <div id="table-pagination">
     <div class="flex justify-center items-center mt-4 space-x-2">
         <button class="btn btn-sm" 
-                hx-get="@Url.Action("LoadData")"
+                hx-get="@Url.Action("ReloadRepoTable")"
                 hx-swap="none"
                 hx-vals='{"page": 1}'
                 disabled="@(Model.Query.Page <= 1)"
                 hx-disabled-elt="this"
                 hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">First</button>
         <button class="btn btn-sm" 
-                hx-get="@Url.Action("LoadData")"
+                hx-get="@Url.Action("ReloadRepoTable")"
                 hx-swap="none"
                 hx-vals='{"page": @(Model.Query.Page - 1)}'
                 disabled="@(Model.Query.Page <= 1)"
@@ -22,7 +22,7 @@
               name="page"
               class="input input-bordered input-sm text-left w-16"
               value="@Model.Query.Page"
-              hx-get="@Url.Action("LoadData")"
+              hx-get="@Url.Action("ReloadRepoTable")"
               hx-swap="none"
               hx-trigger="change, input changed delay:500ms"
               hx-include="[name^='filters'], [name='pageSize'], [name^='sort']"
@@ -31,7 +31,7 @@
         <select class="select select-bordered select-sm w-16"
           id="table-page-Size"
           name="pageSize"
-          hx-get="@Url.Action("LoadData")"
+          hx-get="@Url.Action("ReloadRepoTable")"
           hx-swap="none"
           hx-trigger="change"
           hx-include="[name^='filters'], [name='page'], [name^='sort']">
@@ -43,14 +43,14 @@
         </select>
 
         <button class="btn btn-sm" 
-                hx-get="@Url.Action("LoadData")"
+                hx-get="@Url.Action("ReloadRepoTable")"
                 hx-swap="none"
                 hx-vals='{"page": @(Model.Query.Page + 1)}'
                 disabled="@(Model.Query.Page >= Model.PageCount)"
                 hx-disabled-elt="this"
                 hx-include="[name^='filters'], [name='pageSize'], [name^='sort']">Next</button>
         <button class="btn btn-sm" 
-                hx-get="@Url.Action("LoadData")"
+                hx-get="@Url.Action("ReloadRepoTable")"
                 hx-swap="none"
                 hx-vals='{"page": @Model.PageCount}'
                 disabled="@(Model.Query.Page >= Model.PageCount)"
