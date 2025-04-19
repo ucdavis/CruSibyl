@@ -76,11 +76,11 @@ namespace CruSibyl.Jobs.ManifestSync
             {
                 services.AddDbContextPool<AppDbContext, AppDbContextSqlite>((serviceProvider, o) =>
                 {
-                    var connection = new SqliteConnection("Data Source=crusibyl.db");
-                    o.UseSqlite(connection, sqliteOptions =>
-                    {
-                        sqliteOptions.MigrationsAssembly("CruSibyl.Core");
-                    });
+                    o.UseSqlite(Configuration.GetConnectionString("DefaultConnection"),
+                        sqliteOptions =>
+                        {
+                            sqliteOptions.MigrationsAssembly("CruSibyl.Core");
+                        });
 
 #if DEBUG
                     o.EnableSensitiveDataLogging();

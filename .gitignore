@@ -249,3 +249,12 @@ pnpm-lock.yaml
 .nvmrc
 .env
 .env.*.local
+
+# JetBrains IDEs (IntelliJ, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+
+# Rider
+.idea/
+*.sln.iml
