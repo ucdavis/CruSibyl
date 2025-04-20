@@ -26,20 +26,16 @@ public class ManifestSyncService : IManifestSyncService
 
     public async Task<Result> SyncManifests()
     {
-        var repos = await _dbContext.Repos.AsNoTracking().ToArrayAsync();
+        var repos = await _dbContext.Repos.ToArrayAsync();
         var platforms = await _dbContext.Platforms
-            .AsNoTracking()
             .Include(p => p.Versions)
             .ToDictionaryAsync(p => p.Name);
         var packages = await _dbContext.Packages
-            .AsNoTracking()
             .Include(p => p.Versions)
             .ToDictionaryAsync(p => $"{p.Name}|{p.PlatformId}");
         var manifests = await _dbContext.Manifests
-            .AsNoTracking()
             .ToDictionaryAsync(m => $"{m.RepoId}|{m.FilePath}");
         var dependencies = await _dbContext.Dependencies
-            .AsNoTracking()
             .ToDictionaryAsync(d => $"{d.ManifestId}|{d.PackageVersionId}");
 
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
