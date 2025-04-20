@@ -38,6 +38,8 @@ public class TableModelBuilder<T, TKey> where T : class
     {
         var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.SelectorExpression = selector;
+        builder.Column.DataType = selector.GetMemberType();
+        builder.Column.DataName = selector.GetPropertyName();
         builder.Column.ColumnType = ColumnType.ValueSelector;
         configure?.Invoke(builder);
         _columns.Add(builder.Build());
@@ -56,6 +58,8 @@ public class TableModelBuilder<T, TKey> where T : class
     {
         var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
         builder.Column.SelectorExpression = selector;
+        builder.Column.DataType = selector.GetMemberType();
+        builder.Column.DataName = selector.GetPropertyName();
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
         builder.Column.ColumnType = ColumnType.Hidden;
@@ -225,6 +229,12 @@ public class ColumnModelBuilder<T, TKey> where T : class
         Column.Filterable = false;
     }
 
+    public ColumnModelBuilder<T, TKey> WithEditable(bool isEditable = true)
+    {
+        Column.IsEditable = isEditable;
+        return this;
+    }
+
     public ColumnModelBuilder<T, TKey> WithCellPartial(string cellPartial)
     {
         Column.CellPartialView = cellPartial;
@@ -234,7 +244,7 @@ public class ColumnModelBuilder<T, TKey> where T : class
     public ColumnModelBuilder<T, TKey> WithFilterPartial(string filterPartial)
     {
         Column.FilterPartialView = filterPartial;
-        Column.Editable = true;
+        Column.IsEditable = true;
         return this;
     }
 

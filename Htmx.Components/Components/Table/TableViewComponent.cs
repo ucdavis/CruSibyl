@@ -14,15 +14,7 @@ public class TableViewComponent : ViewComponent
 
     public IViewComponentResult Invoke(ITableModel model)
     {
-        ViewData["EditClassTogglePartial"] = _viewPaths.EditClassToggle;
-        ViewData["BodyPartial"] = _viewPaths.Body;
-        ViewData["CellActionListPartial"] = _viewPaths.CellActionList;
-        ViewData["FilterDateRangePartial"] = _viewPaths.FilterDateRange;
-        ViewData["FilterTextPartial"] = _viewPaths.FilterText;
-        ViewData["HeaderPartial"] = _viewPaths.Header;
-        ViewData["PaginationPartial"] = _viewPaths.Pagination;
-        ViewData["HiddenValuesPartial"] = _viewPaths.HiddenValues;
-        ViewData["TableActionListPartial"] = _viewPaths.TableActionList;
+        model.TableViewPaths = _viewPaths;
 
         return View(_viewPaths.Table, model);
     }

@@ -4,6 +4,7 @@ public class TableViewPaths
 {
     public string Table { get; set; } = "_Table";
     public string Body { get; set; } = "_TableBody";
+    public string Cell { get; set; } = "_TableCell";
     public string CellActionList { get; set; } = "_TableCellActionList";
     public string TableActionList { get; set; } = "_TableActionList";
     public string FilterDateRange { get; set; } = "_TableFilterDateRange";

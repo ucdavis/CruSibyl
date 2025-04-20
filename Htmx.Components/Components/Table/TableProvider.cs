@@ -62,6 +62,11 @@ public class TableProvider : ITableProvider
 
     public IActionResult RefreshAllViews(ITableModel tableModel)
     {
+        if (tableModel.TableViewPaths == null)
+        {
+            tableModel.TableViewPaths = _paths;
+        }
+        
         return new MultiSwapViewResult()
             .WithOobContent(_paths.TableActionList, tableModel)
             .WithOobContent(_paths.EditClassToggle, tableModel)
@@ -77,6 +82,11 @@ public class TableProvider : ITableProvider
         if (tableModel.Rows.Count != 1)
         {
             throw new InvalidOperationException("RefreshEditViews requires exactly one row of data.");
+        }
+
+        if (tableModel.TableViewPaths == null)
+        {
+            tableModel.TableViewPaths = _paths;
         }
 
         return new MultiSwapViewResult()

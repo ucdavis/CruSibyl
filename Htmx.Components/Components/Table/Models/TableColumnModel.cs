@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using System.Text.Json;
 using FastExpressionCompiler;
 using Htmx.Components.Action;
+using Htmx.Components.Extensions;
 
 namespace Htmx.Components.Table.Models;
 
@@ -9,10 +10,13 @@ namespace Htmx.Components.Table.Models;
 public interface ITableColumnModel
 {
     string Header { get; set; }
+    string DataName { get; set; }
+    string Id { get; }
     bool Sortable { get; set; }
     bool Filterable { get; set; }
-    bool Editable { get; set; }
+    bool IsEditable { get; set; }
     ColumnType ColumnType { get; set; }
+    Type DataType { get; set; } // Type of the data in the column
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
@@ -30,6 +34,7 @@ public enum ColumnType
 
 public class TableCellPartialModel
 {
+    public required ITableModel Table { get; init; }
     public required ITableRowContext Row { get; init; }
     public required ITableColumnModel Column { get; init; }
 }
@@ -54,10 +59,13 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     // used for actually pulling values from instance of T when rendering cells
     public Func<T, object> SelectorFunc { get; set; } = x => x!;
     public string Header { get; set; } = "";
+    public string DataName { get; set; } = "";
+    public string Id => "col_" + DataName.SanitizeForHtmlId();
     public bool Sortable { get; set; } = true;
     public bool Filterable { get; set; } = true;
-    public bool Editable { get; set; } = false;
+    public bool IsEditable { get; set; } = false;
     public ColumnType ColumnType { get; set; }
+    public Type DataType { get; set; } = typeof(object);
     public string? CellPartialView { get; set; } // Custom rendering for cell
     public string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }

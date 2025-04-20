@@ -2,13 +2,13 @@
 @model ITableModel
 
 <div id="table-container" class="relative">
-    @await Html.PartialAsync((string)ViewData["EditClassTogglePartial"]!, Model)
+    @await Html.PartialAsync(Model.TableViewPaths.EditClassToggle, Model)
     <form>
-    @await Html.PartialAsync((string)ViewData["HiddenValuesPartial"]!, Model)
-    @await Html.PartialAsync((string)ViewData["TableActionListPartial"]!, Model)
+    @await Html.PartialAsync(Model.TableViewPaths.HiddenValues, Model)
+    @await Html.PartialAsync(Model.TableViewPaths.TableActionList, Model)
     <table class="table w-full">
         <thead>
-            @await Html.PartialAsync((string)ViewData["HeaderPartial"]!, Model)
+            @await Html.PartialAsync(Model.TableViewPaths.Header, Model)
             <tr id="table-filter-row">
                 @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
                 {
@@ -21,16 +21,16 @@
                             }
                             else
                             {
-                                @await Html.PartialAsync((string)ViewData["FilterTextPartial"]!, column)
+                                @await Html.PartialAsync(Model.TableViewPaths.FilterText, column)
                             }
                         }
                     </th>
                 }
             </tr>
         </thead>
-        @await Html.PartialAsync((string)ViewData["BodyPartial"]!, Model)
+        @await Html.PartialAsync(Model.TableViewPaths.Body, Model)
     </table>
 
-    @await Html.PartialAsync((string)ViewData["PaginationPartial"]!, Model)
+    @await Html.PartialAsync(Model.TableViewPaths.Pagination, Model)
     </form>
  </div>

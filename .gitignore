@@ -258,3 +258,11 @@ pnpm-lock.yaml
 # Rider
 .idea/
 *.sln.iml
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+Thumbs.db

@@ -12,7 +12,7 @@
       // as they're explicitly configured in order to guarantee all properties get passed
       // with row data.
       foreach (var column in Model.Columns.Where(c => 
-        c.ColumnType == ColumnType.Hidden || (c.ColumnType == ColumnType.ValueSelector && !c.Editable)))
+        c.ColumnType == ColumnType.Hidden || (c.ColumnType == ColumnType.ValueSelector && !c.IsEditable)))
       {
         <input type="hidden" name="row.Item.@column.Header" value="@column.GetSerializedValue(editRow)" />
       }

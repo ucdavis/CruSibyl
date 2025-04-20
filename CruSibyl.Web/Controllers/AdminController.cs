@@ -106,8 +106,10 @@ public class AdminController : TabController
             })
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
+                .WithEditable()
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
-            .AddSelectorColumn("Description", x => x.Description!)
+            .AddSelectorColumn("Description", x => x.Description!, config => config
+                .WithEditable())
             .AddDisplayColumn("Actions", col =>
             {
                 col.WithActions(row =>

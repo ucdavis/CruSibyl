@@ -37,7 +37,7 @@
     <TailwindSources Include="$(HtmxViews)/**/*.cshtml" Condition="Exists('$(HtmxViews)')" />
   </ItemGroup>
   <Target Name="BuildTailwind" BeforeTargets="Build" Inputs="@(TailwindSources)" Outputs="$(TailwindOutputFile)">
-    <Exec Command="cd Tools &amp;&amp; npm run build:css" />
+    <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
   </Target>
 
   <!-- Only run npm install when package.json has been modified or .install-stamp doesn't exist -->
