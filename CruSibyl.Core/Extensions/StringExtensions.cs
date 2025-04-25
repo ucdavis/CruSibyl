@@ -42,7 +42,7 @@ public static class StringExtensions
         }
 
         var i = 0;
-        return Regex.Replace(messageTemplate, "{.*?}", _ => objects[i++]?.ToString() ?? string.Empty);
+        return Regex.Replace(messageTemplate, "{.*?}", _ => objects[i++]?.ToString() ?? "");
     }
     
     public static string SafeTruncate(this string value, int max)
@@ -54,7 +54,7 @@ public static class StringExtensions
 
         if (max <= 0)
         {
-            return String.Empty;
+            return "";
         }
 
         return value.Substring(0, max);

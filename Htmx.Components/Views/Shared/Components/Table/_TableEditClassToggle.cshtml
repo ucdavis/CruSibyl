@@ -1,4 +1,4 @@
 @using Htmx.Components.Table.Models
 @model ITableModel
 
-<div id="table-edit-class-toggle" class="@(Model.Rows.Any(r => r.IsEditing) ? "editing-mode" : "")"></div>
+<div id="table-edit-class-toggle" class="@(Model.Rows.Any(r => r.RowType == RowType.Editable) ? "editing-mode" : "")"></div>

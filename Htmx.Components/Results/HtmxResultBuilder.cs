@@ -1,4 +1,5 @@
 using Htmx.Components.Extensions;
+using Htmx.Components.Models;
 using Htmx.Components.NavBar;
 using Htmx.Components.Results;
 using Microsoft.AspNetCore.Http;
@@ -11,8 +12,8 @@ namespace Htmx.Components;
 
 public class HtmxResultBuilder
 {
-    private readonly List<Task<(string PartialView, object Model)>> _partials = new();
-    private Task<(string PartialView, object Model)>? _mainContent;
+    private readonly List<Task<HtmxViewInfo>> _oobViewInfos = new();
+    private Task<HtmxViewInfo>? _mainViewInfo;
 
     private readonly IActionContextAccessor _actionContextAccessor;
     private readonly INavProvider _navProvider;
@@ -25,59 +26,75 @@ public class HtmxResultBuilder
 
     public HtmxResultBuilder WithContent(string partialView, object model)
     {
-        _mainContent = Task.FromResult((partialView, model));
+        _mainViewInfo = Task.FromResult(new HtmxViewInfo
+        {
+            ViewName = partialView,
+            Model = model
+        });
         return this;
     }
 
-    public HtmxResultBuilder WithContent(Func<Task<(string PartialView, object Model)>> contentTask)
+    public HtmxResultBuilder WithContent(Func<Task<HtmxViewInfo>> contentTask)
     {
-        _mainContent = contentTask();
+        _mainViewInfo = contentTask();
         return this;
     }
 
-    public HtmxResultBuilder WithOob(string partialView, object model)
+    public HtmxResultBuilder WithOob(string viewName, object model, 
+        OobTargetRelation targetRelation = OobTargetRelation.OuterHtml, string? targetSelector = null)
     {
-        _partials.Add(Task.FromResult((partialView, model)));
+        _oobViewInfos.Add(Task.FromResult(new HtmxViewInfo
+        {
+            ViewName = viewName,
+            Model = model,
+            TargetRelation = targetRelation,
+            TargetSelector = targetSelector
+        }));
         return this;
     }
 
-    public HtmxResultBuilder WithOob(Func<Task<(string PartialView, object Model)>> partialTask)
+    public HtmxResultBuilder WithOob(Func<Task<HtmxViewInfo>> partialTask)
     {
-        _partials.Add(partialTask());
+        _oobViewInfos.Add(partialTask());
         return this;
     }
 
     public HtmxResultBuilder WithOobNavbar(string navComponentName = "NavBar")
     {
-        _partials.Add(GetNavbarPartial(navComponentName));
+        _oobViewInfos.Add(GetNavbarPartial(navComponentName));
         return this;
     }
 
     public async Task<MultiSwapViewResult> BuildAsync()
     {
-        (string viewName, object model)? main = null;
+        HtmxViewInfo? main = null;
 
-        if (_mainContent != null)
+        if (_mainViewInfo != null)
         {
-            main = await _mainContent;
+            main = await _mainViewInfo;
         }
         
-        var oobs = await Task.WhenAll(_partials);
+        var oobs = await Task.WhenAll(_oobViewInfos);
         var result = new MultiSwapViewResult()
             .WithOobContent(oobs);
         
-        if (main.HasValue)
+        if (main != null)
         {
-            result.WithMainContent(main.Value);
+            result.WithMainContent(main.ViewName, main.Model);
         }
 
         return result;
     }
 
-    private async Task<(string PartialView, object Model)> GetNavbarPartial(string navComponentName)
+    private async Task<HtmxViewInfo> GetNavbarPartial(string navComponentName)
     {
         var nav = await _navProvider.BuildAsync(_actionContextAccessor.GetValidActionContext());
-        return (navComponentName, new { Nav = nav });
+        return new HtmxViewInfo
+        {
+            ViewName = navComponentName,
+            Model = nav,
+            TargetRelation = OobTargetRelation.OuterHtml
+        };
     }
 
 }

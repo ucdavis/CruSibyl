@@ -24,7 +24,7 @@ public interface IActionSet
 /// </summary>
 public class ActionItem: IActionItem
 {
-    public string Label { get; set; } = string.Empty;
+    public string Label { get; set; } = "";
     public string? Icon { get; set; }
     public string? CssClass { get; set; }
 }

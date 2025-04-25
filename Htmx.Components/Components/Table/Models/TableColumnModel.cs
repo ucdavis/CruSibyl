@@ -101,7 +101,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         {
             return SelectorFunc(typedItem);
         }
-        return string.Empty;
+        return "";
     }
 
     public string GetSerializedValue(ITableRowContext rowContext)
@@ -110,6 +110,6 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         {
             return JsonSerializer.Serialize(SelectorFunc(typedItem));
         }
-        return string.Empty;
+        return "";
     }
 }

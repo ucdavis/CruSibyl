@@ -9,29 +9,45 @@ public interface ITableRowContext
     string RowId { get; } // E.g., "row_5f3e"
     int PageIndex { get; } // Row's index within current page
     string Key { get; }
-    bool IsEditing { get; }
+    RowType RowType { get; }
+}
+
+public enum RowType
+{
+    ReadOnly,
+    Editable,
+    Hidden,
+}
+
+/// <summary>
+/// Represents a hidden row for oob swaps that remove a row from the table 
+/// </summary>
+public class HiddenRowContext : ITableRowContext
+{
+    public string RowId => "row_" + Key.SanitizeForHtmlId();
+    public int PageIndex { get; set; } = 0; // Row's index within current page
+    public required string Key { get; init; }
+    public object Item => null!;
+    public RowType RowType => RowType.Hidden;
 }
 
 public class TableRowContext<T, TKey> : ITableRowContext
 {
-    public required T Item { get; init; }
-    public string RowId => "row_" + _stringKey.SanitizeForHtmlId();
+    public required T Item { get; set; }
+    public string RowId => "row_" + StringKey.SanitizeForHtmlId();
     public int PageIndex { get; set; } = 0; // Row's index within current page
     private TKey _key = default!;
-    public required TKey Key
+    public TKey Key
     {
         get => _key;
-        init
+        set
         {
             _key = value;
-            _stringKey = JsonSerializer.Serialize(value);
+            StringKey = JsonSerializer.Serialize(value);
         }
     }
-    public bool IsEditing { get; set; }
-
-    private string _stringKey = "";
-    string ITableRowContext.Key => _stringKey;
+    public RowType RowType { get; set; }
+    public string StringKey { get; set; } = "";
+    string ITableRowContext.Key => StringKey;
     object ITableRowContext.Item => Item!;
-
-
 }

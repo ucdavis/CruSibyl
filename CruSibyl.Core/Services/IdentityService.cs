@@ -28,7 +28,7 @@ public class IdentityService : IIdentityService
         var clientws = new IetClient(_authSettings.IamKey);
         // get IAM from email
         var iamResult = await clientws.Contacts.Search(ContactSearchField.email, email);
-        var iamId = iamResult.ResponseData.Results.Length > 0 ? iamResult.ResponseData.Results[0].IamId : string.Empty;
+        var iamId = iamResult.ResponseData.Results.Length > 0 ? iamResult.ResponseData.Results[0].IamId : "";
         if (string.IsNullOrWhiteSpace(iamId))
         {
             return null;

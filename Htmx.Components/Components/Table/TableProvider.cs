@@ -25,6 +25,29 @@ public interface ITableProvider
     IActionResult RefreshEditViews(ITableModel tableModel);
 }
 
+public enum EditAction
+{
+    Create,
+    Update,
+    Delete,
+}
+
+public enum EditStatus
+{
+    Requested,
+    Completed,
+    Cancelled,
+}
+
+// Create Requested: send row_new with RowType.Editable
+// Create Completed: Send row_new with RowType.Hidden and row_[new key] with RowType.ReadOnly
+// Create Cancelled: Send row_new with RowType.Hidden
+// Update Requested: Send row_[key] with RowType.Editable
+// Update Completed: Send row_[key] with RowType.ReadOnly
+// Update Cancelled: Send row_[key] with RowType.ReadOnly
+// Delete Completed: Send row_[key] with RowType.Hidden
+
+
 public class TableProvider : ITableProvider
 {
     private readonly TableViewPaths _paths;

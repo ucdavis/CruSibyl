@@ -6,7 +6,7 @@
 
 @{
     var value = Model.Column.GetValue(Model.Row);
-    var isEditing = Model.Column.IsEditable && Model.Row.IsEditing;
+    var isEditing = Model.Column.IsEditable && Model.Row.RowType == RowType.Editable;
 }
 
 @if (isEditing)

@@ -52,7 +52,7 @@ public class AdminController : TabController
         {
             Item = repo,
             Key = key,
-            IsEditing = true
+            RowType = RowType.Editable,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -66,7 +66,7 @@ public class AdminController : TabController
         {
             Item = repo,
             Key = key,
-            IsEditing = false
+            RowType = RowType.ReadOnly,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -77,6 +77,19 @@ public class AdminController : TabController
         var tableModel = await GetRepoData(query);
 
         return _tableProvider.RefreshAllViews(tableModel);
+    }
+
+    public IActionResult NewRepo()
+    {
+        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        tableModel.Rows.Add(new TableRowContext<Repo, int>
+        {
+            Item = new Repo(),
+            RowType = RowType.Editable,
+            StringKey = "new",
+        });
+
+        return _tableProvider.RefreshEditViews(tableModel);
     }
 
     private async Task<TableModel<Repo, int>> GetRepoData(TableQueryParams query)
@@ -93,7 +106,7 @@ public class AdminController : TabController
         return config => config
             .WithActions(table =>
             {
-                var isEditing = table.Rows.Any(r => r.IsEditing);
+                var isEditing = table.Rows.Any(r => r.RowType == RowType.Editable);
                 return isEditing
                     ? []
                     : [
@@ -113,17 +126,17 @@ public class AdminController : TabController
             .AddDisplayColumn("Actions", col =>
             {
                 col.WithActions(row =>
-                row.IsEditing ?
+                row.RowType == RowType.Editable ?
                 [
                     new ActionModelBuilder()
                         .WithLabel("Save")
-                        //.WithIcon("trash")
-                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
+                        .WithIcon("fas fa-save") // Font Awesome 5 icon for save
+                        .WithHxPost($"/Admin/SaveRepo?key={row.Key}")
                         .Build(),
 
                     new ActionModelBuilder()
                         .WithLabel("Cancel")
-                        //.WithIcon("trash")
+                        .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
                         .WithHxGet($"/Admin/ReloadRepoTableRow?key={row.Key}")
                         .Build()
                 ]
@@ -131,14 +144,14 @@ public class AdminController : TabController
                 [
                     new ActionModelBuilder()
                         .WithLabel("Edit")
-                        .WithIcon("edit")
+                        .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
                         .WithHxGet($"/Admin/EditRepoTableRow?key={row.Key}")
                         .Build(),
 
                     new ActionModelBuilder()
                         .WithLabel("Delete")
-                        .WithIcon("trash")
-                        .WithClass("text-red-600") // TODO: tailwind won't pick up stuff like this
+                        .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
+                        .WithClass("text-red-600")
                         .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
                         .Build()
                 ]);

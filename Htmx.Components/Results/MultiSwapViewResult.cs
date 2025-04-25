@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.RegularExpressions;
+using Htmx.Components.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -16,45 +17,53 @@ namespace Htmx.Components.Results;
 /// </summary>
 public class MultiSwapViewResult : IActionResult
 {
-    private (string PartialView, object Model)? _main;
-    private readonly List<(string PartialView, object Model)> _oobs = new();
+    private HtmxViewInfo? _main;
+    private readonly List<HtmxViewInfo> _oobs = new();
 
     public MultiSwapViewResult()
     { }
 
     protected MultiSwapViewResult(
         (string PartialView, object Model)? main = null,
-        params (string PartialView, object Model)[] oobs)
+        params HtmxViewInfo[] oobs)
     {
-        _main = main;
+        _main = main is not null
+            ? new HtmxViewInfo
+            {
+                ViewName = main.Value.PartialView,
+                Model = main.Value.Model,
+                TargetRelation = OobTargetRelation.None
+            }
+            : null;
         _oobs.AddRange(oobs);
     }
 
     public MultiSwapViewResult WithMainContent(string viewName, object model)
     {
-        _main = (viewName, model);
+        _main = new HtmxViewInfo
+        {
+            ViewName = viewName,
+            Model = model,
+            TargetRelation = OobTargetRelation.None
+        };
         return this;
     }
 
-    public MultiSwapViewResult WithMainContent((string viewName, object model) main)
+    public MultiSwapViewResult WithOobContent(string viewName, object model, 
+        OobTargetRelation targetRelation = OobTargetRelation.OuterHtml, string? targetSelector = null)
     {
-        _main = main;
+        _oobs.Add(new HtmxViewInfo
+        {
+            ViewName = viewName,
+            Model = model,
+            TargetRelation = targetRelation,
+            TargetSelector = targetSelector
+        });
         return this;
     }
 
-    public MultiSwapViewResult WithOobContent(string viewName, object model)
-    {
-        _oobs.Add((viewName, model));
-        return this;
-    }
 
-    public MultiSwapViewResult WithOobContent((string viewName, object model) oob)
-    {
-        _oobs.Add(oob);
-        return this;
-    }
-
-    public MultiSwapViewResult WithOobContent(IEnumerable<(string viewName, object model)> oobList)
+    public MultiSwapViewResult WithOobContent(IEnumerable<HtmxViewInfo> oobList)
     {
         _oobs.AddRange(oobList);
         return this;
@@ -70,27 +79,26 @@ public class MultiSwapViewResult : IActionResult
         // Render main view without OOB wrapping
         if (_main is not null)
         {
-            var (mainViewName, mainModel) = _main.Value;
-            string mainHtml = await RenderViewSmart(context, mainViewName, mainModel);
+            string mainHtml = await RenderViewSmart(context, _main);
             writer.WriteLine(mainHtml.Trim());
         }
 
         // Render OOB views
-        foreach (var (viewName, model) in _oobs)
+        foreach (var htmxViewInfo in _oobs)
         {
-            string html = await RenderViewSmart(context, viewName, model);
-            string wrapped = AddHxSwapToOuterElement(html.Trim());
+            string html = await RenderViewSmart(context, htmxViewInfo);
+            string wrapped = AddHxSwapToOuterElement(html.Trim(), htmxViewInfo);
             writer.WriteLine(wrapped);
         }
 
         await response.WriteAsync(writer.ToString());
     }
 
-    private static Task<string> RenderViewSmart(ActionContext context, string viewName, object model)
+    private static Task<string> RenderViewSmart(ActionContext context, HtmxViewInfo oobViewInfo)
     {
-        return IsViewComponent(context, viewName)
-            ? RenderViewComponentToString(context, viewName, model)
-            : RenderPartialViewToString(context, viewName, model);
+        return IsViewComponent(context, oobViewInfo.ViewName)
+            ? RenderViewComponentToString(context, oobViewInfo)
+            : RenderPartialViewToString(context, oobViewInfo);
     }
 
 
@@ -109,11 +117,32 @@ public class MultiSwapViewResult : IActionResult
         }
     }
 
-    private static string AddHxSwapToOuterElement(string html)
+    private static string AddHxSwapToOuterElement(string html, HtmxViewInfo htmxViewInfo)
     {
         // Use a regex to identify the outermost tag and add hx-swap-oob="true" to it
         var regex = new Regex(@"<(\w+)([^>]*)>");
         var match = regex.Match(html);
+
+        var targetRelation = htmxViewInfo.TargetRelation switch
+        {
+            OobTargetRelation.OuterHtml => "outerHTML",
+            OobTargetRelation.InnerHtml => "innerHTML",
+            OobTargetRelation.AfterBegin => "afterBegin",
+            OobTargetRelation.BeforeEnd => "beforeEnd",
+            OobTargetRelation.BeforeBegin => "beforeBegin",
+            OobTargetRelation.AfterEnd => "afterEnd",
+            _ => throw new ArgumentOutOfRangeException(nameof(htmxViewInfo.TargetRelation), "Invalid target relation")
+        };
+        var targetSelector = "";
+        
+        if (!string.IsNullOrWhiteSpace(htmxViewInfo.TargetSelector))
+        {
+            if (!Regex.IsMatch(htmxViewInfo.TargetSelector, @"^[a-zA-Z0-9\-_#.: \[\]=]*$"))
+            {
+                throw new ArgumentException("TargetSelector contains invalid characters for a CSS query selector.");
+            }
+            targetSelector = ":" + htmxViewInfo.TargetSelector;
+        }
 
         if (match.Success)
         {
@@ -124,7 +153,7 @@ public class MultiSwapViewResult : IActionResult
                 var tagAttributes = match.Groups[2].Value;
 
                 // Add the hx-swap-oob attribute to the outermost element's tag
-                var updatedTag = $"<{tagName}{tagAttributes} hx-swap-oob=\"outerHTML\">";
+                var updatedTag = $"<{tagName}{tagAttributes} hx-swap-oob=\"{targetRelation}{targetSelector}\">";
 
                 // Replace the opening tag with the updated one
                 return $"<template>{regex.Replace(html, updatedTag, 1)}</template>";
@@ -135,7 +164,7 @@ public class MultiSwapViewResult : IActionResult
         return html;
     }
 
-    private static async Task<string> RenderPartialViewToString(ActionContext context, string viewName, object model)
+    private static async Task<string> RenderPartialViewToString(ActionContext context, HtmxViewInfo htmxViewInfo)
     {
         var httpContext = context.HttpContext;
         var controller = context.RouteData.Values["controller"]?.ToString();
@@ -144,14 +173,14 @@ public class MultiSwapViewResult : IActionResult
 
         var viewData = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
         {
-            Model = model
+            Model = htmxViewInfo.Model
         };
 
         using var sw = new StringWriter();
-        var viewResult = viewEngine.FindView(context, viewName, false);
+        var viewResult = viewEngine.FindView(context, htmxViewInfo.ViewName, false);
         if (viewResult.View == null)
         {
-            throw new InvalidOperationException($"The partial view '{viewName}' was not found. Searched locations: {string.Join(", ", viewResult.SearchedLocations ?? Enumerable.Empty<string>())}");
+            throw new InvalidOperationException($"The partial view '{htmxViewInfo.ViewName}' was not found. Searched locations: {string.Join(", ", viewResult.SearchedLocations ?? Enumerable.Empty<string>())}");
         }
         var tempData = new TempDataDictionary(httpContext, tempDataProvider);
         var viewContext = new ViewContext(context, viewResult.View, viewData, tempData, sw, new HtmlHelperOptions());
@@ -160,7 +189,7 @@ public class MultiSwapViewResult : IActionResult
         return sw.ToString();
     }
 
-    private static async Task<string> RenderViewComponentToString(ActionContext context, string viewComponentName, object arguments)
+    private static async Task<string> RenderViewComponentToString(ActionContext context, HtmxViewInfo htmxViewInfo)
     {
         var httpContext = context.HttpContext;
 
@@ -182,14 +211,16 @@ public class MultiSwapViewResult : IActionResult
 
             viewContextAware.Contextualize(viewContext);
 
-            var content = await viewComponentHelper.InvokeAsync(viewComponentName, arguments);
+            var content = await viewComponentHelper.InvokeAsync(htmxViewInfo.ViewName, htmxViewInfo.Model);
             content.WriteTo(sw, HtmlEncoder.Default);
             return sw.ToString();
         }
 
         throw new InvalidOperationException("ViewComponentHelper does not implement IViewContextAware.");
     }
+
 }
+
 
 
 public class NullView : IView

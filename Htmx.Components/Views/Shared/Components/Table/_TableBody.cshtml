@@ -2,12 +2,13 @@
 @model ITableModel
 
 <tbody id="table-body">
-@foreach (var rowContext in Model.Rows)
-{
-    // individual rows are split out into separate view in order to support single-row editing  
-    @if (!string.IsNullOrEmpty(Model.TableViewPaths.Row))
+    @* row_new is a placeholder for creating new records *@
+   <tr id="row_new" class="hidden"> 
+        <td colspan="100%"></td>
+    </tr>
+    @foreach (var rowContext in Model.Rows)
     {
-      @await Html.PartialAsync(Model.TableViewPaths.Row, (Model, rowContext))
+        // individual rows are split out into separate view in order to support single-row editing  
+        @await Html.PartialAsync(Model.TableViewPaths.Row, (Model, rowContext))
     }
-}
 </tbody>

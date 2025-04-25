@@ -1,7 +1,7 @@
 @using Htmx.Components.Table.Models
 @model (ITableModel table, ITableRowContext row)
 
-<tr id="@Model.row.RowId" class="@(Model.row.IsEditing ? "editing-row" : "")">
+<tr id="@Model.row.RowId" class="@(Model.row.RowType == RowType.Editable ? "editing-row" : "")">
   @foreach (var column in Model.table.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
   {
     var cellPartialView = string.IsNullOrEmpty(column.CellPartialView) 

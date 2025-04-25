@@ -1,7 +1,7 @@
 ﻿namespace CruSibyl.Core.Models.Settings;
 public class AuthSettings
 {
-    public string IamKey { get; set; } = String.Empty;
-    public string Authority { get; set; } = String.Empty;
+    public string IamKey { get; set; } = "";
+    public string Authority { get; set; } = "";
 }
 

@@ -115,7 +115,7 @@ public class GitHubService : IGitHubService
     static async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
         var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
-        var content = contents.FirstOrDefault()?.Content ?? string.Empty;
+        var content = contents.FirstOrDefault()?.Content ?? "";
         // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
         return content.TrimStart('\uFEFF');
     }
