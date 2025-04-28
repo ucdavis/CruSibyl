@@ -69,6 +69,12 @@ public class MultiSwapViewResult : IActionResult
         return this;
     }
 
+    public MultiSwapViewResult WithOobContent(HtmxViewInfo oob)
+    {
+        _oobs.Add(oob);
+        return this;
+    }
+
     public async Task ExecuteResultAsync(ActionContext context)
     {
         var response = context.HttpContext.Response;

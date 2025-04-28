@@ -1,7 +1,9 @@
 using Htmx.Components.Action;
 using Htmx.Components.NavBar;
+using Htmx.Components.State;
 using Htmx.Components.Table;
 using Htmx.Components.Table.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Razor;
@@ -36,6 +38,9 @@ public static class ServiceCollectionExtensions
                 return new BuilderBasedNavProvider(accessor, options.NavBuilderFactory!);
             });
         }
+        services.AddSingleton<IGlobalStateManager, GlobalStateManager>();
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+        services.AddDataProtection();
 
         return services;
     }

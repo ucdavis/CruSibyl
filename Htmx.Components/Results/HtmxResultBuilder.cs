@@ -40,7 +40,7 @@ public class HtmxResultBuilder
         return this;
     }
 
-    public HtmxResultBuilder WithOob(string viewName, object model, 
+    public HtmxResultBuilder WithOob(string viewName, object model,
         OobTargetRelation targetRelation = OobTargetRelation.OuterHtml, string? targetSelector = null)
     {
         _oobViewInfos.Add(Task.FromResult(new HtmxViewInfo
@@ -73,11 +73,21 @@ public class HtmxResultBuilder
         {
             main = await _mainViewInfo;
         }
-        
+
         var oobs = await Task.WhenAll(_oobViewInfos);
+
         var result = new MultiSwapViewResult()
             .WithOobContent(oobs);
-        
+
+        // Inject the current global_state as a hidden input if available
+        var httpContext = _actionContextAccessor.ActionContext?.HttpContext;
+        if (httpContext != null)
+        {
+            var globalState = httpContext.GetGlobalState();
+            result.WithGlobalStateOobContent(globalState);
+        }
+
+
         if (main != null)
         {
             result.WithMainContent(main.ViewName, main.Model);

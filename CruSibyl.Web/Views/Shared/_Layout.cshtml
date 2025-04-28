@@ -1,8 +1,10 @@
+@using Htmx.Components.State
 @using Microsoft.Extensions.Configuration
 @using CruSibyl.Core.Services
 @inject IConfiguration Configuration
 @inject IUserService UserService
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
+@inject IGlobalStateManager GlobalStateManager
 
 <!DOCTYPE html>
 <html>
@@ -20,6 +22,7 @@
   @RenderSection("Styles", required: false)
   <script src="./js/htmx.min.js"></script>
   <script src="~/_content/Htmx.Components/js/table-behavior.js"></script>
+  <script src="~/_content/Htmx.Components/js/global-state-behavior.js"></script>
 </head>
 
 @* <body hx-ext="multi-swap"> *@
@@ -47,6 +50,8 @@
 
 
   @Html.HtmxAntiforgeryScript()
+
+  <htmx-global-state></htmx-global-state>
 
   @RenderSection("Scripts", required: false)
 </body>

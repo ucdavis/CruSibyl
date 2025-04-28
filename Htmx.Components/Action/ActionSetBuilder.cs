@@ -4,11 +4,11 @@ public class ActionSetBuilder
 {
     private readonly ActionSet _set = new();
 
-    public ActionSetBuilder AddModel(Action<ActionModelBuilder> configure)
+    public ActionSetBuilder AddModel(Action<ActionModel> configure)
     {
-        var builder = new ActionModelBuilder();
-        configure(builder);
-        _set.Items.Add(builder.Build());
+        var model = new ActionModel();
+        configure(model);
+        _set.Items.Add(model);
         return this;
     }
 

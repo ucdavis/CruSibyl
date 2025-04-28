@@ -53,4 +53,42 @@ public class ActionGroup : ActionItem, IActionSet
 public class ActionModel : ActionItem
 {
     public Dictionary<string, string> Attributes { get; } = new();
+
+    public ActionModel() { }
+    
+    public ActionModel(string label)
+    {
+        Label = label;
+    }
+    
+    public ActionModel WithLabel(string label)
+    {
+        Label = label;
+        return this;
+    }
+
+    public ActionModel WithIcon(string icon)
+    {
+        Icon = icon;
+        return this;
+    }
+
+    public ActionModel WithClass(string cssClass)
+    {
+        CssClass = cssClass;
+        return this;
+    }
+
+    public ActionModel WithAttribute(string name, string value)
+    {
+        Attributes[name] = value;
+        return this;
+    }
+
+    public ActionModel WithHxGet(string url) => WithAttribute("hx-get", url);
+    public ActionModel WithHxPost(string url) => WithAttribute("hx-post", url);
+    public ActionModel WithHxTarget(string target) => WithAttribute("hx-target", target);
+    public ActionModel WithHxSwap(string swap) => WithAttribute("hx-swap", swap);
+    public ActionModel WithHxPushUrl(string pushUrl = "true") => WithAttribute("hx-push-url", pushUrl);
+    public ActionModel WithHxInclude(string selector) => WithAttribute("hx-include", selector);
 }

@@ -1,6 +1,8 @@
 using System.Data;
 using System.Linq.Expressions;
+using Htmx.Components.Extensions;
 using Htmx.Components.Results;
+using Htmx.Components.State;
 using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -51,10 +53,12 @@ public enum EditStatus
 public class TableProvider : ITableProvider
 {
     private readonly TableViewPaths _paths;
+    private readonly IGlobalStateManager _globalStateManager;
 
-    public TableProvider(TableViewPaths paths)
+    public TableProvider(TableViewPaths paths, IGlobalStateManager globalStateManager)
     {
         _paths = paths;
+        _globalStateManager = globalStateManager;
     }
 
     public TableModel<T, TKey> Build<T, TKey>(
@@ -96,7 +100,8 @@ public class TableProvider : ITableProvider
             .WithOobContent(_paths.Body, tableModel)
             .WithOobContent(_paths.Pagination, tableModel)
             .WithOobContent(_paths.Header, tableModel)
-            .WithOobContent(_paths.HiddenValues, tableModel);
+            .WithOobContent(_paths.HiddenValues, tableModel)
+            .WithGlobalStateOobContent(_globalStateManager);
     }
 
 
@@ -115,6 +120,7 @@ public class TableProvider : ITableProvider
         return new MultiSwapViewResult()
             .WithOobContent(_paths.EditClassToggle, tableModel)
             .WithOobContent(_paths.HiddenValues, tableModel)
-            .WithOobContent(_paths.Row, (tableModel, tableModel.Rows[0]));
+            .WithOobContent(_paths.Row, (tableModel, tableModel.Rows[0]))
+            .WithGlobalStateOobContent(_globalStateManager);
     }
 }

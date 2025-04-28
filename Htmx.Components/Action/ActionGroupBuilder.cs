@@ -22,11 +22,11 @@ public class ActionGroupBuilder
         return this;
     }
 
-    public ActionGroupBuilder AddModel(Action<ActionModelBuilder> configure)
+    public ActionGroupBuilder AddModel(Action<ActionModel> configure)
     {
-        var builder = new ActionModelBuilder();
-        configure(builder);
-        _group.Items.Add(builder.Build());
+        var model = new ActionModel();
+        configure(model);
+        _group.Items.Add(model);
         return this;
     }
 

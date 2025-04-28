@@ -110,11 +110,9 @@ public class AdminController : TabController
                 return isEditing
                     ? []
                     : [
-                        new ActionModelBuilder()
-                            .WithLabel("Add New")
+                        new ActionModel("Add New")
                             .WithIcon("fas fa-plus mr-1")
                             .WithHxGet($"/Admin/NewRepo")
-                            .Build()
                     ];
             })
             .AddHiddenColumn("Id", x => x.Id)
@@ -128,32 +126,24 @@ public class AdminController : TabController
                 col.WithActions(row =>
                 row.RowType == RowType.Editable ?
                 [
-                    new ActionModelBuilder()
-                        .WithLabel("Save")
+                    new ActionModel("Save")
                         .WithIcon("fas fa-save") // Font Awesome 5 icon for save
-                        .WithHxPost($"/Admin/SaveRepo?key={row.Key}")
-                        .Build(),
+                        .WithHxPost($"/Admin/SaveRepo?key={row.Key}"),
 
-                    new ActionModelBuilder()
-                        .WithLabel("Cancel")
+                    new ActionModel("Cancel")
                         .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
                         .WithHxGet($"/Admin/ReloadRepoTableRow?key={row.Key}")
-                        .Build()
                 ]
                 :
                 [
-                    new ActionModelBuilder()
-                        .WithLabel("Edit")
+                    new ActionModel("Edit")
                         .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
-                        .WithHxGet($"/Admin/EditRepoTableRow?key={row.Key}")
-                        .Build(),
+                        .WithHxGet($"/Admin/EditRepoTableRow?key={row.Key}"),
 
-                    new ActionModelBuilder()
-                        .WithLabel("Delete")
+                    new ActionModel("Delete")
                         .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
                         .WithClass("text-red-600")
                         .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
-                        .Build()
                 ]);
             });
     }
