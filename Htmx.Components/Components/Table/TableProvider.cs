@@ -100,8 +100,7 @@ public class TableProvider : ITableProvider
             .WithOobContent(_paths.Body, tableModel)
             .WithOobContent(_paths.Pagination, tableModel)
             .WithOobContent(_paths.Header, tableModel)
-            .WithOobContent(_paths.HiddenValues, tableModel)
-            .WithGlobalStateOobContent(_globalStateManager);
+            .WithOobContent(_paths.HiddenValues, tableModel);
     }
 
 
@@ -120,7 +119,6 @@ public class TableProvider : ITableProvider
         return new MultiSwapViewResult()
             .WithOobContent(_paths.EditClassToggle, tableModel)
             .WithOobContent(_paths.HiddenValues, tableModel)
-            .WithOobContent(_paths.Row, (tableModel, tableModel.Rows[0]))
-            .WithGlobalStateOobContent(_globalStateManager);
-    }
+            .WithOobContent(_paths.Row, (tableModel, tableModel.Rows[0]));
+        }
 }

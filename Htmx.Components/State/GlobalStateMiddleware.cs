@@ -6,8 +6,8 @@ namespace Htmx.Components.State;
 public class GlobalStateMiddleware
 {
     private readonly RequestDelegate _next;
-    private const string GlobalStateFormKey = "global_state";
     internal const string HttpContextGlobalStateKey = "GlobalState";
+    internal const string GlobalStateHeaderKey = "X-Global-State";
 
     public GlobalStateMiddleware(RequestDelegate next)
     {
@@ -18,7 +18,7 @@ public class GlobalStateMiddleware
     {
         string? encryptedState = null;
 
-        if (context.Request.Headers.TryGetValue("X-Global-State", out var headerValue))
+        if (context.Request.Headers.TryGetValue(GlobalStateHeaderKey, out var headerValue))
         {
             encryptedState = headerValue.FirstOrDefault();
         }
@@ -34,9 +34,9 @@ public class GlobalStateMiddleware
         await _next(context);
     }
 
-    public static GlobalStateManager GetGlobalState(HttpContext context)
+    public static IGlobalStateManager GetGlobalState(HttpContext context)
     {
-        return context.Items[HttpContextGlobalStateKey] as GlobalStateManager 
-               ?? throw new InvalidOperationException("Global state not available");
+        return context.Items[HttpContextGlobalStateKey] as IGlobalStateManager 
+            ?? throw new InvalidOperationException("Global state not available");
     }
 }

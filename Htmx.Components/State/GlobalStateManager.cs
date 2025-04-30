@@ -7,9 +7,9 @@ public interface IGlobalStateManager
 {
     void Load(string? encrypted);
     string Encrypted { get; }
-    string InitialEncrypted { get; }
     T? Get<T>(string partition, string key);
     void Set<T>(string partition, string key, T value);
+    bool IsDirty { get; }
 }
 
 
@@ -18,38 +18,40 @@ public class GlobalStateManager : IGlobalStateManager
     private readonly IDataProtector _protector;
     private const string MetaPartition = "__meta";
     private const string VersionKey = "__version";
+    private int _version = 0;
 
-    public Dictionary<string, Dictionary<string, string>> State { get; private set; } = new();
+    public Dictionary<string, Dictionary<string, string>> State { get; private set; }
 
     public GlobalStateManager(IDataProtectionProvider dataProtectionProvider)
     {
         _protector = dataProtectionProvider.CreateProtector("GlobalState");
+        State = InitialState;
     }
+
+    private static Dictionary<string, Dictionary<string, string>> InitialState => new()
+    {
+        [MetaPartition] = new Dictionary<string, string>
+        {
+            [VersionKey] = "0"
+        }
+    };
 
     public void Load(string? encrypted)
     {
         if (string.IsNullOrWhiteSpace(encrypted))
         {
-            State = new Dictionary<string, Dictionary<string, string>>();
-            return;
+            State = InitialState;
         }
-
-        var json = _protector.Unprotect(encrypted);
-        State = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(json)
-                ?? new Dictionary<string, Dictionary<string, string>>();
+        else
+        {
+            var json = _protector.Unprotect(encrypted);
+            State = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(json)
+                    ?? new Dictionary<string, Dictionary<string, string>>();
+        }
+        _version = Get<int>(MetaPartition, VersionKey);
     }
 
     public string Encrypted => _protector.Protect(JsonSerializer.Serialize(State));
-
-    public string InitialEncrypted => _protector.Protect(
-        JsonSerializer.Serialize(
-            new Dictionary<string, Dictionary<string, string>>()
-            {
-                ["__meta"] = new Dictionary<string, string>
-                {
-                    ["__version"] = "1"
-                }
-            }));
 
     private Dictionary<string, string> GetPartition(string partition)
     {
@@ -85,4 +87,6 @@ public class GlobalStateManager : IGlobalStateManager
         p[key] = value?.ToString() ?? string.Empty;
         BumpVersion();
     }
+
+    public bool IsDirty => _version != Get<int>(MetaPartition, VersionKey);
 }

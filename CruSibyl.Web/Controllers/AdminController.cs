@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Htmx.Components.Table;
 using Htmx.Components.Action;
 using Htmx;
+using Htmx.Components;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -24,10 +25,17 @@ public class AdminController : TabController
         _tableProvider = tableProvider;
     }
 
-    public Task<IActionResult> Index() => RepoTable();
+    public Task<IActionResult> Index()
+    {
+        return RepoTable();
+    }
 
     public async Task<IActionResult> RepoTable()
     {
+        var globalState = this.GetGlobalState();
+        var test = globalState.Get<int>("AdminTab", "Test");
+        globalState.Set("AdminTab", "Test", test + 1);
+
         TableModel<Repo, int> tableModel = await GetRepoData(new TableQueryParams()
         {
             PageSize = 2

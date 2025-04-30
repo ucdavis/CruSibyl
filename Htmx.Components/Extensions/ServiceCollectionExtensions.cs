@@ -38,10 +38,16 @@ public static class ServiceCollectionExtensions
                 return new BuilderBasedNavProvider(accessor, options.NavBuilderFactory!);
             });
         }
-        services.AddSingleton<IGlobalStateManager, GlobalStateManager>();
+        services.AddScoped<IGlobalStateManager, GlobalStateManager>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddDataProtection();
+        services.AddScoped<GlobalStateOobInjectorFilter>();
 
+        services.PostConfigure<MvcOptions>(options =>
+        {
+            options.Filters.AddService<GlobalStateOobInjectorFilter>();
+        });
+        
         return services;
     }
 

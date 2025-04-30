@@ -2,6 +2,7 @@ using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 using Htmx.Components.NavBar;
 using Htmx.Components.Results;
+using Htmx.Components.State;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -17,11 +18,14 @@ public class HtmxResultBuilder
 
     private readonly IActionContextAccessor _actionContextAccessor;
     private readonly INavProvider _navProvider;
+    private readonly IGlobalStateManager _globalStateManager;
 
-    public HtmxResultBuilder(IActionContextAccessor actionContextAccessor, INavProvider navProvider)
+    public HtmxResultBuilder(IActionContextAccessor actionContextAccessor, INavProvider navProvider,
+        IGlobalStateManager globalStateManager)
     {
         _actionContextAccessor = actionContextAccessor;
         _navProvider = navProvider;
+        _globalStateManager = globalStateManager;
     }
 
     public HtmxResultBuilder WithContent(string partialView, object model)
@@ -78,15 +82,6 @@ public class HtmxResultBuilder
 
         var result = new MultiSwapViewResult()
             .WithOobContent(oobs);
-
-        // Inject the current global_state as a hidden input if available
-        var httpContext = _actionContextAccessor.ActionContext?.HttpContext;
-        if (httpContext != null)
-        {
-            var globalState = httpContext.GetGlobalState();
-            result.WithGlobalStateOobContent(globalState);
-        }
-
 
         if (main != null)
         {
