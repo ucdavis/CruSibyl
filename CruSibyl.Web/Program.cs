@@ -7,6 +7,7 @@ using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
+using Htmx;
 using Htmx.Components;
 using Htmx.Components.Action;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -123,6 +124,7 @@ try
         {
             NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
         };
+        oidc.ConfigureHtmxAuthPopup("/auth/popup-login");
         oidc.Events.OnTicketReceived = async context =>
         {
             if (context.Principal == null || context.Principal.Identity == null)

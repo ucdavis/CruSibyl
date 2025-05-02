@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Success</title>
+</head>
+<body>
+    <script>
+        // Notify the opener window and close the popup
+        window.opener?.postMessage('login-success', '*');
+        window.close();
+    </script>
+</body>
+</html>
