@@ -27,10 +27,10 @@ public class AdminController : TabController
 
     public Task<IActionResult> Index()
     {
-        return RepoTable();
+        return Table();
     }
 
-    public async Task<IActionResult> RepoTable()
+    public async Task<IActionResult> Table()
     {
         var globalState = this.GetGlobalState();
         var test = globalState.Get<int>("AdminTab", "Test");
@@ -52,10 +52,46 @@ public class AdminController : TabController
         return RenderInitialMainContent("_Content", tableModel);
     }
 
-    public async Task<IActionResult> EditRepoTableRow(int key)
+    public async Task<IActionResult> CancelEditTableRow()
+    {
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        var globalState = this.GetGlobalState();
+        if (globalState.Get<bool>("Table", "EditingExistingRecord"))
+        {
+            var editingRepo = globalState.Get<Repo>("Table", "EditingRow")!;
+            var originalRepo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == editingRepo.Id);
+
+            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            {
+                Item = originalRepo,
+                Key = originalRepo.Id,
+                RowType = RowType.ReadOnly,
+            });
+        }
+        else
+        {
+            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            {
+                Item = null!,
+                StringKey = "new",
+                RowType = RowType.Hidden,
+            });
+        }
+
+        globalState.ClearKey("Table", "EditingRow");
+        globalState.ClearKey("Table", "EditingExistingRecord");
+        return _tableProvider.RefreshEditViews(tableModel);
+    }
+
+
+    public async Task<IActionResult> EditTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        var globalState = this.GetGlobalState();
+        globalState.Set("Table", "EditingRow", repo);
+        globalState.Set("Table", "EditingExistingRecord", true);
+
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
@@ -66,10 +102,10 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> ReloadRepoTableRow(int key)
+    public async Task<IActionResult> ReloadTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
@@ -80,19 +116,36 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> ReloadRepoTable([FromQuery] TableQueryParams query)
+    /// <summary>
+    /// Reloads the table with the current query parameters.
+    /// This is called when any action is performed on table sorting, filtering, or paging.
+    /// </summary>
+    /// <param name="query"></param>
+    /// <returns>HTMX OOB swaps for all partial views</returns>
+    public async Task<IActionResult> ReloadTable([FromQuery] TableQueryParams query)
     {
         var tableModel = await GetRepoData(query);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    public IActionResult NewRepo()
+    public IActionResult NewTableRow()
     {
-        var tableModel = _tableProvider.Build(r => r.Id, GetRepoTableConfig());
+        var repo = new Repo
+        {
+            Id = 0,
+            Name = string.Empty,
+            Description = string.Empty,
+        };
+
+        var globalState = this.GetGlobalState();
+        globalState.Set("Table", "EditingRow", repo);
+        globalState.Set("Table", "EditingExistingRecord", false);
+
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
-            Item = new Repo(),
+            Item = repo,
             RowType = RowType.Editable,
             StringKey = "new",
         });
@@ -104,12 +157,12 @@ public class AdminController : TabController
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 
-        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetRepoTableConfig());
+        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetTableConfig());
 
         return tableModel;
     }
 
-    private static Action<TableModelBuilder<Repo, int>> GetRepoTableConfig()
+    private static Action<TableModelBuilder<Repo, int>> GetTableConfig()
     {
         return config => config
             .WithActions(table =>
@@ -120,7 +173,7 @@ public class AdminController : TabController
                     : [
                         new ActionModel("Add New")
                             .WithIcon("fas fa-plus mr-1")
-                            .WithHxGet($"/Admin/NewRepo")
+                            .WithHxGet($"/Admin/NewTableRow")
                     ];
             })
             .AddHiddenColumn("Id", x => x.Id)
@@ -136,22 +189,22 @@ public class AdminController : TabController
                 [
                     new ActionModel("Save")
                         .WithIcon("fas fa-save") // Font Awesome 5 icon for save
-                        .WithHxPost($"/Admin/SaveRepo?key={row.Key}"),
+                        .WithHxPost($"/Admin/SaveTableRow"),
 
                     new ActionModel("Cancel")
                         .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
-                        .WithHxGet($"/Admin/ReloadRepoTableRow?key={row.Key}")
+                        .WithHxGet($"/Admin/CancelEditTableRow")
                 ]
                 :
                 [
                     new ActionModel("Edit")
                         .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
-                        .WithHxGet($"/Admin/EditRepoTableRow?key={row.Key}"),
+                        .WithHxGet($"/Admin/EditTableRow?key={row.Key}"),
 
                     new ActionModel("Delete")
                         .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
                         .WithClass("text-red-600")
-                        .WithHxPost($"/Admin/DeleteRepo?key={row.Key}")
+                        .WithHxPost($"/Admin/DeleteTableRow?key={row.Key}")
                 ]);
             });
     }

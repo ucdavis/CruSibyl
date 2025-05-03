@@ -6,7 +6,7 @@
        id="table-filter-@Model.Header"
        name="filters[@Model.Header]"
        placeholder="Filter @Model.Header"
-       hx-get="@Url.Action("ReloadRepoTable")"
+       hx-get="@Url.Action("ReloadTable")"
        hx-swap="none"
        hx-trigger="input changed delay:500ms"
        hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />

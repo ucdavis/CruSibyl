@@ -9,6 +9,8 @@ public interface IGlobalStateManager
     string Encrypted { get; }
     T? Get<T>(string partition, string key);
     void Set<T>(string partition, string key, T value);
+    void ClearKey(string partition, string key);
+    void ClearPartition(string partition);
     bool IsDirty { get; }
 }
 
@@ -78,14 +80,31 @@ public class GlobalStateManager : IGlobalStateManager
         var p = GetPartition(partition);
         if (!p.TryGetValue(key, out var value)) return default;
 
-        return (T?)Convert.ChangeType(value, typeof(T));
+        return JsonSerializer.Deserialize<T>(value);
     }
 
     public void Set<T>(string partition, string key, T value)
     {
         var p = GetPartition(partition);
-        p[key] = value?.ToString() ?? string.Empty;
+        p[key] = JsonSerializer.Serialize(value);
         BumpVersion();
+    }
+
+    public void ClearKey(string partition, string key)
+    {
+        var p = GetPartition(partition);
+        if (p.Remove(key))
+        {
+            BumpVersion();
+        }
+    }
+
+    public void ClearPartition(string partition)
+    {
+        if (State.Remove(partition))
+        {
+            BumpVersion();
+        }
     }
 
     public bool IsDirty => _version != Get<int>(MetaPartition, VersionKey);

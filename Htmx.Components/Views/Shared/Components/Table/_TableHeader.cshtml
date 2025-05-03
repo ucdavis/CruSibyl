@@ -11,7 +11,7 @@
             var indicator = isCurrentSort ? (Model.Query.SortDirection == "asc" ? "▲" : "▼") : "";
             <th>
                 <a href="#"
-                  hx-get="@Url.Action("ReloadRepoTable")"
+                  hx-get="@Url.Action("ReloadTable")"
                   hx-vals='{"sortColumn": "@column.Header", "sortDirection": "@nextSortDirection"}'
                   hx-swap="none"
                   hx-include="[name^='filters'], [name='pageSize'], [name^='sort']"
