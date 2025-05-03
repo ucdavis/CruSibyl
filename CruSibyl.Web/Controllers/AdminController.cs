@@ -35,11 +35,13 @@ public class AdminController : TabController
         var pageState = this.GetPageState();
         var test = pageState.Get<int>("AdminTab", "Test");
         pageState.Set("AdminTab", "Test", test + 1);
-
-        TableModel<Repo, int> tableModel = await GetRepoData(new TableQueryParams()
+        var tableState = new TableState()
         {
             PageSize = 2
-        });
+        };
+        pageState.Set("Table", "State", tableState);
+
+        TableModel<Repo, int> tableModel = await GetRepoData(tableState);
 
         if (Request.IsHtmx())
         {
@@ -116,15 +118,69 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
+    public async Task<IActionResult> SetPage(int page)
+    {
+        var pageState = this.GetPageState();
+        var tableState = pageState.Get<TableState>("Table", "State");
+        tableState.Page = page;
+        pageState.Set("Table", "State", tableState);
+        var tableModel = await GetRepoData(tableState);
+
+        return _tableProvider.RefreshAllViews(tableModel);
+    }
+
+    public async Task<IActionResult> SetPageSize(int pageSize)
+    {
+        var pageState = this.GetPageState();
+        var tableState = pageState.Get<TableState>("Table", "State");
+        tableState.PageSize = pageSize;
+        pageState.Set("Table", "State", tableState);
+        var tableModel = await GetRepoData(tableState);
+
+        return _tableProvider.RefreshAllViews(tableModel);
+    }
+
+    public async Task<IActionResult> SetSort(string column, string direction)
+    {
+        var pageState = this.GetPageState();
+        var tableState = pageState.Get<TableState>("Table", "State");
+        tableState.SortColumn = column;
+        tableState.SortDirection = direction;
+        pageState.Set("Table", "State", tableState);
+        var tableModel = await GetRepoData(tableState);
+
+        return _tableProvider.RefreshAllViews(tableModel);
+    }
+
+    public async Task<IActionResult> SetFilter(string column, string value)
+    {
+        var pageState = this.GetPageState();
+        var tableState = pageState.Get<TableState>("Table", "State");
+        if (string.IsNullOrEmpty(value))
+        {
+            tableState.Filters.Remove(column);
+        }
+        else
+        {
+            tableState.Filters[column] = value;
+        }
+        pageState.Set("Table", "State", tableState);
+        var tableModel = await GetRepoData(tableState);
+
+        return _tableProvider.RefreshAllViews(tableModel);
+    }
+
     /// <summary>
     /// Reloads the table with the current query parameters.
     /// This is called when any action is performed on table sorting, filtering, or paging.
     /// </summary>
-    /// <param name="query"></param>
+    /// <param name="state"></param>
     /// <returns>HTMX OOB swaps for all partial views</returns>
-    public async Task<IActionResult> ReloadTable([FromQuery] TableQueryParams query)
+    public async Task<IActionResult> ReloadTable([FromQuery] TableState state)
     {
-        var tableModel = await GetRepoData(query);
+        var pageState = this.GetPageState();
+        pageState.Set("Table", "State", state);
+        var tableModel = await GetRepoData(state);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
@@ -153,7 +209,7 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    private async Task<TableModel<Repo, int>> GetRepoData(TableQueryParams query)
+    private async Task<TableModel<Repo, int>> GetRepoData(TableState query)
     {
         IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
 

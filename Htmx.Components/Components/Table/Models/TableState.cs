@@ -1,6 +1,6 @@
 namespace Htmx.Components.Table.Models;
 
-public class TableQueryParams
+public class TableState
 {
     public string? SortColumn { get; set; }
     public string? SortDirection { get; set; } = "asc";

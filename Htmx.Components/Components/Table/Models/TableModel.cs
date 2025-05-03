@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Htmx.Components.Action;
 
 namespace Htmx.Components.Table.Models;
@@ -8,7 +9,7 @@ public interface ITableModel
     public List<ITableRowContext> Rows { get; set; }
     public List<ITableColumnModel> Columns { get; set; }
     public int PageCount { get; set; }
-    public TableQueryParams Query { get; set; }
+    public TableState State { get; set; }
     public TableViewPaths TableViewPaths { get; set; }
     public IEnumerable<ActionModel> GetActions();
 }
@@ -19,7 +20,7 @@ public class TableModel<T, TKey> : ITableModel
     public List<TableRowContext<T, TKey>> Rows { get; set; } = new();
     public List<TableColumnModel<T, TKey>> Columns { get; set; } = new();
     public int PageCount { get; set; } = 1;
-    public TableQueryParams Query { get; set; } = new();
+    public TableState State { get; set; } = new();
     public TableViewPaths TableViewPaths { get; set; } = new();
     public Func<TableModel<T, TKey>, IEnumerable<ActionModel>> ActionsFactory = _ => [];
 
@@ -35,6 +36,8 @@ public class TableModel<T, TKey> : ITableModel
         get => Columns.Cast<ITableColumnModel>().ToList();
         set => Columns = value.Cast<TableColumnModel<T, TKey>>().ToList();
     }
+    
+    public Expression<Func<T, TKey>> KeySelector { get; internal set; } = default!;
 
     public IEnumerable<ActionModel> GetActions() => ActionsFactory(this);
 

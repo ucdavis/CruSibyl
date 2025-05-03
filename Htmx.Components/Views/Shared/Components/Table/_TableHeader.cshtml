@@ -6,17 +6,16 @@
     {
         if (column.Sortable)
         {
-            var isCurrentSort = Model.Query.SortColumn == column.Header;
-            var nextSortDirection = isCurrentSort && Model.Query.SortDirection == "asc" ? "desc" : "asc";
-            var indicator = isCurrentSort ? (Model.Query.SortDirection == "asc" ? "▲" : "▼") : "";
+            var isCurrentSort = Model.State.SortColumn == column.Header;
+            var nextSortDirection = isCurrentSort && Model.State.SortDirection == "asc" ? "desc" : "asc";
+            var indicator = isCurrentSort ? (Model.State.SortDirection == "asc" ? "▲" : "▼") : "";
             <th>
                 <a href="#"
-                  hx-get="@Url.Action("ReloadTable")"
-                  hx-vals='{"sortColumn": "@column.Header", "sortDirection": "@nextSortDirection"}'
-                  hx-swap="none"
-                  hx-include="[name^='filters'], [name='pageSize'], [name^='sort']"
-                  >
-                    @column.Header @indicator
+                    hx-get="@Url.Action("SetSort")"
+                    hx-vals='{"column": "@column.Header", "direction": "@nextSortDirection"}'
+                    hx-swap="none"
+                    >
+                        @column.Header @indicator
                 </a>
             </th>
         }
