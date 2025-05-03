@@ -4,23 +4,23 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Htmx.Components.State;
 
-public class GlobalStateOobInjectorFilter : IAsyncResultFilter
+public class PageStateOobInjectorFilter : IAsyncResultFilter
 {
-    private readonly IGlobalStateManager _globalStateManager;
+    private readonly IPageState _pageState;
 
-    public GlobalStateOobInjectorFilter(IGlobalStateManager globalStateManager)
+    public PageStateOobInjectorFilter(IPageState pageState)
     {
-        _globalStateManager = globalStateManager;
+        _pageState = pageState;
     }
 
     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
-        if (context.Result is MultiSwapViewResult multiSwap && _globalStateManager.IsDirty)
+        if (context.Result is MultiSwapViewResult multiSwap && _pageState.IsDirty)
         {
             var oobView = new HtmxViewInfo
             {
-                ViewName = "_GlobalStateHiddenInput",
-                Model = _globalStateManager.Encrypted,
+                ViewName = "_PageStateHiddenInput",
+                Model = _pageState.Encrypted,
                 TargetRelation = OobTargetRelation.OuterHtml
             };
 

@@ -5,9 +5,9 @@ namespace Htmx.Components;
 
 public static class ApplicationBuilderExtensions
 {
-    public static IApplicationBuilder UseHtmxGlobalState(this IApplicationBuilder app)
+    public static IApplicationBuilder UseHtmxPageState(this IApplicationBuilder app)
     {
-        app.UseMiddleware<GlobalStateMiddleware>();
+        app.UseMiddleware<PageStateMiddleware>();
         return app;
     }
 }

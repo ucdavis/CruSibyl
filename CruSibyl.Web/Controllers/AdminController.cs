@@ -32,9 +32,9 @@ public class AdminController : TabController
 
     public async Task<IActionResult> Table()
     {
-        var globalState = this.GetGlobalState();
-        var test = globalState.Get<int>("AdminTab", "Test");
-        globalState.Set("AdminTab", "Test", test + 1);
+        var pageState = this.GetPageState();
+        var test = pageState.Get<int>("AdminTab", "Test");
+        pageState.Set("AdminTab", "Test", test + 1);
 
         TableModel<Repo, int> tableModel = await GetRepoData(new TableQueryParams()
         {
@@ -55,10 +55,10 @@ public class AdminController : TabController
     public async Task<IActionResult> CancelEditTableRow()
     {
         var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
-        var globalState = this.GetGlobalState();
-        if (globalState.Get<bool>("Table", "EditingExistingRecord"))
+        var pageState = this.GetPageState();
+        if (pageState.Get<bool>("Table", "EditingExistingRecord"))
         {
-            var editingRepo = globalState.Get<Repo>("Table", "EditingRow")!;
+            var editingRepo = pageState.Get<Repo>("Table", "EditingRow")!;
             var originalRepo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == editingRepo.Id);
 
             tableModel.Rows.Add(new TableRowContext<Repo, int>
@@ -78,8 +78,8 @@ public class AdminController : TabController
             });
         }
 
-        globalState.ClearKey("Table", "EditingRow");
-        globalState.ClearKey("Table", "EditingExistingRecord");
+        pageState.ClearKey("Table", "EditingRow");
+        pageState.ClearKey("Table", "EditingExistingRecord");
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
@@ -87,9 +87,9 @@ public class AdminController : TabController
     public async Task<IActionResult> EditTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var globalState = this.GetGlobalState();
-        globalState.Set("Table", "EditingRow", repo);
-        globalState.Set("Table", "EditingExistingRecord", true);
+        var pageState = this.GetPageState();
+        pageState.Set("Table", "EditingRow", repo);
+        pageState.Set("Table", "EditingExistingRecord", true);
 
         var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         tableModel.Rows.Add(new TableRowContext<Repo, int>
@@ -138,9 +138,9 @@ public class AdminController : TabController
             Description = string.Empty,
         };
 
-        var globalState = this.GetGlobalState();
-        globalState.Set("Table", "EditingRow", repo);
-        globalState.Set("Table", "EditingExistingRecord", false);
+        var pageState = this.GetPageState();
+        pageState.Set("Table", "EditingRow", repo);
+        pageState.Set("Table", "EditingExistingRecord", false);
 
         var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         tableModel.Rows.Add(new TableRowContext<Repo, int>
@@ -165,17 +165,11 @@ public class AdminController : TabController
     private static Action<TableModelBuilder<Repo, int>> GetTableConfig()
     {
         return config => config
-            .WithActions(table =>
-            {
-                var isEditing = table.Rows.Any(r => r.RowType == RowType.Editable);
-                return isEditing
-                    ? []
-                    : [
-                        new ActionModel("Add New")
-                            .WithIcon("fas fa-plus mr-1")
-                            .WithHxGet($"/Admin/NewTableRow")
-                    ];
-            })
+            .WithActions(table => [
+                new ActionModel("Add New")
+                    .WithIcon("fas fa-plus mr-1")
+                    .WithHxGet($"/Admin/NewTableRow")
+            ])
             .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithEditable()

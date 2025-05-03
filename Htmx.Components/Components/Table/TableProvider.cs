@@ -53,12 +53,12 @@ public enum EditStatus
 public class TableProvider : ITableProvider
 {
     private readonly TableViewPaths _paths;
-    private readonly IGlobalStateManager _globalStateManager;
+    private readonly IPageState _pageState;
 
-    public TableProvider(TableViewPaths paths, IGlobalStateManager globalStateManager)
+    public TableProvider(TableViewPaths paths, IPageState pageState)
     {
         _paths = paths;
-        _globalStateManager = globalStateManager;
+        _pageState = pageState;
     }
 
     public TableModel<T, TKey> Build<T, TKey>(

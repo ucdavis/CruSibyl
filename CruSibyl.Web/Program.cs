@@ -291,7 +291,7 @@ try
 
     app.UseHttpsRedirection();
     app.UseStaticFiles();
-    app.UseHtmxGlobalState();
+    app.UseHtmxPageState();
     app.UseRouting();
 
     app.UseAuthentication();

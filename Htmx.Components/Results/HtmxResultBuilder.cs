@@ -18,14 +18,14 @@ public class HtmxResultBuilder
 
     private readonly IActionContextAccessor _actionContextAccessor;
     private readonly INavProvider _navProvider;
-    private readonly IGlobalStateManager _globalStateManager;
+    private readonly IPageState _pageState;
 
     public HtmxResultBuilder(IActionContextAccessor actionContextAccessor, INavProvider navProvider,
-        IGlobalStateManager globalStateManager)
+        IPageState pageState)
     {
         _actionContextAccessor = actionContextAccessor;
         _navProvider = navProvider;
-        _globalStateManager = globalStateManager;
+        _pageState = pageState;
     }
 
     public HtmxResultBuilder WithContent(string partialView, object model)

@@ -4,7 +4,7 @@
 @inject IConfiguration Configuration
 @inject IUserService UserService
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf
-@inject IGlobalStateManager GlobalStateManager
+@inject IPageState PageState
 
 <!DOCTYPE html>
 <html>
@@ -22,7 +22,7 @@
   @RenderSection("Styles", required: false)
   <script src="./js/htmx.min.js"></script>
   <script src="~/_content/Htmx.Components/js/table-behavior.js"></script>
-  <script src="~/_content/Htmx.Components/js/global-state-behavior.js"></script>
+  <script src="~/_content/Htmx.Components/js/page-state-behavior.js"></script>
   <script src="~/_content/Htmx.Components/js/htmx-auth-retry.js" defer></script>
 </head>
 
@@ -52,7 +52,7 @@
 
   @Html.HtmxAntiforgeryScript()
 
-  <htmx-global-state></htmx-global-state>
+  <htmx-page-state></htmx-page-state>
 
   @RenderSection("Scripts", required: false)
   <script>

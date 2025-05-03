@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace Htmx.Components.State;
 
-public interface IGlobalStateManager
+public interface IPageState
 {
     void Load(string? encrypted);
     string Encrypted { get; }
@@ -15,7 +15,7 @@ public interface IGlobalStateManager
 }
 
 
-public class GlobalStateManager : IGlobalStateManager
+public class PageState : IPageState
 {
     private readonly IDataProtector _protector;
     private const string MetaPartition = "__meta";
@@ -24,9 +24,9 @@ public class GlobalStateManager : IGlobalStateManager
 
     public Dictionary<string, Dictionary<string, string>> State { get; private set; }
 
-    public GlobalStateManager(IDataProtectionProvider dataProtectionProvider)
+    public PageState(IDataProtectionProvider dataProtectionProvider)
     {
-        _protector = dataProtectionProvider.CreateProtector("GlobalState");
+        _protector = dataProtectionProvider.CreateProtector("PageState");
         State = InitialState;
     }
 

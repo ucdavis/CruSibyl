@@ -1,0 +1,12 @@
+document.addEventListener('htmx:configRequest', function (event) {
+  // Add the page state value to the request headers
+  const pageStateInput = document.querySelector('input[name="page_state"]');
+
+  if (!pageStateInput) return;
+
+  const pageStateValue = pageStateInput.value;
+
+  if (!pageStateValue) return;
+
+  event.detail.headers['X-Page-State'] = pageStateValue;
+});
