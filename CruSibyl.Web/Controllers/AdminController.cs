@@ -85,7 +85,6 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-
     public async Task<IActionResult> EditTableRow(int key)
     {
         var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
@@ -99,20 +98,6 @@ public class AdminController : TabController
             Item = repo,
             Key = key,
             RowType = RowType.Editable,
-        });
-
-        return _tableProvider.RefreshEditViews(tableModel);
-    }
-
-    public async Task<IActionResult> ReloadTableRow(int key)
-    {
-        var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
-        tableModel.Rows.Add(new TableRowContext<Repo, int>
-        {
-            Item = repo,
-            Key = key,
-            RowType = RowType.ReadOnly,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -152,21 +137,39 @@ public class AdminController : TabController
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    public async Task<IActionResult> SetFilter(string column, string value)
+    public async Task<IActionResult> SetFilter(string column, string filter, int input)
     {
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());  
+        var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
+        if (columnModel == null)
+            return BadRequest($"Column '{column}' not found.");
+
+        if (!columnModel.Filterable || (columnModel.RangeFilter == null && columnModel.Filter == null))
+            return BadRequest($"Column '{column}' is not filterable.");
+
         var pageState = this.GetPageState();
         var tableState = pageState.Get<TableState>("Table", "State");
-        if (string.IsNullOrEmpty(value))
+        if (columnModel.Filter != null)
         {
-            tableState.Filters.Remove(column);
+            if (string.IsNullOrEmpty(filter))
+                tableState.Filters.Remove(column);
+            else
+                tableState.Filters[column] = filter;
         }
-        else
+        else if (columnModel.RangeFilter != null)
         {
-            tableState.Filters[column] = value;
+            (var from, var to) = tableState.RangeFilters.TryGetValue(column, out var range) ? range : ("", "");
+            if (input == 1)
+                from = filter;
+            else if (input == 2)
+                to = filter;
+            else
+                return BadRequest($"Invalid input value: {input}");
+            tableState.RangeFilters[column] = (from, to);
         }
-        pageState.Set("Table", "State", tableState);
-        var tableModel = await GetRepoData(tableState);
 
+        pageState.Set("Table", "State", tableState);
+        await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
@@ -211,9 +214,7 @@ public class AdminController : TabController
 
     private async Task<TableModel<Repo, int>> GetRepoData(TableState query)
     {
-        IQueryable<Repo> queryable = _dbContext.Repos.AsQueryable();
-
-        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, queryable, query, GetTableConfig());
+        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, _dbContext.Repos, query, GetTableConfig());
 
         return tableModel;
     }

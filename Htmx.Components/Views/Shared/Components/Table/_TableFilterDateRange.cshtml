@@ -2,20 +2,20 @@
     <input type="date"
            class="input input-bordered input-sm w-1/2"
            id="table-filter-@Model.Header-min"
-           name="rangeFilters[@Model.Header].Min"
+           name="filter"
            placeholder="From"
-           hx-get="@Url.Action("ReloadTable")"
+           hx-get="@Url.Action("SetFilter")"
+           hx-vals='{"input": 0, "column": "@Model.DataName"}'
            hx-swap="none"
-           hx-trigger="input changed delay:500ms"
-           hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />
+           hx-trigger="input changed delay:500ms" />
     
     <input type="date"
            class="input input-bordered input-sm w-1/2"
            id="table-filter-@Model.Header-max"
-           name="rangeFilters[@Model.Header].Max"
+           name="filter"
            placeholder="To"
-           hx-get="@Url.Action("ReloadTable")"
+           hx-get="@Url.Action("SetFilter")"
+           hx-vals='{"input": 1, "column": "@Model.DataName"}'
            hx-swap="none"
-           hx-trigger="input changed delay:500ms"
-           hx-include="[name^='filters'], [name='pageSize'], [name^='sort']" />
+           hx-trigger="input changed delay:500ms" />
 </div>
