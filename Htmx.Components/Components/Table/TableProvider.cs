@@ -2,6 +2,7 @@ using System.Data;
 using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Extensions;
+using Htmx.Components.Models;
 using Htmx.Components.Results;
 using Htmx.Components.State;
 using Htmx.Components.Table.Models;
@@ -66,15 +67,6 @@ public enum EditStatus
     Completed,
     Cancelled,
 }
-
-// Create Requested: send row_new with RowType.Editable
-// Create Completed: Send row_new with RowType.Hidden and row_[new key] with RowType.ReadOnly
-// Create Cancelled: Send row_new with RowType.Hidden
-// Update Requested: Send row_[key] with RowType.Editable
-// Update Completed: Send row_[key] with RowType.ReadOnly
-// Update Cancelled: Send row_[key] with RowType.ReadOnly
-// Delete Completed: Send row_[key] with RowType.Hidden
-
 
 public class TableProvider : ITableProvider
 {
@@ -183,20 +175,29 @@ public class TableProvider : ITableProvider
 
     public IActionResult RefreshEditViews(ITableModel tableModel)
     {
-        if (tableModel.Rows.Count != 1)
-        {
-            throw new InvalidOperationException("RefreshEditViews requires exactly one row of data.");
-        }
+        var standardRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Display);
+        var deleteRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Delete);
+        var editRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Edit);
+        var insertRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Insert);
 
         if (tableModel.TableViewPaths == null)
         {
             tableModel.TableViewPaths = _paths;
         }
 
-        return new MultiSwapViewResult()
+        var result = new MultiSwapViewResult()
             .WithOobContent(_paths.EditClassToggle, tableModel)
-            .WithOobContent(_paths.TableActionList, tableModel)
-            .WithOobContent(_paths.Row, (tableModel, tableModel.Rows[0]));
+            .WithOobContent(_paths.TableActionList, tableModel);
+        if (standardRow != null)
+            result.WithOobContent(_paths.Row, (tableModel, standardRow));
+        if (deleteRow != null)
+            result.WithOobContent(_paths.Row, (tableModel, deleteRow), OobTargetRelation.Delete);
+        if (editRow != null)
+            result.WithOobContent(_paths.Row, (tableModel, editRow));
+        if (insertRow != null)
+            result.WithOobContent(_paths.Row, (tableModel, insertRow), OobTargetRelation.AfterBegin, "#table-body");
+        
+        return result;
     }
 
     private IQueryable<T> ApplyRangeFiltering<T, TKey>(IQueryable<T> queryable, TableState tableState, TableModel<T, TKey> tableModel)

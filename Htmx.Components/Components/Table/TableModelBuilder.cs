@@ -47,28 +47,6 @@ public class TableModelBuilder<T, TKey> where T : class
     }
 
     /// <summary>
-    /// Adds a TableColumnModel configured to be used as a hidden column
-    /// </summary>
-    /// <param name="header"></param>
-    /// <param name="selector"></param>
-    /// <param name="configure"></param>
-    /// <returns></returns>
-    public TableModelBuilder<T, TKey> AddHiddenColumn(string header, Expression<Func<T, object>> selector, 
-        Action<ColumnModelBuilder<T, TKey>>? configure = null)
-    {
-        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
-        builder.Column.SelectorExpression = selector;
-        builder.Column.DataType = selector.GetMemberType();
-        builder.Column.DataName = selector.GetPropertyName();
-        builder.Column.Sortable = false;
-        builder.Column.Filterable = false;
-        builder.Column.ColumnType = ColumnType.Hidden;
-        configure?.Invoke(builder);
-        _columns.Add(builder.Build());
-        return this;
-    }
-
-    /// <summary>
     /// Adds a TableColumnModel configured to be used as a display column
     /// </summary>
     /// <param name="header"></param>

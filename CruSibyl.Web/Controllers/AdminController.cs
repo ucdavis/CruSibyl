@@ -54,6 +54,48 @@ public class AdminController : TabController
         return RenderInitialMainContent("_Content", tableModel);
     }
 
+    public async Task<IActionResult> SaveTableRow()
+    {
+        var pageState = this.GetPageState();
+        var editingRepo = pageState.Get<Repo>("Table", "EditingRow")!;
+        var editingExistingRecord = pageState.Get<bool>("Table", "EditingExistingRecord")!;
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        if (editingExistingRecord)
+        {
+            _dbContext.Repos.Update(editingRepo);
+            await _dbContext.SaveChangesAsync();
+            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            {
+                Item = editingRepo,
+                Key = editingRepo.Id,
+                RowAction = RowAction.Display,
+            });
+        }
+        else
+        {
+            _dbContext.Repos.Add(editingRepo);
+            await _dbContext.SaveChangesAsync();
+            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            {
+                Item = null!,
+                StringKey = "new",
+                RowAction = RowAction.Delete,
+            });
+            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            {
+                Item = editingRepo,
+                Key = editingRepo.Id,
+                RowAction = RowAction.Insert,
+            });
+        }
+
+
+        pageState.ClearKey("Table", "EditingRow");
+        pageState.ClearKey("Table", "EditingExistingRecord");
+
+        return _tableProvider.RefreshEditViews(tableModel);
+    }
+
     public async Task<IActionResult> CancelEditTableRow()
     {
         var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
@@ -67,7 +109,7 @@ public class AdminController : TabController
             {
                 Item = originalRepo,
                 Key = originalRepo.Id,
-                RowType = RowType.ReadOnly,
+                RowAction = RowAction.Display,
             });
         }
         else
@@ -76,12 +118,30 @@ public class AdminController : TabController
             {
                 Item = null!,
                 StringKey = "new",
-                RowType = RowType.Hidden,
+                RowAction = RowAction.Delete,
             });
         }
 
         pageState.ClearKey("Table", "EditingRow");
         pageState.ClearKey("Table", "EditingExistingRecord");
+        return _tableProvider.RefreshEditViews(tableModel);
+    }
+
+    public async Task<IActionResult> DeleteTableRow(int key)
+    {
+        var repo = await _dbContext.Repos.SingleAsync(r => r.Id == key);
+        _dbContext.Repos.Remove(repo);
+        await _dbContext.SaveChangesAsync();
+
+        var pageState = this.GetPageState();
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        tableModel.Rows.Add(new TableRowContext<Repo, int>
+        {
+            Item = repo,
+            Key = key,
+            RowAction = RowAction.Delete,
+        });
+
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
@@ -97,7 +157,7 @@ public class AdminController : TabController
         {
             Item = repo,
             Key = key,
-            RowType = RowType.Editable,
+            RowAction = RowAction.Edit,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -106,7 +166,7 @@ public class AdminController : TabController
     public async Task<IActionResult> SetPage(int page)
     {
         var pageState = this.GetPageState();
-        var tableState = pageState.Get<TableState>("Table", "State");
+        var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.Page = page;
         pageState.Set("Table", "State", tableState);
         var tableModel = await GetRepoData(tableState);
@@ -117,7 +177,7 @@ public class AdminController : TabController
     public async Task<IActionResult> SetPageSize(int pageSize)
     {
         var pageState = this.GetPageState();
-        var tableState = pageState.Get<TableState>("Table", "State");
+        var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.PageSize = pageSize;
         pageState.Set("Table", "State", tableState);
         var tableModel = await GetRepoData(tableState);
@@ -128,7 +188,7 @@ public class AdminController : TabController
     public async Task<IActionResult> SetSort(string column, string direction)
     {
         var pageState = this.GetPageState();
-        var tableState = pageState.Get<TableState>("Table", "State");
+        var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.SortColumn = column;
         tableState.SortDirection = direction;
         pageState.Set("Table", "State", tableState);
@@ -137,9 +197,32 @@ public class AdminController : TabController
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
+    public IActionResult SetCell(string propertyName, string value)
+    {
+        var pageState = this.GetPageState();
+        var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
+        var editingRow = pageState.Get<Repo>("Table", "EditingRow")!;
+        var property = typeof(Repo).GetProperty(propertyName);
+        if (property == null)
+            return BadRequest($"Property '{propertyName}' not found.");
+
+        try
+        {
+            var convertedValue = Convert.ChangeType(value, property.PropertyType);
+            property.SetValue(editingRow, convertedValue);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Failed to set property '{propertyName}': {ex.Message}");
+        }
+
+        pageState.Set("Table", "EditingRow", editingRow);
+        return new MultiSwapViewResult();
+    }
+
     public async Task<IActionResult> SetFilter(string column, string filter, int input)
     {
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());  
+        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
         var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
         if (columnModel == null)
             return BadRequest($"Column '{column}' not found.");
@@ -148,7 +231,7 @@ public class AdminController : TabController
             return BadRequest($"Column '{column}' is not filterable.");
 
         var pageState = this.GetPageState();
-        var tableState = pageState.Get<TableState>("Table", "State");
+        var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         if (columnModel.Filter != null)
         {
             if (string.IsNullOrEmpty(filter))
@@ -205,7 +288,7 @@ public class AdminController : TabController
         tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
-            RowType = RowType.Editable,
+            RowAction = RowAction.Insert,
             StringKey = "new",
         });
 
@@ -227,7 +310,6 @@ public class AdminController : TabController
                     .WithIcon("fas fa-plus mr-1")
                     .WithHxGet($"/Admin/NewTableRow")
             ])
-            .AddHiddenColumn("Id", x => x.Id)
             .AddSelectorColumn("Name", x => x.Name, config => config
                 .WithEditable()
                 .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
@@ -236,7 +318,7 @@ public class AdminController : TabController
             .AddDisplayColumn("Actions", col =>
             {
                 col.WithActions(row =>
-                row.RowType == RowType.Editable ?
+                row.RowAction == RowAction.Edit || row.RowAction == RowAction.Insert ?
                 [
                     new ActionModel("Save")
                         .WithIcon("fas fa-save") // Font Awesome 5 icon for save

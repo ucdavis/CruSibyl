@@ -9,7 +9,7 @@
         <thead>
             @await Html.PartialAsync(Model.TableViewPaths.Header, Model)
             <tr id="table-filter-row">
-                @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
+                @foreach (var column in Model.Columns)
                 {
                     <th>
                         @if (column.Filterable)

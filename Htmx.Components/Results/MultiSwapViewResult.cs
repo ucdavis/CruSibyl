@@ -133,10 +133,11 @@ public class MultiSwapViewResult : IActionResult
         {
             OobTargetRelation.OuterHtml => "outerHTML",
             OobTargetRelation.InnerHtml => "innerHTML",
-            OobTargetRelation.AfterBegin => "afterBegin",
-            OobTargetRelation.BeforeEnd => "beforeEnd",
-            OobTargetRelation.BeforeBegin => "beforeBegin",
-            OobTargetRelation.AfterEnd => "afterEnd",
+            OobTargetRelation.AfterBegin => "afterbegin",
+            OobTargetRelation.BeforeEnd => "beforeend",
+            OobTargetRelation.BeforeBegin => "beforebegin",
+            OobTargetRelation.AfterEnd => "afterend",
+            OobTargetRelation.Delete => "delete",
             _ => throw new ArgumentOutOfRangeException(nameof(htmxViewInfo.TargetRelation), "Invalid target relation")
         };
         var targetSelector = "";

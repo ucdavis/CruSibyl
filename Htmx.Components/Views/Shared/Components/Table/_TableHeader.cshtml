@@ -2,7 +2,7 @@
 @model ITableModel
 
 <tr id="table-header">
-    @foreach (var column in Model.Columns.Where(c => c.ColumnType != ColumnType.Hidden))
+    @foreach (var column in Model.Columns)
     {
         if (column.Sortable)
         {

@@ -17,4 +17,5 @@ public enum OobTargetRelation
     BeforeBegin,
     AfterEnd,
     None,
+    Delete,
 }

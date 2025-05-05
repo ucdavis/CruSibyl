@@ -1,3 +1,9 @@
+htmx.defineExtension('tableinline', {
+  // ensures afterbegin:#table-body inserts entire <tr> element and not just the innerHTML
+  isInlineSwap: function (swapStyle) { return true; },
+});
+
+
 document.addEventListener("htmx:afterSettle", () => {
   // detects if table is in edit mode and disables all parts except the row being edited...
   const toggle = document.getElementById("table-edit-class-toggle");

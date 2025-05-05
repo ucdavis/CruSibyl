@@ -1,11 +1,7 @@
 @using Htmx.Components.Table.Models
 @model ITableModel
 
-<tbody id="table-body">
-    @* row_new is a placeholder for creating new records *@
-   <tr id="row_new" class="hidden"> 
-        <td colspan="100%"></td>
-    </tr>
+<tbody id="table-body" hx-ext="tableinline">
     @foreach (var rowContext in Model.Rows)
     {
         // individual rows are split out into separate view in order to support single-row editing  

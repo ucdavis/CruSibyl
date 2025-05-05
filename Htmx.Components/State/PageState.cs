@@ -7,7 +7,8 @@ public interface IPageState
 {
     void Load(string? encrypted);
     string Encrypted { get; }
-    T Get<T>(string partition, string key);
+    T? Get<T>(string partition, string key);
+    T GetOrCreate<T>(string partition, string key, Func<T> factory);
     void Set<T>(string partition, string key, T value);
     void ClearKey(string partition, string key);
     void ClearPartition(string partition);
@@ -75,10 +76,24 @@ public class PageState : IPageState
         meta[VersionKey] = (version + 1).ToString();
     }
 
-    public T Get<T>(string partition, string key)
+    public T? Get<T>(string partition, string key)
     {
         var p = GetPartition(partition);
-        if (!p.TryGetValue(key, out var value)) return default!;
+        if (!p.TryGetValue(key, out var value)) return default;
+
+        return JsonSerializer.Deserialize<T>(value)!;
+    }
+
+    public T GetOrCreate<T>(string partition, string key, Func<T> factory)
+    {
+        var p = GetPartition(partition);
+        if (!p.TryGetValue(key, out var value))
+        {
+            var newValue = factory();
+            p[key] = JsonSerializer.Serialize(newValue);
+            BumpVersion();
+            return newValue;
+        }
 
         return JsonSerializer.Deserialize<T>(value)!;
     }

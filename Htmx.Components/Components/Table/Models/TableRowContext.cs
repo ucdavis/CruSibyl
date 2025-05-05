@@ -9,26 +9,15 @@ public interface ITableRowContext
     string RowId { get; } // E.g., "row_5f3e"
     int PageIndex { get; } // Row's index within current page
     string Key { get; }
-    RowType RowType { get; }
+    RowAction RowAction { get; }
 }
 
-public enum RowType
+public enum RowAction
 {
-    ReadOnly,
-    Editable,
-    Hidden,
-}
-
-/// <summary>
-/// Represents a hidden row for oob swaps that remove a row from the table 
-/// </summary>
-public class HiddenRowContext : ITableRowContext
-{
-    public string RowId => "row_" + Key.SanitizeForHtmlId();
-    public int PageIndex { get; set; } = 0; // Row's index within current page
-    public required string Key { get; init; }
-    public object Item => null!;
-    public RowType RowType => RowType.Hidden;
+    Display,
+    Edit,
+    Delete,
+    Insert
 }
 
 public class TableRowContext<T, TKey> : ITableRowContext
@@ -46,7 +35,7 @@ public class TableRowContext<T, TKey> : ITableRowContext
             StringKey = JsonSerializer.Serialize(value);
         }
     }
-    public RowType RowType { get; set; }
+    public RowAction RowAction { get; set; }
     public string StringKey { get; set; } = "";
     string ITableRowContext.Key => StringKey;
     object ITableRowContext.Item => Item!;
