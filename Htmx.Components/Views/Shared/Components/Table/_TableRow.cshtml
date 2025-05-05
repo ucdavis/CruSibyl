@@ -2,7 +2,7 @@
 @model (ITableModel table, ITableRowContext row)
 
 @{
-  var isEditing = Model.row.RowAction == RowAction.Edit || (Model.row.RowAction == RowAction.Insert && Model.row.Key == "new");
+  var isEditing = Model.row.IsEditing;
 }
 
 <tr id="@Model.row.RowId" class="@(isEditing ? "editing-row" : "")">

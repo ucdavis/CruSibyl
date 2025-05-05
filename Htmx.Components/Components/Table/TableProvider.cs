@@ -175,11 +175,6 @@ public class TableProvider : ITableProvider
 
     public IActionResult RefreshEditViews(ITableModel tableModel)
     {
-        var standardRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Display);
-        var deleteRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Delete);
-        var editRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Edit);
-        var insertRow = tableModel.Rows.SingleOrDefault(r => r.RowAction == RowAction.Insert);
-
         if (tableModel.TableViewPaths == null)
         {
             tableModel.TableViewPaths = _paths;
@@ -188,14 +183,11 @@ public class TableProvider : ITableProvider
         var result = new MultiSwapViewResult()
             .WithOobContent(_paths.EditClassToggle, tableModel)
             .WithOobContent(_paths.TableActionList, tableModel);
-        if (standardRow != null)
-            result.WithOobContent(_paths.Row, (tableModel, standardRow));
-        if (deleteRow != null)
-            result.WithOobContent(_paths.Row, (tableModel, deleteRow), OobTargetRelation.Delete);
-        if (editRow != null)
-            result.WithOobContent(_paths.Row, (tableModel, editRow));
-        if (insertRow != null)
-            result.WithOobContent(_paths.Row, (tableModel, insertRow), OobTargetRelation.AfterBegin, "#table-body");
+
+        foreach (var row in tableModel.Rows)
+        {
+            result.WithOobContent(_paths.Row, (tableModel, row), row.TargetDisposition ?? OobTargetDisposition.OuterHtml, row.TargetSelector);
+        }
         
         return result;
     }

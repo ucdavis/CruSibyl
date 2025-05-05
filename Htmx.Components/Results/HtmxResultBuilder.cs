@@ -45,14 +45,30 @@ public class HtmxResultBuilder
     }
 
     public HtmxResultBuilder WithOob(string viewName, object model,
-        OobTargetRelation targetRelation = OobTargetRelation.OuterHtml, string? targetSelector = null)
+        OobTargetDisposition targetDisposition = OobTargetDisposition.OuterHtml, string? targetSelector = null)
     {
         _oobViewInfos.Add(Task.FromResult(new HtmxViewInfo
         {
             ViewName = viewName,
             Model = model,
-            TargetRelation = targetRelation,
+            TargetDisposition = targetDisposition,
             TargetSelector = targetSelector
+        }));
+        return this;
+    }
+
+    public HtmxResultBuilder WithOob(string viewName, object model)
+    {
+        _oobViewInfos.Add(Task.FromResult(new HtmxViewInfo
+        {
+            ViewName = viewName,
+            Model = model,
+            TargetDisposition = model is IOobTargetable t1
+                ? t1.TargetDisposition ?? OobTargetDisposition.OuterHtml
+                : OobTargetDisposition.OuterHtml,
+            TargetSelector = model is IOobTargetable t2
+                ? t2.TargetSelector
+                : null
         }));
         return this;
     }
@@ -98,7 +114,7 @@ public class HtmxResultBuilder
         {
             ViewName = navComponentName,
             Model = nav,
-            TargetRelation = OobTargetRelation.OuterHtml
+            TargetDisposition = OobTargetDisposition.OuterHtml
         };
     }
 

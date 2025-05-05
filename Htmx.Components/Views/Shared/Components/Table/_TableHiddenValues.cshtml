@@ -4,7 +4,7 @@
 
 <div id="table-hidden-values">
   @{
-    var editRow = Model.Rows.Where(r => r.RowAction == RowAction.Edit).SingleOrDefault();
+    var editRow = Model.Rows.Where(r => r.IsEditing).SingleOrDefault();
     if (editRow != null)
     {
       // We want to have hidden inputs for every column that doesn't have an editable input.

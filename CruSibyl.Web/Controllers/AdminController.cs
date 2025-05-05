@@ -10,6 +10,7 @@ using Htmx.Components.Table;
 using Htmx.Components.Action;
 using Htmx;
 using Htmx.Components;
+using Htmx.Components.Models;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -35,10 +36,7 @@ public class AdminController : TabController
         var pageState = this.GetPageState();
         var test = pageState.Get<int>("AdminTab", "Test");
         pageState.Set("AdminTab", "Test", test + 1);
-        var tableState = new TableState()
-        {
-            PageSize = 2
-        };
+        var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
         TableModel<Repo, int> tableModel = await GetRepoData(tableState);
@@ -68,7 +66,7 @@ public class AdminController : TabController
             {
                 Item = editingRepo,
                 Key = editingRepo.Id,
-                RowAction = RowAction.Display,
+                TargetDisposition = OobTargetDisposition.OuterHtml,
             });
         }
         else
@@ -79,13 +77,14 @@ public class AdminController : TabController
             {
                 Item = null!,
                 StringKey = "new",
-                RowAction = RowAction.Delete,
+                TargetDisposition = OobTargetDisposition.Delete,
             });
             tableModel.Rows.Add(new TableRowContext<Repo, int>
             {
                 Item = editingRepo,
                 Key = editingRepo.Id,
-                RowAction = RowAction.Insert,
+                TargetDisposition = OobTargetDisposition.AfterBegin,
+                TargetSelector = "#table-body",
             });
         }
 
@@ -109,7 +108,7 @@ public class AdminController : TabController
             {
                 Item = originalRepo,
                 Key = originalRepo.Id,
-                RowAction = RowAction.Display,
+                TargetDisposition = OobTargetDisposition.OuterHtml,
             });
         }
         else
@@ -118,7 +117,7 @@ public class AdminController : TabController
             {
                 Item = null!,
                 StringKey = "new",
-                RowAction = RowAction.Delete,
+                TargetDisposition = OobTargetDisposition.Delete,
             });
         }
 
@@ -139,7 +138,7 @@ public class AdminController : TabController
         {
             Item = repo,
             Key = key,
-            RowAction = RowAction.Delete,
+            TargetDisposition = OobTargetDisposition.Delete,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -157,7 +156,8 @@ public class AdminController : TabController
         {
             Item = repo,
             Key = key,
-            RowAction = RowAction.Edit,
+            TargetDisposition = OobTargetDisposition.OuterHtml,
+            IsEditing = true,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -288,8 +288,10 @@ public class AdminController : TabController
         tableModel.Rows.Add(new TableRowContext<Repo, int>
         {
             Item = repo,
-            RowAction = RowAction.Insert,
+            TargetDisposition = OobTargetDisposition.AfterBegin,
+            TargetSelector = "#table-body",
             StringKey = "new",
+            IsEditing = true,
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
@@ -318,7 +320,7 @@ public class AdminController : TabController
             .AddDisplayColumn("Actions", col =>
             {
                 col.WithActions(row =>
-                row.RowAction == RowAction.Edit || row.RowAction == RowAction.Insert ?
+                row.IsEditing ?
                 [
                     new ActionModel("Save")
                         .WithIcon("fas fa-save") // Font Awesome 5 icon for save

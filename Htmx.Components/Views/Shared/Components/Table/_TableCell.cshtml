@@ -6,10 +6,7 @@
 
 @{
     var value = Model.Column.GetValue(Model.Row);
-    var isEditing = Model.Column.IsEditable && (
-        Model.Row.RowAction == RowAction.Edit 
-        || (Model.Row.RowAction == RowAction.Insert && Model.Row.Key == "new")
-    );
+    var isEditing = Model.Column.IsEditable && Model.Row.IsEditing;
 }
 
 @if (isEditing)

@@ -32,7 +32,7 @@ public class MultiSwapViewResult : IActionResult
             {
                 ViewName = main.Value.PartialView,
                 Model = main.Value.Model,
-                TargetRelation = OobTargetRelation.None
+                TargetDisposition = OobTargetDisposition.None
             }
             : null;
         _oobs.AddRange(oobs);
@@ -44,20 +44,36 @@ public class MultiSwapViewResult : IActionResult
         {
             ViewName = viewName,
             Model = model,
-            TargetRelation = OobTargetRelation.None
+            TargetDisposition = OobTargetDisposition.None
         };
         return this;
     }
 
     public MultiSwapViewResult WithOobContent(string viewName, object model, 
-        OobTargetRelation targetRelation = OobTargetRelation.OuterHtml, string? targetSelector = null)
+        OobTargetDisposition targetDisposition = OobTargetDisposition.OuterHtml, string? targetSelector = null)
     {
         _oobs.Add(new HtmxViewInfo
         {
             ViewName = viewName,
             Model = model,
-            TargetRelation = targetRelation,
+            TargetDisposition = targetDisposition,
             TargetSelector = targetSelector
+        });
+        return this;
+    }
+
+    public MultiSwapViewResult WithOobContent(string viewName, object model)
+    {
+        _oobs.Add(new HtmxViewInfo
+        {
+            ViewName = viewName,
+            Model = model,
+            TargetDisposition = model is IOobTargetable t1
+                ? t1.TargetDisposition ?? OobTargetDisposition.OuterHtml
+                : OobTargetDisposition.OuterHtml,
+            TargetSelector = model is IOobTargetable t2
+                ? t2.TargetSelector
+                : null
         });
         return this;
     }
@@ -129,16 +145,17 @@ public class MultiSwapViewResult : IActionResult
         var regex = new Regex(@"<(\w+)([^>]*)>");
         var match = regex.Match(html);
 
-        var targetRelation = htmxViewInfo.TargetRelation switch
+        var targetDisposition = htmxViewInfo.TargetDisposition switch
         {
-            OobTargetRelation.OuterHtml => "outerHTML",
-            OobTargetRelation.InnerHtml => "innerHTML",
-            OobTargetRelation.AfterBegin => "afterbegin",
-            OobTargetRelation.BeforeEnd => "beforeend",
-            OobTargetRelation.BeforeBegin => "beforebegin",
-            OobTargetRelation.AfterEnd => "afterend",
-            OobTargetRelation.Delete => "delete",
-            _ => throw new ArgumentOutOfRangeException(nameof(htmxViewInfo.TargetRelation), "Invalid target relation")
+            OobTargetDisposition.OuterHtml => "outerHTML",
+            OobTargetDisposition.InnerHtml => "innerHTML",
+            OobTargetDisposition.AfterBegin => "afterbegin",
+            OobTargetDisposition.BeforeEnd => "beforeend",
+            OobTargetDisposition.BeforeBegin => "beforebegin",
+            OobTargetDisposition.AfterEnd => "afterend",
+            OobTargetDisposition.Delete => "delete",
+            OobTargetDisposition.None => "none",
+            _ => throw new ArgumentOutOfRangeException(nameof(htmxViewInfo.TargetDisposition), "Invalid target disposition")
         };
         var targetSelector = "";
         
@@ -160,7 +177,7 @@ public class MultiSwapViewResult : IActionResult
                 var tagAttributes = match.Groups[2].Value;
 
                 // Add the hx-swap-oob attribute to the outermost element's tag
-                var updatedTag = $"<{tagName}{tagAttributes} hx-swap-oob=\"{targetRelation}{targetSelector}\">";
+                var updatedTag = $"<{tagName}{tagAttributes} hx-swap-oob=\"{targetDisposition}{targetSelector}\">";
 
                 // Replace the opening tag with the updated one
                 return $"<template>{regex.Replace(html, updatedTag, 1)}</template>";

@@ -21,7 +21,7 @@ public class PageStateOobInjectorFilter : IAsyncResultFilter
             {
                 ViewName = "_PageStateHiddenInput",
                 Model = _pageState.Encrypted,
-                TargetRelation = OobTargetRelation.OuterHtml
+                TargetDisposition = OobTargetDisposition.OuterHtml
             };
 
             multiSwap.WithOobContent(oobView);

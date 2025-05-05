@@ -2,7 +2,7 @@
 @model ITableModel
 
 @{
-    var isEditing = Model.Rows.Any(r => r.RowAction == RowAction.Edit || (r.RowAction == RowAction.Insert && r.Key == "new"));
+    var isEditing = Model.Rows.Any(r => r.IsEditing);
 }
 
 <div id="table-edit-class-toggle" class="@(isEditing ? "editing-mode" : "")"></div>
