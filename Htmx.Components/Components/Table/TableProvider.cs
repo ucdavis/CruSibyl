@@ -114,7 +114,7 @@ public class TableProvider : ITableProvider
         // make sure we're not trying to exceed the available pages
         tableState.Page = Math.Min(tableState.Page, pageCount);
         var pagedData = await query
-            .Skip((tableState.Page - 1) * tableState.PageSize)
+            .Skip(Math.Max(tableState.Page - 1, 0) * tableState.PageSize)
             .Take(tableState.PageSize)
             .ToListAsync();
 
