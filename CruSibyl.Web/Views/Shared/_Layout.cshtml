@@ -28,19 +28,19 @@
 
 @* <body hx-ext="multi-swap"> *@
 
-<body>
-  <div class="page-wrap">
+<body class="min-h-screen flex flex-col">
+  <div class="flex-1 flex flex-col">
     <header>
     </header>
 
     @await Component.InvokeAsync("NavBar")
 
-    <main id="tab-content" class="px-4">
+    <main id="tab-content" class="px-4 flex-1 pb-8">
       @RenderBody() @* Initial content - first tab loads by default *@
     </main>
   </div>
 
-  <footer class="bg-gray-800 text-white p-4 text-center fixed bottom-0 w-full">
+  <footer class="bg-gray-800 text-white p-4 text-center sticky bottom-0">
     <p class="text-sm">
       Copyright &copy; <span id="copywrite-year"></span> The Regents of the University of California, Davis campus.
       All rights reserved. <br>

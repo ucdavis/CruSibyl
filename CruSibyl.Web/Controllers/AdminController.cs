@@ -2,7 +2,6 @@
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using Htmx.Components.Table.Models;
-using Htmx.Components.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,35 +10,44 @@ using Htmx.Components.Action;
 using Htmx;
 using Htmx.Components;
 using Htmx.Components.Models;
+using Htmx.Components.ViewResults;
+using Htmx.Components.Services;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using System.Text.Json;
 
 namespace CruSibyl.Web.Controllers;
 
 [Authorize]
+[Route("Admin")]
 public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
     private readonly ITableProvider _tableProvider;
+    private readonly IModelRegistry _modelRegistry;
 
-    public AdminController(AppDbContext dbContext, ITableProvider tableProvider)
+    public AdminController(AppDbContext dbContext, ITableProvider tableProvider, IModelRegistry modelRegistry)
     {
         _dbContext = dbContext;
         _tableProvider = tableProvider;
+        _modelRegistry = modelRegistry;
     }
 
+    [HttpGet]
     public Task<IActionResult> Index()
     {
         return Table();
     }
 
+    [HttpGet("Index")]
     public async Task<IActionResult> Table()
     {
         var pageState = this.GetPageState();
-        var test = pageState.Get<int>("AdminTab", "Test");
-        pageState.Set("AdminTab", "Test", test + 1);
         var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
-        TableModel<Repo, int> tableModel = await GetRepoData(tableState);
+        var modelHandler =(ModelHandler<Repo, int>)_modelRegistry.GetModelHandler("Repo")!;
+        var tableModel = modelHandler.BuildTableModel!();
+        await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 
         if (Request.IsHtmx())
         {
@@ -52,37 +60,54 @@ public class AdminController : TabController
         return RenderInitialMainContent("_Content", tableModel);
     }
 
-    public async Task<IActionResult> SaveTableRow()
+    [HttpPost("{typeId}/SaveRow")]
+    public async Task<IActionResult> SaveRow(string typeId)
     {
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_SaveRow),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _SaveRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        if (modelHandler.InsertModel == null)
+            return BadRequest($"SaveModel not defined for type '{modelHandler.TypeId}'.");
+
         var pageState = this.GetPageState();
-        var editingRepo = pageState.Get<Repo>("Table", "EditingRow")!;
+        var editingModel = pageState.Get<T>("Table", "EditingRow")!;
         var editingExistingRecord = pageState.Get<bool>("Table", "EditingExistingRecord")!;
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        var tableModel = modelHandler.BuildTableModel!();
         if (editingExistingRecord)
         {
-            _dbContext.Repos.Update(editingRepo);
-            await _dbContext.SaveChangesAsync();
-            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            await modelHandler.UpdateModel!(editingModel);
+            tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
-                Item = editingRepo,
-                Key = editingRepo.Id,
+                Item = editingModel,
+                Key = modelHandler.KeySelectorFunc(editingModel),
                 TargetDisposition = OobTargetDisposition.OuterHtml,
             });
         }
         else
         {
-            _dbContext.Repos.Add(editingRepo);
-            await _dbContext.SaveChangesAsync();
-            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            await modelHandler.InsertModel!(editingModel);
+            tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
                 StringKey = "new",
                 TargetDisposition = OobTargetDisposition.Delete,
             });
-            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
-                Item = editingRepo,
-                Key = editingRepo.Id,
+                Item = editingModel,
+                Key = modelHandler.KeySelectorFunc(editingModel),
                 TargetDisposition = OobTargetDisposition.AfterBegin,
                 TargetSelector = "#table-body",
             });
@@ -95,25 +120,45 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> CancelEditTableRow()
+    [HttpPost("{typeId}/CancelEditRow")]
+    public async Task<IActionResult> CancelEditRow(string typeId)
     {
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_CancelEditRow),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _CancelEditRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        var tableModel = modelHandler.BuildTableModel!();
         var pageState = this.GetPageState();
         if (pageState.Get<bool>("Table", "EditingExistingRecord"))
         {
-            var editingRepo = pageState.Get<Repo>("Table", "EditingRow")!;
-            var originalRepo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == editingRepo.Id);
+            var editingRepo = pageState.Get<T>("Table", "EditingRow")!;
+            var editingKey = modelHandler.KeySelectorFunc(editingRepo);
 
-            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            var originalRepo = await modelHandler.GetQueryable!()
+                .Where(modelHandler.GetKeyPredicate(editingKey))
+                .SingleAsync();
+
+            tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = originalRepo,
-                Key = originalRepo.Id,
+                Key = editingKey,
                 TargetDisposition = OobTargetDisposition.OuterHtml,
             });
         }
         else
         {
-            tableModel.Rows.Add(new TableRowContext<Repo, int>
+            tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
                 StringKey = "new",
@@ -126,17 +171,36 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> DeleteTableRow(int key)
+    [HttpPost("{typeId}/DeleteRow")]
+    public async Task<IActionResult> DeleteRow(string typeId, string key)
     {
-        var repo = await _dbContext.Repos.SingleAsync(r => r.Id == key);
-        _dbContext.Repos.Remove(repo);
-        await _dbContext.SaveChangesAsync();
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_DeleteRow),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { key, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _DeleteRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        if (modelHandler.DeleteModel == null)
+            return BadRequest($"DeleteModel not defined for type '{modelHandler.TypeId}'.");
+        
+        var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
+
+        await modelHandler.DeleteModel!(key);
 
         var pageState = this.GetPageState();
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
-        tableModel.Rows.Add(new TableRowContext<Repo, int>
+        var tableModel = modelHandler.BuildTableModel!();
+        tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
-            Item = repo,
+            Item = default!,
             Key = key,
             TargetDisposition = OobTargetDisposition.Delete,
         });
@@ -144,17 +208,38 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> EditTableRow(int key)
+    [HttpPost("{typeId}/EditRow")]
+    public async Task<IActionResult> EditRow(string typeId, string key)
     {
-        var repo = await _dbContext.Repos.AsNoTracking().SingleAsync(r => r.Id == key);
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_EditRow),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { key, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _EditRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
+        var model = await modelHandler.GetQueryable!()
+            .Where(modelHandler.GetKeyPredicate(key))
+            .SingleOrDefaultAsync();
+        if (model == null)
+            return BadRequest($"Model with key '{stringKey}' not found.");
         var pageState = this.GetPageState();
-        pageState.Set("Table", "EditingRow", repo);
+        pageState.Set("Table", "EditingRow", model);
         pageState.Set("Table", "EditingExistingRecord", true);
 
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
-        tableModel.Rows.Add(new TableRowContext<Repo, int>
+        var tableModel = modelHandler.BuildTableModel!();
+        tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
-            Item = repo,
+            Item = model,
             Key = key,
             TargetDisposition = OobTargetDisposition.OuterHtml,
             IsEditing = true,
@@ -163,40 +248,92 @@ public class AdminController : TabController
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    public async Task<IActionResult> SetPage(int page)
+    [HttpPost("{typeId}/SetPage")]
+    public async Task<IActionResult> SetPage(string typeId, int page)
+    {
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_SetPage),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { page, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _SetPage<T, TKey>(int page, ModelHandler<T, TKey> modelHandler)
+        where T : class
     {
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.Page = page;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await GetRepoData(tableState);
+        var tableModel = modelHandler.BuildTableModel!();
+        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    public async Task<IActionResult> SetPageSize(int pageSize)
+    [HttpPost("{typeId}/SetPageSize")]
+    public async Task<IActionResult> SetPageSize(string typeId, int pageSize)
+    {
+        var modelHandler = _modelRegistry.GetModelHandler("Repo");
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_SetPageSize),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { pageSize, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _SetPageSize<T, TKey>(int pageSize, ModelHandler<T, TKey> modelHandler)
+        where T : class
     {
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.PageSize = pageSize;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await GetRepoData(tableState);
+        var tableModel = modelHandler.BuildTableModel!();
+        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    public async Task<IActionResult> SetSort(string column, string direction)
+    [HttpPost("{typeId}/SetSort")]
+    public async Task<IActionResult> SetSort(string typeId, string column, string direction)
+    {
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_SetSort),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { column, direction, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _SetSort<T, TKey>(string column, string direction, ModelHandler<T, TKey> modelHandler)
+        where T : class
     {
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.SortColumn = column;
         tableState.SortDirection = direction;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await GetRepoData(tableState);
+        var tableModel = modelHandler.BuildTableModel!();
+        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
+    [HttpPost("SetCell")]
     public IActionResult SetCell(string propertyName, string value)
     {
         var pageState = this.GetPageState();
@@ -220,9 +357,25 @@ public class AdminController : TabController
         return new MultiSwapViewResult();
     }
 
-    public async Task<IActionResult> SetFilter(string column, string filter, int input)
+    [HttpPost("{typeId}/SetFilter")]
+    public async Task<IActionResult> SetFilter(string typeId, string column, string filter, int input)
     {
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var method = typeof(AdminController).GetMethod(nameof(_SetFilter),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { column, filter, input, modelHandler }) as Task<IActionResult>;
+        return await result!;
+    }
+
+    private async Task<IActionResult> _SetFilter<T, TKey>(string column, string filter, int input, ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        var tableModel = modelHandler.BuildTableModel!();
         var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
         if (columnModel == null)
             return BadRequest($"Column '{column}' not found.");
@@ -252,42 +405,38 @@ public class AdminController : TabController
         }
 
         pageState.Set("Table", "State", tableState);
-        await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
+        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    /// <summary>
-    /// Reloads the table with the current query parameters.
-    /// This is called when any action is performed on table sorting, filtering, or paging.
-    /// </summary>
-    /// <param name="state"></param>
-    /// <returns>HTMX OOB swaps for all partial views</returns>
-    public async Task<IActionResult> ReloadTable([FromQuery] TableState state)
+    [HttpPost("{typeId}/NewTableRow")]
+    public IActionResult NewTableRow(string typeId)
     {
-        var pageState = this.GetPageState();
-        pageState.Set("Table", "State", state);
-        var tableModel = await GetRepoData(state);
+        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        return _tableProvider.RefreshAllViews(tableModel);
+        var method = typeof(AdminController).GetMethod(nameof(_NewTableRow),
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+
+        var result = method.Invoke(this, new object[] { modelHandler }) as IActionResult;
+        return result!;
     }
 
-    public IActionResult NewTableRow()
+    private IActionResult _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+        where T : class, new()
     {
-        var repo = new Repo
-        {
-            Id = 0,
-            Name = string.Empty,
-            Description = string.Empty,
-        };
+        var model = new T();
 
         var pageState = this.GetPageState();
-        pageState.Set("Table", "EditingRow", repo);
+        pageState.Set("Table", "EditingRow", model);
         pageState.Set("Table", "EditingExistingRecord", false);
 
-        var tableModel = _tableProvider.Build(r => r.Id, GetTableConfig());
-        tableModel.Rows.Add(new TableRowContext<Repo, int>
+        var tableModel = modelHandler.BuildTableModel!();
+        tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
-            Item = repo,
+            Item = model,
             TargetDisposition = OobTargetDisposition.AfterBegin,
             TargetSelector = "#table-body",
             StringKey = "new",
@@ -295,52 +444,5 @@ public class AdminController : TabController
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
-    }
-
-    private async Task<TableModel<Repo, int>> GetRepoData(TableState query)
-    {
-        var tableModel = await _tableProvider.BuildAndFetchPage(x => x.Id, _dbContext.Repos, query, GetTableConfig());
-
-        return tableModel;
-    }
-
-    private static Action<TableModelBuilder<Repo, int>> GetTableConfig()
-    {
-        return config => config
-            .WithActions(table => [
-                new ActionModel("Add New")
-                    .WithIcon("fas fa-plus mr-1")
-                    .WithHxGet($"/Admin/NewTableRow")
-            ])
-            .AddSelectorColumn("Name", x => x.Name, config => config
-                .WithEditable()
-                .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
-            .AddSelectorColumn("Description", x => x.Description!, config => config
-                .WithEditable())
-            .AddDisplayColumn("Actions", col =>
-            {
-                col.WithActions(row =>
-                row.IsEditing ?
-                [
-                    new ActionModel("Save")
-                        .WithIcon("fas fa-save") // Font Awesome 5 icon for save
-                        .WithHxPost($"/Admin/SaveTableRow"),
-
-                    new ActionModel("Cancel")
-                        .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
-                        .WithHxGet($"/Admin/CancelEditTableRow")
-                ]
-                :
-                [
-                    new ActionModel("Edit")
-                        .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
-                        .WithHxGet($"/Admin/EditTableRow?key={row.Key}"),
-
-                    new ActionModel("Delete")
-                        .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
-                        .WithClass("text-red-600")
-                        .WithHxPost($"/Admin/DeleteTableRow?key={row.Key}")
-                ]);
-            });
     }
 }

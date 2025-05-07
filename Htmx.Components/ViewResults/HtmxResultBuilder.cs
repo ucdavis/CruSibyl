@@ -1,7 +1,7 @@
 using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 using Htmx.Components.NavBar;
-using Htmx.Components.Results;
+using Htmx.Components.ViewResults;
 using Htmx.Components.State;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
 
-namespace Htmx.Components;
+namespace Htmx.Components.ViewResults;
 
 public class HtmxResultBuilder
 {

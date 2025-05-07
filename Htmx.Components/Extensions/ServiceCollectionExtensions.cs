@@ -1,12 +1,15 @@
 using Htmx.Components.Action;
 using Htmx.Components.NavBar;
+using Htmx.Components.Services;
 using Htmx.Components.State;
 using Htmx.Components.Table;
 using Htmx.Components.Table.Models;
+using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Razor;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -27,17 +30,19 @@ public static class ServiceCollectionExtensions
         var options = new HtmxComponentOptions();
         configure?.Invoke(options);
 
-        services.AddSingleton(options.TableViews);
+        services.AddSingleton(options.TableViewPaths);
         services.AddScoped<ITableProvider, TableProvider>();
 
-        if (options.NavBuilderFactory is not null)
+        if (options.NavProviderFactory is not null)
         {
-            services.AddScoped<INavProvider, BuilderBasedNavProvider>(sp =>
-            {
-                var accessor = sp.GetRequiredService<IActionContextAccessor>();
-                return new BuilderBasedNavProvider(accessor, options.NavBuilderFactory!);
-            });
+            services.AddScoped<INavProvider, BuilderBasedNavProvider>(options.NavProviderFactory);
         }
+
+        if (options.ModelRegistryFactory is not null)
+        {
+            services.AddScoped<IModelRegistry>(options.ModelRegistryFactory);
+        }
+
         services.AddScoped<IPageState, PageState>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddDataProtection();
@@ -47,7 +52,7 @@ public static class ServiceCollectionExtensions
         {
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
-        
+
         return services;
     }
 
@@ -79,18 +84,35 @@ public static class ServiceCollectionExtensions
 
 public class HtmxComponentOptions
 {
-    internal Func<ActionContext, Task<ActionSetBuilder>>? NavBuilderFactory { get; private set; }
-    internal TableViewPaths TableViews { get; } = new();
+    internal Func<IServiceProvider, BuilderBasedNavProvider>? NavProviderFactory { get; private set; }
+    internal TableViewPaths TableViewPaths { get; private set; } = new TableViewPaths();
+    internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
 
     public HtmxComponentOptions WithNavBuilder(Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
     {
-        NavBuilderFactory = builderFactory;
+        NavProviderFactory = serviceProvider =>
+        {
+            var accessor = serviceProvider.GetRequiredService<IActionContextAccessor>();
+            return new BuilderBasedNavProvider(accessor, builderFactory);
+        };
         return this;
     }
 
     public HtmxComponentOptions WithTableOverrides(Action<TableViewPaths> configure)
     {
-        configure(TableViews);
+        configure(TableViewPaths);
+        return this;
+    }
+
+    public HtmxComponentOptions WithModelHandlerRegistry(Action<IModelRegistry> configure)
+    {
+        ModelRegistryFactory = serviceProvider =>
+        {
+            var tableViewPaths = serviceProvider.GetRequiredService<TableViewPaths>();
+            var modelRegistry = new ModelRegistry(tableViewPaths, serviceProvider);
+            configure(modelRegistry);
+            return modelRegistry;
+        };
         return this;
     }
 }

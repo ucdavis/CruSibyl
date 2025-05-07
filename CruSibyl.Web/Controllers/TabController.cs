@@ -2,7 +2,7 @@ using Htmx;
 using Htmx.Components;
 using Htmx.Components.NavBar;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
+using Htmx.Components.ViewResults;
 
 namespace CruSibyl.Web.Controllers;
 

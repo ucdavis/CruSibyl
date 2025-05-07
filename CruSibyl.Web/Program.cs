@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using CruSibyl.Core.Data;
+using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
@@ -74,27 +75,8 @@ try
 
     appBuilder.Services.AddHtmxComponents(config =>
     {
-        config.WithNavBuilder(context =>
-        {
-            var path = context.HttpContext.Request.Path.ToString();
-
-            var navBuilder = new ActionSetBuilder()
-                .AddModel(m => m
-                    .WithLabel("Home")
-                    .WithIcon("fas fa-home")
-                    .WithHxGet("/Dashboard")
-                    .WithHxPushUrl())
-
-                .AddGroup(g => g
-                    .WithLabel("Admin")
-                    .WithIcon("fas fa-cogs")
-                    .AddModel(m => m
-                        .WithLabel("Repos")
-                        .WithHxGet("/Admin")
-                        .WithHxPushUrl()));
-
-            return Task.FromResult(navBuilder);
-        });
+        ConfigureNav(config);
+        ConfigureModelHandlers(config);
     });
 
     appBuilder.Services.AddControllersWithViews(options =>
@@ -215,7 +197,7 @@ try
     {
         appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlite>((serviceProvider, o) =>
         {
-            o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"), 
+            o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"),
                 sqliteOptions =>
                 {
                     sqliteOptions.MigrationsAssembly("CruSibyl.Core");
@@ -322,3 +304,102 @@ finally
 }
 
 return 0;
+
+static void ConfigureNav(HtmxComponentOptions config)
+{
+    config.WithNavBuilder(context =>
+    {
+        var path = context.HttpContext.Request.Path.ToString();
+
+        var navBuilder = new ActionSetBuilder()
+            .AddModel(m => m
+                .WithLabel("Home")
+                .WithIcon("fas fa-home")
+                .WithHxGet("/Dashboard")
+                .WithHxPushUrl())
+
+            .AddGroup(g => g
+                .WithLabel("Admin")
+                .WithIcon("fas fa-cogs")
+                .AddModel(m => m
+                    .WithLabel("Repos")
+                    .WithHxGet("/Admin")
+                    .WithHxPushUrl()));
+
+        return Task.FromResult(navBuilder);
+    });
+}
+
+static void ConfigureModelHandlers(HtmxComponentOptions config)
+{
+    config.WithModelHandlerRegistry(registry =>
+    {
+        registry.Register<Repo, int>(nameof(Repo), (serviceProvider, model) =>
+        {
+            var typeId = nameof(Repo);
+            var dbContext = serviceProvider.GetRequiredService<AppDbContext>();
+            model.WithKeySelector(r => r.Id)
+                .WithQueryable(() => dbContext.Repos)
+                .WithInsertModel(async repo =>
+                {
+                    dbContext.Repos.Add(repo);
+                    await dbContext.SaveChangesAsync();
+                    return Htmx.Components.Models.Result.Ok();
+                })
+                .WithUpdateModel(async repo =>
+                {
+                    dbContext.Repos.Update(repo);
+                    await dbContext.SaveChangesAsync();
+                    return Htmx.Components.Models.Result.Ok();
+                })
+                .WithDeleteModel(async id =>
+                {
+                    var repo = await dbContext.Repos.FindAsync(id);
+                    if (repo != null)
+                    {
+                        dbContext.Repos.Remove(repo);
+                        await dbContext.SaveChangesAsync();
+                        return Htmx.Components.Models.Result.Ok();
+                    }
+                    return Htmx.Components.Models.Result.Error("Repo not found");
+                })
+                .WithTableModel(table => table
+                    .WithTypeId(typeId)
+                    .WithActions(table => [
+                        new ActionModel("Add New")
+                            .WithIcon("fas fa-plus mr-1")
+                            .WithHxPost($"/Admin/{typeId}/NewTableRow")
+                    ])
+                    .AddSelectorColumn("Name", x => x.Name, config => config
+                        .WithEditable()
+                        .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
+                    .AddSelectorColumn("Description", x => x.Description!, config => config
+                        .WithEditable())
+                    .AddDisplayColumn("Actions", col =>
+                    {
+                        col.WithActions(row =>
+                        row.IsEditing ?
+                        [
+                            new ActionModel("Save")
+                                .WithIcon("fas fa-save") // Font Awesome 5 icon for save
+                                .WithHxPost($"/Admin/{typeId}/SaveRow"),
+
+                            new ActionModel("Cancel")
+                                .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
+                                .WithHxPost($"/Admin/{typeId}/CancelEditRow")
+                        ]
+                        :
+                        [
+                            new ActionModel("Edit")
+                                .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
+                                .WithHxPost($"/Admin/{typeId}/EditRow?key={row.Key}"),
+
+                            new ActionModel("Delete")
+                                .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
+                                .WithClass("text-red-600")
+                                .WithHxPost($"/Admin/{typeId}/DeleteRow?key={row.Key}")
+                        ]);
+                    }));
+        });
+    });
+}

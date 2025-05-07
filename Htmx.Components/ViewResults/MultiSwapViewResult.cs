@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.ViewEngines;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Htmx.Components.Results;
+namespace Htmx.Components.ViewResults;
 
 /// <summary>
 /// Returns multple htmx views within a single response

@@ -23,6 +23,7 @@ public interface ITableColumnModel
     IEnumerable<ActionModel> GetActions(ITableRowContext rowContext);
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
     string GetSerializedValue(ITableRowContext rowContext);
+    ITableModel Table { get; set; } // Reference to the parent table
 }
 
 public enum ColumnType
@@ -69,6 +70,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     public string? CellPartialView { get; set; } // Custom rendering for cell
     public string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
+    public ITableModel Table { get; set; } = default!;
 
     /// <summary>
     /// A delegate that extends filtering of a <see cref="IQueryable<typeparamref name="T"/>"/>   using a single value comparison

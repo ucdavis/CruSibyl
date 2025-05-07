@@ -18,6 +18,7 @@ public class TableModelBuilder<T, TKey> where T : class
     private readonly TableViewPaths _paths;
     private Expression<Func<T, TKey>> _keySelector;
     private Func<TableModel<T, TKey>, IEnumerable<ActionModel>> _actionsFactory = _ => [];
+    private string _typeId = typeof(T).Name;
 
     internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths)
     {
@@ -70,18 +71,32 @@ public class TableModelBuilder<T, TKey> where T : class
         return this;
     }
 
+    public TableModelBuilder<T, TKey> WithTypeId(string typeId)
+    {
+        _typeId = typeId;
+        return this;
+    }
+
     /// <summary>
     /// Returns a TableModel with the configured columns
     /// </summary>
     public TableModel<T, TKey> Build()
     {
-        return new TableModel<T, TKey>
+        var tableModel = new TableModel<T, TKey>
         {
+            TypeId = _typeId,
             Columns = _columns,
             ActionsFactory = _actionsFactory,
             TableViewPaths = _paths,
             KeySelector = _keySelector,
-        };        
+        };
+
+        foreach (var column in _columns)
+        {
+            column.Table = tableModel;
+        }
+
+        return tableModel;
     }
 }
 

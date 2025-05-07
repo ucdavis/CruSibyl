@@ -3,7 +3,6 @@
 
 <div id="table-container" class="relative">
     @await Html.PartialAsync(Model.TableViewPaths.EditClassToggle, Model)
-    <form>
     @await Html.PartialAsync(Model.TableViewPaths.TableActionList, Model)
     <table class="table w-full">
         <thead>
@@ -31,5 +30,4 @@
     </table>
 
     @await Html.PartialAsync(Model.TableViewPaths.Pagination, Model)
-    </form>
  </div>

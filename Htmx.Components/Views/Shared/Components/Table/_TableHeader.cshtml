@@ -11,7 +11,7 @@
             var indicator = isCurrentSort ? (Model.State.SortDirection == "asc" ? "▲" : "▼") : "";
             <th>
                 <a href="#"
-                    hx-get="@Url.Action("SetSort")"
+                    hx-post="@Url.Action("SetSort", new { typeId = Model.TypeId })"
                     hx-vals='{"column": "@column.Header", "direction": "@nextSortDirection"}'
                     hx-swap="none"
                     >

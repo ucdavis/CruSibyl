@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models;
-using Htmx.Components.Results;
+using Htmx.Components.ViewResults;
 using Htmx.Components.State;
 using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Http;
