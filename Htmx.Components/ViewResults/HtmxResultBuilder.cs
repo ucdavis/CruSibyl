@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.ViewResults;
 
@@ -21,8 +22,20 @@ public class HtmxResultBuilder
     private readonly IPageState _pageState;
 
     public HtmxResultBuilder(IActionContextAccessor actionContextAccessor, INavProvider navProvider,
-        IPageState pageState)
+        IPageState pageState, IServiceProvider serviceProvider)
     {
+        // Ensure the application part is registered. There's no official way to check if an extension has been added,
+        // so we use a marker service to check if the extension is registered. This location seemd as good as any.
+        try
+        {
+            serviceProvider.GetRequiredService<HtmxComponentsApplicationPartMarker>();
+        }
+        catch (InvalidOperationException)
+        {
+            throw new InvalidOperationException(
+                $"{nameof(HtmxComponentsApplicationPartMarker)} not registered. Ensure you call {nameof(ServiceCollectionExtensions.AddHtmxComponentsApplicationPart)}() during startup.");
+        }
+
         _actionContextAccessor = actionContextAccessor;
         _navProvider = navProvider;
         _pageState = pageState;

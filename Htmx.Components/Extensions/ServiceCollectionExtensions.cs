@@ -56,6 +56,20 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IMvcBuilder AddHtmxComponentsApplicationPart(this IMvcBuilder builder)
+    {
+        builder.Services.AddSingleton<HtmxComponentsApplicationPartMarker>();
+        builder.AddApplicationPart(typeof(ServiceCollectionExtensions).Assembly);
+        return builder;
+    }
+
+    public static IMvcCoreBuilder AddHtmxComponentsApplicationPart(this IMvcCoreBuilder builder)
+    {
+        builder.Services.AddSingleton<HtmxComponentsApplicationPartMarker>();
+        builder.AddApplicationPart(typeof(ServiceCollectionExtensions).Assembly);
+        return builder;
+    }
+
     public static IServiceCollection AddSafeActionContextAccessor(this IServiceCollection services,
         string extensionMethodName = nameof(AddSafeActionContextAccessor))
     {
@@ -81,6 +95,12 @@ public static class ServiceCollectionExtensions
         return services;
     }
 }
+
+/// <summary>
+/// Marker class to ensure that AddHtmxComponentsApplicationPart() is called
+/// </summary>
+internal class HtmxComponentsApplicationPartMarker { }
+
 
 public class HtmxComponentOptions
 {

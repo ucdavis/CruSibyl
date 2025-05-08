@@ -82,7 +82,8 @@ try
     appBuilder.Services.AddControllersWithViews(options =>
     {
         options.Filters.Add<SerilogControllerActionFilter>();
-    });
+    })
+    .AddHtmxComponentsApplicationPart();
 
     appBuilder.Services.AddEndpointsApiExplorer();
     appBuilder.Services.AddSwaggerGen();
@@ -368,7 +369,7 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                     .WithActions(table => [
                         new ActionModel("Add New")
                             .WithIcon("fas fa-plus mr-1")
-                            .WithHxPost($"/Admin/{typeId}/NewTableRow")
+                            .WithHxPost($"/Table/{typeId}/NewTableRow")
                     ])
                     .AddSelectorColumn("Name", x => x.Name, config => config
                         .WithEditable()
@@ -382,22 +383,22 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                         [
                             new ActionModel("Save")
                                 .WithIcon("fas fa-save") // Font Awesome 5 icon for save
-                                .WithHxPost($"/Admin/{typeId}/SaveRow"),
+                                .WithHxPost($"/Table/{typeId}/SaveRow"),
 
                             new ActionModel("Cancel")
                                 .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
-                                .WithHxPost($"/Admin/{typeId}/CancelEditRow")
+                                .WithHxPost($"/Table/{typeId}/CancelEditRow")
                         ]
                         :
                         [
                             new ActionModel("Edit")
                                 .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
-                                .WithHxPost($"/Admin/{typeId}/EditRow?key={row.Key}"),
+                                .WithHxPost($"/Table/{typeId}/EditRow?key={row.Key}"),
 
                             new ActionModel("Delete")
                                 .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
                                 .WithClass("text-red-600")
-                                .WithHxPost($"/Admin/{typeId}/DeleteRow?key={row.Key}")
+                                .WithHxPost($"/Table/{typeId}/DeleteRow?key={row.Key}")
                         ]);
                     }));
         });

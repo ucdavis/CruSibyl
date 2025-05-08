@@ -16,27 +16,27 @@
         case Type t when t == typeof(int):
             <input name="value" id="@(Model.Row.RowId)_@(Model.Column.Id)" type="number"
             class="input input-bordered w-full" value="@(value ?? 0)" 
-            hx-post="@Url.Action("SetCell")" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
+            hx-post="@Url.Action("SetCell", new { typeId = Model.Table.TypeId })" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
             break;
         case Type t when t == typeof(decimal):
             <input name="value" id="@(Model.Row.RowId)_@(Model.Column.Id)" type="number" step="0.01"
             class="input input-bordered w-full" value="@(value ?? 0.0m)" 
-            hx-post="@Url.Action("SetCell")" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
+            hx-post="@Url.Action("SetCell", new { typeId = Model.Table.TypeId })" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
             break;
         case Type t when t == typeof(DateTime):
             <input name="value" id="@(Model.Row.RowId)_@(Model.Column.Id)" type="date"
             class="input input-bordered w-full" value="@(value != null ? ((DateTime)value).ToString("yyyy-MM-dd") : "")" 
-            hx-post="@Url.Action("SetCell")" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
+            hx-post="@Url.Action("SetCell", new { typeId = Model.Table.TypeId })" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
             break;
         case Type t when t == typeof(bool):
             <input name="value" id="@(Model.Row.RowId)_@(Model.Column.Id)" type="checkbox"
             class="checkbox checkbox-primary" @(value != null && (bool)value ? "checked" : "") 
-            hx-post="@Url.Action("SetCell")" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
+            hx-post="@Url.Action("SetCell", new { typeId = Model.Table.TypeId })" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
             break;
         default:
             <input name="value" id="@(Model.Row.RowId)_@(Model.Column.Id)" type="text"
             class="input input-bordered w-full" value="@value?.ToString()" 
-            hx-post="@Url.Action("SetCell")" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
+            hx-post="@Url.Action("SetCell", new { typeId = Model.Table.TypeId })" hx-trigger="blur" hx-vals='{"propertyName": "@Model.Column.DataName"}' />
             break;
     }
 }
