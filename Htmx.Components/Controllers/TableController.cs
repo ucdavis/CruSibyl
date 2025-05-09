@@ -4,6 +4,7 @@ using Htmx.Components.Services;
 using Htmx.Components.Table;
 using Htmx.Components.Table.Models;
 using Htmx.Components.ViewResults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +15,14 @@ public class TableController : Controller
 {
     private readonly ITableProvider _tableProvider;
     private readonly IModelRegistry _modelRegistry;
+    private readonly IAuthorizationService _authorizationService;
 
-    public TableController(ITableProvider tableProvider, IModelRegistry modelRegistry)
+    public TableController(ITableProvider tableProvider, IModelRegistry modelRegistry,
+        IAuthorizationService authorizationService)
     {
         _tableProvider = tableProvider;
         _modelRegistry = modelRegistry;
+        _authorizationService = authorizationService;
     }
 
 
@@ -49,6 +53,8 @@ public class TableController : Controller
         var tableModel = modelHandler.BuildTableModel!();
         if (editingExistingRecord)
         {
+            if (!await IsAuthorized(modelHandler.UpdatePolicy))
+                return Forbid();
             await modelHandler.UpdateModel!(editingItem);
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
@@ -59,6 +65,8 @@ public class TableController : Controller
         }
         else
         {
+            if (!await IsAuthorized(modelHandler.CreatePolicy))
+                return Forbid();
             await modelHandler.InsertModel!(editingItem);
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
@@ -104,6 +112,10 @@ public class TableController : Controller
         var pageState = this.GetPageState();
         if (pageState.Get<bool>("Table", "EditingExistingRecord"))
         {
+            // Check if the user is authorized to read the item
+            if (!await IsAuthorized(modelHandler.ReadPolicy))
+                return Forbid();
+
             var editingItem = pageState.Get<T>("Table", "EditingItem")!;
             var editingKey = modelHandler.KeySelectorFunc(editingItem);
 
@@ -153,7 +165,10 @@ public class TableController : Controller
     {
         if (modelHandler.DeleteModel == null)
             return BadRequest($"DeleteModel not defined for type '{modelHandler.TypeId}'.");
-        
+
+        if (!await IsAuthorized(modelHandler.DeletePolicy))
+            return Forbid();
+
         var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
 
         await modelHandler.DeleteModel!(key);
@@ -188,6 +203,11 @@ public class TableController : Controller
     private async Task<IActionResult> _EditRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
+        if (!await IsAuthorized(modelHandler.ReadPolicy))
+            return Forbid();
+        if (!await IsAuthorized(modelHandler.UpdatePolicy))
+            return Forbid();
+
         var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
         var editingItem = await modelHandler.GetQueryable!()
             .Where(modelHandler.GetKeyPredicate(key))
@@ -210,6 +230,7 @@ public class TableController : Controller
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
+
     [HttpPost("{typeId}/SetPage")]
     public async Task<IActionResult> SetPage(string typeId, int page)
     {
@@ -228,6 +249,9 @@ public class TableController : Controller
     private async Task<IActionResult> _SetPage<T, TKey>(int page, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
+        if (!await IsAuthorized(modelHandler.ReadPolicy))
+            return Forbid();
+
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.Page = page;
@@ -256,6 +280,9 @@ public class TableController : Controller
     private async Task<IActionResult> _SetPageSize<T, TKey>(int pageSize, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
+        if (!await IsAuthorized(modelHandler.ReadPolicy))
+            return Forbid();
+
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.PageSize = pageSize;
@@ -284,6 +311,9 @@ public class TableController : Controller
     private async Task<IActionResult> _SetSort<T, TKey>(string column, string direction, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
+        if (!await IsAuthorized(modelHandler.ReadPolicy))
+            return Forbid();
+
         var pageState = this.GetPageState();
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.SortColumn = column;
@@ -296,7 +326,7 @@ public class TableController : Controller
     }
 
     [HttpPost("{typeId}/SetCell")]
-    public IActionResult SetCell(string typeId, string propertyName, string value)
+    public async Task<IActionResult> SetCell(string typeId, string propertyName, string value)
     {
         var modelHandler = _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
@@ -306,14 +336,26 @@ public class TableController : Controller
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
             ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
 
-        var result = method.Invoke(this, new object[] { propertyName, value, modelHandler }) as IActionResult;
-        return result!;
+        var result = method.Invoke(this, new object[] { propertyName, value, modelHandler }) as Task<IActionResult>;
+        return await result!;
     }
 
-    private IActionResult _SetCell<T, TKey>(string propertyName, string value, ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _SetCell<T, TKey>(string propertyName, string value, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         var pageState = this.GetPageState();
+        var editingExistingRecord = pageState.Get<bool>("Table", "EditingExistingRecord")!;
+        if (editingExistingRecord)
+        {
+            if (!await IsAuthorized(modelHandler.UpdatePolicy))
+                return Forbid();
+        }
+        else
+        {
+            if (!await IsAuthorized(modelHandler.CreatePolicy))
+                return Forbid();
+        }
+
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         var editingItem = pageState.Get<T>("Table", "EditingItem")!;
         var property = typeof(T).GetProperty(propertyName);
@@ -353,6 +395,9 @@ public class TableController : Controller
     private async Task<IActionResult> _SetFilter<T, TKey>(string column, string filter, int input, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
+        if (!await IsAuthorized(modelHandler.ReadPolicy))
+            return Forbid();
+
         var tableModel = modelHandler.BuildTableModel!();
         var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
         if (columnModel == null)
@@ -388,7 +433,7 @@ public class TableController : Controller
     }
 
     [HttpPost("{typeId}/NewTableRow")]
-    public IActionResult NewTableRow(string typeId)
+    public async Task<IActionResult> NewTableRow(string typeId)
     {
         var modelHandler = _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
@@ -398,13 +443,16 @@ public class TableController : Controller
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
             ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
 
-        var result = method.Invoke(this, new object[] { modelHandler }) as IActionResult;
-        return result!;
+        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
+        return await result!;
     }
 
-    private IActionResult _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class, new()
     {
+        if (!await IsAuthorized(modelHandler.CreatePolicy))
+            return Forbid();
+
         var editingItem = new T();
 
         var pageState = this.GetPageState();
@@ -422,5 +470,14 @@ public class TableController : Controller
         });
 
         return _tableProvider.RefreshEditViews(tableModel);
+    }
+
+    private async Task<bool> IsAuthorized(string? policyName)
+    {
+        if (string.IsNullOrEmpty(policyName))
+            return true;
+
+        var authorizationResult = await _authorizationService.AuthorizeAsync(User, policyName);
+        return authorizationResult.Succeeded;
     }
 }

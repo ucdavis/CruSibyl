@@ -59,6 +59,44 @@ public class ModelHandlerBuilder<T, TKey>
     private Func<T, Task<Result>>? _updateModel;
     private Func<TKey, Task<Result>>? _deleteModel;
     private Action<TableModelBuilder<T, TKey>>? _configureTableModel;
+    private string? _readPolicy;
+    private string? _createPolicy;
+    private string? _updatePolicy;
+    private string? _deletePolicy;
+
+    public ModelHandlerBuilder<T, TKey> WithReadPolicy(string? policy)
+    {
+        _readPolicy = policy;
+        return this;
+    }
+
+    public ModelHandlerBuilder<T, TKey> WithCreatePolicy(string? policy)
+    {
+        _createPolicy = policy;
+        return this;
+    }
+
+    public ModelHandlerBuilder<T, TKey> WithUpdatePolicy(string? policy)
+    {
+        _updatePolicy = policy;
+        return this;
+    }
+
+    public ModelHandlerBuilder<T, TKey> WithDeletePolicy(string? policy)
+    {
+        _deletePolicy = policy;
+        return this;
+    }
+
+    public ModelHandlerBuilder<T, TKey> WithPolicy(string policy)
+    {
+        _readPolicy = policy;
+        _createPolicy = policy;
+        _updatePolicy = policy;
+        _deletePolicy = policy;
+        return this;
+    }
+
 
     public ModelHandlerBuilder<T, TKey> WithTypeId(string typeId)
     {
@@ -112,6 +150,10 @@ public class ModelHandlerBuilder<T, TKey>
             InsertModel = _insertModel,
             UpdateModel = _updateModel,
             DeleteModel = _deleteModel,
+            ReadPolicy = _readPolicy,
+            CreatePolicy = _createPolicy,
+            UpdatePolicy = _updatePolicy,
+            DeletePolicy = _deletePolicy,
             BuildTableModel = _configureTableModel != null
                 ? () =>
                     {
@@ -129,6 +171,12 @@ public abstract class ModelHandler
     public required string TypeId { get; init; }
     public Type ModelType { get; protected set; } = null!;
     public Type KeyType { get; protected set; } = null!;
+
+    // Policies for authorization...
+    public virtual string? ReadPolicy { get; set; }
+    public virtual string? CreatePolicy { get; set; }
+    public virtual string? UpdatePolicy { get; set; }
+    public virtual string? DeletePolicy { get; set; }
 }
 
 public class ModelHandler<T, TKey> : ModelHandler
