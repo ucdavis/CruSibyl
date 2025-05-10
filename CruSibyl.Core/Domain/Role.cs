@@ -11,15 +11,13 @@ public class Role
     [Required]
     public string Name { get; set; } = "";
 
+    public List<RoleOperation> Operations { get; set; } = new();
+
+    public List<Permission> Permissions { get; set; } = new();
+
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Role>().HasIndex(a => a.Name).IsUnique();
-
-        modelBuilder.Entity<Permission>()
-            .HasOne(p => p.Role)
-            .WithMany()
-            .HasForeignKey(p => p.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<Role>().HasIndex(a => a.Name).IsUnique();        
     }
 
     public class Codes

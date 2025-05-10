@@ -1,4 +1,5 @@
 using Htmx.Components.Action;
+using Htmx.Components.Authorization;
 using Htmx.Components.NavBar;
 using Htmx.Components.Services;
 using Htmx.Components.State;
@@ -52,6 +53,15 @@ public static class ServiceCollectionExtensions
         {
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
+
+        if (options.RegisterPermissionRequirementFactory is not null)
+        {
+            options.RegisterPermissionRequirementFactory(services);
+        }
+        else
+        {
+            services.TryAddSingleton<IPermissionRequirementFactory, DefaultPermssionRequirementFactory>();
+        }
 
         return services;
     }
@@ -107,6 +117,7 @@ public class HtmxComponentOptions
     internal Func<IServiceProvider, BuilderBasedNavProvider>? NavProviderFactory { get; private set; }
     internal TableViewPaths TableViewPaths { get; private set; } = new TableViewPaths();
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
+    internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
 
     public HtmxComponentOptions WithNavBuilder(Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
     {
@@ -135,4 +146,14 @@ public class HtmxComponentOptions
         };
         return this;
     }
+
+    public void WithPermissionRequirementFactory<T>()
+        where T : class, IPermissionRequirementFactory
+    {
+            RegisterPermissionRequirementFactory = services =>
+            {
+                services.AddSingleton<IPermissionRequirementFactory, T>();
+            };
+        }
+
 }

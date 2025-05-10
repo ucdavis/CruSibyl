@@ -36,6 +36,7 @@ public abstract class AppDbContext : DbContext
     public virtual DbSet<Repo> Repos { get; set; }
     public virtual DbSet<Tag> Tags { get; set; }
     public virtual DbSet<TagMapping> TagMappings { get; set; }
+    public virtual DbSet<RoleOperation> RoleOperations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -43,5 +44,6 @@ public abstract class AppDbContext : DbContext
         User.OnModelCreating(builder);
         Role.OnModelCreating(builder);
         Permission.OnModelCreating(builder);
+        RoleOperation.OnModelCreating(builder);
     }
 }

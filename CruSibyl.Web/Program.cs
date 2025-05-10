@@ -77,6 +77,7 @@ try
     {
         ConfigureNav(config);
         ConfigureModelHandlers(config);
+        config.WithPermissionRequirementFactory<PermissionRequirementFactory>();
     });
 
     appBuilder.Services.AddControllersWithViews(options =>
@@ -170,10 +171,10 @@ try
 
     appBuilder.Services.AddAuthorization(options =>
     {
-        options.AddAccessPolicy(AccessCodes.SystemAccess);
-        options.AddAccessPolicy(AccessCodes.AdminAccess);
+        options.AddAccessPolicy(AccessPolicies.SystemAccess);
+        options.AddAccessPolicy(AccessPolicies.AdminAccess);
     });
-    appBuilder.Services.AddScoped<IAuthorizationHandler, VerifyRoleAccessHandler>();
+    appBuilder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
     // Migration scaffolding in EF Core 8 appears to instantiate a DbContext, so we're using
     // an environment variable set by CreateMigration.sh to ensure the correct provider is used.

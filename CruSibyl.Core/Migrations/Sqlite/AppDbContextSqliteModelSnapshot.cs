@@ -264,6 +264,35 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.ToTable("Roles");
                 });
 
+            modelBuilder.Entity("CruSibyl.Core.Domain.RoleOperation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Resource")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("Resource", "Operation", "RoleId")
+                        .IsUnique();
+
+                    b.ToTable("RoleOperations");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -428,7 +457,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
             modelBuilder.Entity("CruSibyl.Core.Domain.Permission", b =>
                 {
                     b.HasOne("CruSibyl.Core.Domain.Role", "Role")
-                        .WithMany()
+                        .WithMany("Permissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -453,6 +482,17 @@ namespace CruSibyl.Core.Migrations.Sqlite
                         .IsRequired();
 
                     b.Navigation("Platform");
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.RoleOperation", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.Role", "Role")
+                        .WithMany("Operations")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("CruSibyl.Core.Domain.TagMapping", b =>
@@ -489,6 +529,13 @@ namespace CruSibyl.Core.Migrations.Sqlite
             modelBuilder.Entity("CruSibyl.Core.Domain.Repo", b =>
                 {
                     b.Navigation("Manifests");
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.Role", b =>
+                {
+                    b.Navigation("Operations");
+
+                    b.Navigation("Permissions");
                 });
 
             modelBuilder.Entity("CruSibyl.Core.Domain.Tag", b =>

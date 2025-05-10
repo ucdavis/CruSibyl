@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Htmx.Components.Authorization;
 using Htmx.Components.Models;
 using Htmx.Components.Services;
 using Htmx.Components.Table;
@@ -7,6 +8,7 @@ using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Operations = Htmx.Components.Constants.Authorization.Operations;
 
 namespace Htmx.Components.Controllers;
 
@@ -16,13 +18,15 @@ public class TableController : Controller
     private readonly ITableProvider _tableProvider;
     private readonly IModelRegistry _modelRegistry;
     private readonly IAuthorizationService _authorizationService;
+    private readonly IPermissionRequirementFactory _permissionRequirementFactory;
 
     public TableController(ITableProvider tableProvider, IModelRegistry modelRegistry,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService, IPermissionRequirementFactory permissionRequirementFactory)
     {
         _tableProvider = tableProvider;
         _modelRegistry = modelRegistry;
         _authorizationService = authorizationService;
+        _permissionRequirementFactory = permissionRequirementFactory;
     }
 
 
@@ -53,7 +57,7 @@ public class TableController : Controller
         var tableModel = modelHandler.BuildTableModel!();
         if (editingExistingRecord)
         {
-            if (!await IsAuthorized(modelHandler.UpdatePolicy))
+            if (!await IsAuthorized(modelHandler.TypeId, Operations.Update))
                 return Forbid();
             await modelHandler.UpdateModel!(editingItem);
             tableModel.Rows.Add(new TableRowContext<T, TKey>
@@ -65,7 +69,7 @@ public class TableController : Controller
         }
         else
         {
-            if (!await IsAuthorized(modelHandler.CreatePolicy))
+            if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
                 return Forbid();
             await modelHandler.InsertModel!(editingItem);
             tableModel.Rows.Add(new TableRowContext<T, TKey>
@@ -113,7 +117,7 @@ public class TableController : Controller
         if (pageState.Get<bool>("Table", "EditingExistingRecord"))
         {
             // Check if the user is authorized to read the item
-            if (!await IsAuthorized(modelHandler.ReadPolicy))
+            if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
                 return Forbid();
 
             var editingItem = pageState.Get<T>("Table", "EditingItem")!;
@@ -166,7 +170,7 @@ public class TableController : Controller
         if (modelHandler.DeleteModel == null)
             return BadRequest($"DeleteModel not defined for type '{modelHandler.TypeId}'.");
 
-        if (!await IsAuthorized(modelHandler.DeletePolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Delete))
             return Forbid();
 
         var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
@@ -203,9 +207,9 @@ public class TableController : Controller
     private async Task<IActionResult> _EditRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (!await IsAuthorized(modelHandler.ReadPolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
-        if (!await IsAuthorized(modelHandler.UpdatePolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Update))
             return Forbid();
 
         var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
@@ -249,7 +253,7 @@ public class TableController : Controller
     private async Task<IActionResult> _SetPage<T, TKey>(int page, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (!await IsAuthorized(modelHandler.ReadPolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
 
         var pageState = this.GetPageState();
@@ -280,7 +284,7 @@ public class TableController : Controller
     private async Task<IActionResult> _SetPageSize<T, TKey>(int pageSize, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (!await IsAuthorized(modelHandler.ReadPolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
 
         var pageState = this.GetPageState();
@@ -311,7 +315,7 @@ public class TableController : Controller
     private async Task<IActionResult> _SetSort<T, TKey>(string column, string direction, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (!await IsAuthorized(modelHandler.ReadPolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
 
         var pageState = this.GetPageState();
@@ -347,12 +351,12 @@ public class TableController : Controller
         var editingExistingRecord = pageState.Get<bool>("Table", "EditingExistingRecord")!;
         if (editingExistingRecord)
         {
-            if (!await IsAuthorized(modelHandler.UpdatePolicy))
+            if (!await IsAuthorized(modelHandler.TypeId, Operations.Update))
                 return Forbid();
         }
         else
         {
-            if (!await IsAuthorized(modelHandler.CreatePolicy))
+            if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
                 return Forbid();
         }
 
@@ -395,7 +399,7 @@ public class TableController : Controller
     private async Task<IActionResult> _SetFilter<T, TKey>(string column, string filter, int input, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (!await IsAuthorized(modelHandler.ReadPolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
 
         var tableModel = modelHandler.BuildTableModel!();
@@ -450,7 +454,7 @@ public class TableController : Controller
     private async Task<IActionResult> _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class, new()
     {
-        if (!await IsAuthorized(modelHandler.CreatePolicy))
+        if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
             return Forbid();
 
         var editingItem = new T();
@@ -472,12 +476,10 @@ public class TableController : Controller
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    private async Task<bool> IsAuthorized(string? policyName)
+    private async Task<bool> IsAuthorized(string typeId, string operation)
     {
-        if (string.IsNullOrEmpty(policyName))
-            return true;
-
-        var authorizationResult = await _authorizationService.AuthorizeAsync(User, policyName);
-        return authorizationResult.Succeeded;
+        var requirement = _permissionRequirementFactory.ForOperation(typeId, operation);
+        var result = await _authorizationService.AuthorizeAsync(User, null, requirement);
+        return result.Succeeded;
     }
 }
