@@ -8,6 +8,7 @@ using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
+using CruSibyl.Web.Middleware.Auth;
 using Htmx;
 using Htmx.Components;
 using Htmx.Components.Action;
@@ -78,6 +79,7 @@ try
         ConfigureNav(config);
         ConfigureModelHandlers(config);
         config.WithPermissionRequirementFactory<PermissionRequirementFactory>();
+        config.WithResourceOperationRegistry<ResourceOperationRegistry>();
     });
 
     appBuilder.Services.AddControllersWithViews(options =>

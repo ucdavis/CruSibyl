@@ -54,14 +54,21 @@ public static class ServiceCollectionExtensions
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
 
-        if (options.RegisterPermissionRequirementFactory is not null)
+        if (options.RegisterPermissionRequirementFactory == null 
+            && !services.Any(sd => sd.ServiceType == typeof(IPermissionRequirementFactory)))
         {
-            options.RegisterPermissionRequirementFactory(services);
+            throw new InvalidOperationException(
+                $"{nameof(HtmxComponentOptions)}.{nameof(HtmxComponentOptions.WithPermissionRequirementFactory)}() must be called to register a permission requirement factory.");
         }
-        else
+        options.RegisterPermissionRequirementFactory!(services);
+
+        if (options.RegisterResourceOperationRegistry == null 
+            && !services.Any(sd => sd.ServiceType == typeof(IResourceOperationRegistry)))
         {
-            services.TryAddSingleton<IPermissionRequirementFactory, DefaultPermssionRequirementFactory>();
+            throw new InvalidOperationException(
+                $"{nameof(HtmxComponentOptions)}.{nameof(HtmxComponentOptions.WithResourceOperationRegistry)}() must be called to register a resource operation registry.");
         }
+        options.RegisterResourceOperationRegistry!(services);
 
         return services;
     }
@@ -118,6 +125,7 @@ public class HtmxComponentOptions
     internal TableViewPaths TableViewPaths { get; private set; } = new TableViewPaths();
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
+    internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
 
     public HtmxComponentOptions WithNavBuilder(Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
     {
@@ -140,7 +148,8 @@ public class HtmxComponentOptions
         ModelRegistryFactory = serviceProvider =>
         {
             var tableViewPaths = serviceProvider.GetRequiredService<TableViewPaths>();
-            var modelRegistry = new ModelRegistry(tableViewPaths, serviceProvider);
+            var resourceOperationRegistry = serviceProvider.GetRequiredService<IResourceOperationRegistry>();
+            var modelRegistry = new ModelRegistry(tableViewPaths, serviceProvider, resourceOperationRegistry);
             configure(modelRegistry);
             return modelRegistry;
         };
@@ -150,10 +159,18 @@ public class HtmxComponentOptions
     public void WithPermissionRequirementFactory<T>()
         where T : class, IPermissionRequirementFactory
     {
-            RegisterPermissionRequirementFactory = services =>
-            {
-                services.AddSingleton<IPermissionRequirementFactory, T>();
-            };
-        }
+        RegisterPermissionRequirementFactory = services =>
+        {
+            services.AddSingleton<IPermissionRequirementFactory, T>();
+        };
+    }
 
+    public void WithResourceOperationRegistry<T>()
+        where T : class, IResourceOperationRegistry
+    {
+        RegisterResourceOperationRegistry = services =>
+        {
+            services.AddScoped<IResourceOperationRegistry, T>();
+        };
+    }
 }

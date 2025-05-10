@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace CruSibyl.Web.Middleware;
+namespace CruSibyl.Web.Middleware.Auth;
 
 public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 {
@@ -58,7 +58,7 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
             var hasRoleWithResourceAccess = await _dbContext.Permissions
                 .Where(p => p.User.Iam == userIamId
                     && p.Role.Operations
-                        .Any(o => o.Resource == requirement.Resource && o.Operation == requirement.Operation))
+                        .Any(o => o.Resource.Name == requirement.Resource && o.Operation.Name == requirement.Operation))
                 .AnyAsync();
             if (hasRoleWithResourceAccess)
             {

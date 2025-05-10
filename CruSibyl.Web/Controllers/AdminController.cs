@@ -45,7 +45,7 @@ public class AdminController : TabController
         var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
-        var modelHandler =(ModelHandler<Repo, int>)_modelRegistry.GetModelHandler(nameof(Repo))!;
+        var modelHandler = (await _modelRegistry.GetModelHandler<Repo, int>(nameof(Repo)))!;
         var tableModel = modelHandler.BuildTableModel!();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 

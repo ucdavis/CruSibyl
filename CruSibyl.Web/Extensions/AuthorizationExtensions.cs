@@ -1,5 +1,6 @@
 ﻿using CruSibyl.Core.Models;
 using CruSibyl.Web.Middleware;
+using CruSibyl.Web.Middleware.Auth;
 using Microsoft.AspNetCore.Authorization;
 
 namespace CruSibyl.Web.Extensions;

@@ -37,6 +37,8 @@ public abstract class AppDbContext : DbContext
     public virtual DbSet<Tag> Tags { get; set; }
     public virtual DbSet<TagMapping> TagMappings { get; set; }
     public virtual DbSet<RoleOperation> RoleOperations { get; set; }
+    public virtual DbSet<Resource> Resources { get; set; }
+    public virtual DbSet<Operation> Operations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

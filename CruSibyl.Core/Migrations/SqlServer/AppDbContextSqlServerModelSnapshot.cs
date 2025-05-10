@@ -125,6 +125,27 @@ namespace CruSibyl.Core.Migrations.SqlServer
                     b.ToTable("NoteMappings");
                 });
 
+            modelBuilder.Entity("CruSibyl.Core.Domain.Operation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Operations");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Package", b =>
                 {
                     b.Property<int>("Id")
@@ -270,6 +291,27 @@ namespace CruSibyl.Core.Migrations.SqlServer
                     b.ToTable("Repos");
                 });
 
+            modelBuilder.Entity("CruSibyl.Core.Domain.Resource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Resources");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -299,24 +341,22 @@ namespace CruSibyl.Core.Migrations.SqlServer
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Operation")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("OperationId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Resource")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("int");
 
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OperationId");
+
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("Resource", "Operation", "RoleId")
+                    b.HasIndex("ResourceId", "OperationId", "RoleId")
                         .IsUnique();
 
                     b.ToTable("RoleOperations");
@@ -521,11 +561,27 @@ namespace CruSibyl.Core.Migrations.SqlServer
 
             modelBuilder.Entity("CruSibyl.Core.Domain.RoleOperation", b =>
                 {
+                    b.HasOne("CruSibyl.Core.Domain.Operation", "Operation")
+                        .WithMany("Operations")
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CruSibyl.Core.Domain.Resource", "Resource")
+                        .WithMany("Operations")
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("CruSibyl.Core.Domain.Role", "Role")
                         .WithMany("Operations")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Operation");
+
+                    b.Navigation("Resource");
 
                     b.Navigation("Role");
                 });
@@ -551,6 +607,11 @@ namespace CruSibyl.Core.Migrations.SqlServer
                     b.Navigation("Mappings");
                 });
 
+            modelBuilder.Entity("CruSibyl.Core.Domain.Operation", b =>
+                {
+                    b.Navigation("Operations");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Package", b =>
                 {
                     b.Navigation("Versions");
@@ -564,6 +625,11 @@ namespace CruSibyl.Core.Migrations.SqlServer
             modelBuilder.Entity("CruSibyl.Core.Domain.Repo", b =>
                 {
                     b.Navigation("Manifests");
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.Resource", b =>
+                {
+                    b.Navigation("Operations");
                 });
 
             modelBuilder.Entity("CruSibyl.Core.Domain.Role", b =>

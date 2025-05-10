@@ -9,19 +9,15 @@ public class RoleOperation
     [Key]
     public int Id { get; set; }
 
-    [MaxLength(50)]
-    [Required]
-    public string Resource { get; set; } = "";
-
-    [MaxLength(50)]
-    [Required]
-    public string Operation { get; set; } = "";
-
+    public int ResourceId { get; set; }
+    public Resource Resource { get; set; } = null!;
+    public int OperationId { get; set; }
+    public Operation Operation { get; set; } = null!;
     public int RoleId { get; set; }
     public Role Role { get; set; } = null!;
 
     internal static void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<RoleOperation>().HasIndex(a => new { a.Resource, a.Operation, a.RoleId }).IsUnique();
+        modelBuilder.Entity<RoleOperation>().HasIndex(a => new { a.ResourceId, a.OperationId, a.RoleId }).IsUnique();
     }
 }

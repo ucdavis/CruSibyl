@@ -33,7 +33,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SaveRow")]
     public async Task<IActionResult> SaveRow(string typeId)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -97,7 +97,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/CancelEditRow")]
     public async Task<IActionResult> CancelEditRow(string typeId)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -152,7 +152,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/DeleteRow")]
     public async Task<IActionResult> DeleteRow(string typeId, string key)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -192,7 +192,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/EditRow")]
     public async Task<IActionResult> EditRow(string typeId, string key)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -238,7 +238,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetPage")]
     public async Task<IActionResult> SetPage(string typeId, int page)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -269,7 +269,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetPageSize")]
     public async Task<IActionResult> SetPageSize(string typeId, int pageSize)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -300,7 +300,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetSort")]
     public async Task<IActionResult> SetSort(string typeId, string column, string direction)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -332,7 +332,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetCell")]
     public async Task<IActionResult> SetCell(string typeId, string propertyName, string value)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -384,7 +384,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetFilter")]
     public async Task<IActionResult> SetFilter(string typeId, string column, string filter, int input)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -439,7 +439,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/NewTableRow")]
     public async Task<IActionResult> NewTableRow(string typeId)
     {
-        var modelHandler = _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 

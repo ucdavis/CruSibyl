@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
+using Htmx.Components.Authorization;
 using Htmx.Components.Models;
 using Htmx.Components.Table;
 using Htmx.Components.Table.Models;
@@ -11,46 +12,68 @@ public interface IModelRegistry
 {
     void Register<T, TKey>(string typeId, Action<IServiceProvider, ModelHandlerBuilder<T, TKey>> config)
         where T : class;
-    ModelHandler? GetModelHandler(string typeId);
+    Task<ModelHandler?> GetModelHandler(string typeId);
+    Task<ModelHandler<T, TKey>?> GetModelHandler<T, TKey>(string typeId)
+        where T : class;
 }
 
 public class ModelRegistry : IModelRegistry
 {
-    private readonly Dictionary<string, ModelHandler> _modelHandlers = new();
+    private readonly Dictionary<string, Task<ModelHandler>> _modelHandlers = new();
     private readonly TableViewPaths _tableViewPaths;
     private readonly IServiceProvider _serviceProvider;
+    private readonly IResourceOperationRegistry _resourceOperationRegistry;
 
-    public ModelRegistry(TableViewPaths tableViewPaths, IServiceProvider serviceProvider)
+    public ModelRegistry(TableViewPaths tableViewPaths, IServiceProvider serviceProvider,
+        IResourceOperationRegistry resourceOperationRegistry)
     {
         _tableViewPaths = tableViewPaths;
         _serviceProvider = serviceProvider;
+        _resourceOperationRegistry = resourceOperationRegistry;
     }
-
 
     public void Register<T, TKey>(string typeId, Action<IServiceProvider, ModelHandlerBuilder<T, TKey>> config)
         where T : class
     {
-        var builder = new ModelHandlerBuilder<T, TKey>(typeId, _tableViewPaths);
+        var builder = new ModelHandlerBuilder<T, TKey>(typeId, _tableViewPaths, _resourceOperationRegistry);
         config.Invoke(_serviceProvider, builder);
-        var handler = builder.Build();
-        _modelHandlers[typeId] = handler;
+        var buildTask = builder.Build();
+        _modelHandlers[typeId] = buildTask.ContinueWith(task => (ModelHandler)task.Result);
     }
 
-    public ModelHandler? GetModelHandler(string typeId)
+    public async Task<ModelHandler?> GetModelHandler(string typeId)
     {
-        return _modelHandlers.TryGetValue(typeId, out var handler) ? handler : null;
+        var task = _modelHandlers.TryGetValue(typeId, out var handler) ? handler : null;
+        if (task == null)
+        {
+            return null;
+        }
+        return await task;
+    }
+
+    public async Task<ModelHandler<T, TKey>?> GetModelHandler<T, TKey>(string typeId)
+        where T : class
+    {
+        var handler = await GetModelHandler(typeId);
+        if (handler is ModelHandler<T, TKey> typedHandler)
+        {
+            return typedHandler;
+        }
+        return null;
     }
 }
 
 public class ModelHandlerBuilder<T, TKey>
     where T : class
 {
-    internal ModelHandlerBuilder(string typeId, TableViewPaths tableViewPaths)
+    internal ModelHandlerBuilder(string typeId, TableViewPaths tableViewPaths, IResourceOperationRegistry resourceOperationRegistry)
     {
+        _resourceOperationRegistry = resourceOperationRegistry;
         _typeId = typeId;
         _tableViewPaths = tableViewPaths;
     }
 
+    private readonly IResourceOperationRegistry _resourceOperationRegistry;
     private TableViewPaths _tableViewPaths;
     private string _typeId;
     Expression<Func<T, TKey>>? _keySelector;
@@ -102,8 +125,25 @@ public class ModelHandlerBuilder<T, TKey>
         return this;
     }
 
-    public ModelHandler<T, TKey> Build()
+    public async Task<ModelHandler<T, TKey>> Build()
     {
+        if (_getQueryable != null)
+        {
+            await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Read);
+        }
+        if (_insertModel != null)
+        {
+            await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Create);
+        }
+        if (_updateModel != null)
+        {
+            await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Update);
+        }
+        if (_deleteModel != null)
+        {
+            await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Delete);
+        }
+
         return new ModelHandler<T, TKey>
         {
             TypeId = _typeId,

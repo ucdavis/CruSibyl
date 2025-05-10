@@ -1,7 +1,7 @@
 ﻿using Htmx.Components.Authorization;
 using Microsoft.AspNetCore.Authorization;
 
-namespace CruSibyl.Web.Middleware;
+namespace CruSibyl.Web.Middleware.Auth;
 
 public class PermissionRequirement : IAuthorizationRequirement
 {
