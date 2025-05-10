@@ -248,12 +248,16 @@ try
 
         dbContext.Database.Migrate();
 
-        var initializeDb = builder.Configuration.GetValue<bool>("Dev:InitializeDb");
+        var initializeUsers = app.Configuration.GetValue<bool>("Dev:InitializeUsers");
+        var initializer = new DbInitializer(dbContext);
 
-        if (initializeDb)
+        if (initializeUsers)
         {
-            var initializer = new DbInitializer(dbContext);
-            initializer.Initialize(recreateDb).GetAwaiter().GetResult();
+            initializer.InitializeUsers(recreateDb).GetAwaiter().GetResult();
+        }
+        else
+        {
+            initializer.CheckAndCreateRoles().GetAwaiter().GetResult();
         }
     }
 

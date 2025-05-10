@@ -11,7 +11,7 @@ public class DbInitializer
         _dbContext = dbContext;
     }
 
-    public async Task Initialize(bool recreateDb)
+    public async Task InitializeUsers(bool recreateDb)
     {
         if (recreateDb)
         {
@@ -55,17 +55,34 @@ public class DbInitializer
             Iam = "1000255034",
             MothraId = "01259393",
         });
+        var RobUser = await CheckAndCreateUser(new User
+        {
+            Email = "rmartinsen@ucdavis.edu",
+            Kerberos = "rmartins",
+            FirstName = "Robert",
+            LastName = "Martinsen",
+            Iam = "1000571302",
+            MothraId = "00183346",
+        });
 
-        var systemRole = await CheckAndCreateRole(Role.Codes.System);
-        var adminRole = await CheckAndCreateRole(Role.Codes.Admin);
+        await CheckAndCreateRoles();
+
+        var systemRole = await _dbContext.Roles.SingleAsync(a => a.Name == Role.Codes.System);
 
         await CheckAndCreatePermission(JasonUser, systemRole);
         await CheckAndCreatePermission(ScottUser, systemRole);
         await CheckAndCreatePermission(RiverUser, systemRole);
         await CheckAndCreatePermission(SpruceUser, systemRole);
+        await CheckAndCreatePermission(RobUser, systemRole);
 
         await _dbContext.SaveChangesAsync();
 
+    }
+
+    public async Task CheckAndCreateRoles()
+    {
+        var systemRole = await CheckAndCreateRole(Role.Codes.System);
+        var adminRole = await CheckAndCreateRole(Role.Codes.Admin);
     }
 
     private async Task<Permission> CheckAndCreatePermission(User user, Role role)

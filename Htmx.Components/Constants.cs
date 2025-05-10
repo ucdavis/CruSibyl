@@ -6,10 +6,10 @@ public static class Constants
     {
         public static class Operations
         {
-            public const string Read = "read";
-            public const string Create = "create";
-            public const string Update = "update";
-            public const string Delete = "delete";
+            public const string Read = "Read";
+            public const string Create = "Create";
+            public const string Update = "Update";
+            public const string Delete = "Delete";
         }
     }
 }
