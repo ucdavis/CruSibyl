@@ -78,7 +78,7 @@ public class ModelHandlerBuilder<T, TKey>
     private string _typeId;
     Expression<Func<T, TKey>>? _keySelector;
     private Func<IQueryable<T>>? _getQueryable;
-    private Func<T, Task<Result>>? _insertModel;
+    private Func<T, Task<Result>>? _createModel;
     private Func<T, Task<Result>>? _updateModel;
     private Func<TKey, Task<Result>>? _deleteModel;
     private Action<TableModelBuilder<T, TKey>>? _configureTableModel;
@@ -101,9 +101,9 @@ public class ModelHandlerBuilder<T, TKey>
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithInsertModel(Func<T, Task<Result>> saveModel)
+    public ModelHandlerBuilder<T, TKey> WithCreateModel(Func<T, Task<Result>> createModel)
     {
-        _insertModel = saveModel;
+        _createModel = createModel;
         return this;
     }
 
@@ -131,7 +131,7 @@ public class ModelHandlerBuilder<T, TKey>
         {
             await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Read);
         }
-        if (_insertModel != null)
+        if (_createModel != null)
         {
             await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Create);
         }
@@ -144,18 +144,25 @@ public class ModelHandlerBuilder<T, TKey>
             await _resourceOperationRegistry.Register(_typeId, Constants.Authorization.Operations.Delete);
         }
 
+        var crudFeatures = CrudFeatures.None
+            | (_getQueryable != null ? CrudFeatures.Read : 0)
+            | (_createModel != null ? CrudFeatures.Create : 0)
+            | (_updateModel != null ? CrudFeatures.Update : 0)
+            | (_deleteModel != null ? CrudFeatures.Delete : 0);
+
         return new ModelHandler<T, TKey>
         {
             TypeId = _typeId,
             KeySelector = _keySelector ?? throw new ArgumentNullException(nameof(_keySelector)),
             GetQueryable = _getQueryable,
-            InsertModel = _insertModel,
+            CreateModel = _createModel,
             UpdateModel = _updateModel,
             DeleteModel = _deleteModel,
+            CrudFeatures = crudFeatures,
             BuildTableModel = _configureTableModel != null
                 ? () =>
                     {
-                        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelector!, _tableViewPaths);
+                        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelector!, _tableViewPaths, crudFeatures);
                         _configureTableModel?.Invoke(tableModelBuilder);
                         return tableModelBuilder.Build();
                     }
@@ -169,6 +176,7 @@ public abstract class ModelHandler
     public required string TypeId { get; init; }
     public Type ModelType { get; protected set; } = null!;
     public Type KeyType { get; protected set; } = null!;
+    public CrudFeatures CrudFeatures { get; init; }
 }
 
 public class ModelHandler<T, TKey> : ModelHandler
@@ -194,7 +202,7 @@ public class ModelHandler<T, TKey> : ModelHandler
     }
 
     public Func<IQueryable<T>>? GetQueryable { get; init; }
-    public Func<T, Task<Result>>? InsertModel { get; init; }
+    public Func<T, Task<Result>>? CreateModel { get; init; }
     public Func<T, Task<Result>>? UpdateModel { get; init; }
     public Func<TKey, Task<Result>>? DeleteModel { get; init; }
     public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
@@ -253,4 +261,14 @@ public class ModelHandler<T, TKey> : ModelHandler
 
         return Expression.Lambda<Func<T, bool>>(body, param);
     }
+}
+
+[Flags]
+public enum CrudFeatures
+{
+    None = 0,
+    Create = 1,
+    Read = 2,
+    Update = 4,
+    Delete = 8
 }

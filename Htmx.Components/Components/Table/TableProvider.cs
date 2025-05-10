@@ -15,30 +15,6 @@ namespace Htmx.Components.Table;
 public interface ITableProvider
 {
     /// <summary>
-    /// Creates a new <see cref="TableModel{T, TKey}"/> with the given key selector and configuration.
-    /// </summary>
-    TableModel<T, TKey> Build<T, TKey>(
-        Expression<Func<T, TKey>> keySelector,
-        Action<TableModelBuilder<T, TKey>> config)
-        where T : class;
-
-    /// <summary>
-    /// Uses the given columns and tableState to extend the given queryable for appropriate
-    /// filtering and sorting, and then executes the query twice; once with .CountAsync() so that
-    /// PageCount can be calculated, and once with pagination applied. Places the results in the
-    /// given <see cref="TableModel{T, TKey}"/>. The queryable is expected to be an EF Core queryable.
-    /// </summary>
-    /// <returns>
-    /// A fully configured <see cref="TableModel{T, TKey}"/>  that's ready to be passed to a view
-    /// </returns>
-    Task<TableModel<T, TKey>> BuildAndFetchPage<T, TKey>(
-        Expression<Func<T, TKey>> keySelector,
-        IQueryable<T> query,
-        TableState tableState,
-        Action<TableModelBuilder<T, TKey>> config)
-        where T : class;
-
-    /// <summary>
     /// Uses the given columns and tableState to extend the given queryable for appropriate
     /// filtering and sorting, and then executes the query twice; once with .CountAsync() so that
     /// PageCount can be calculated, and once with pagination applied. Places the results in the
@@ -77,20 +53,6 @@ public class TableProvider : ITableProvider
     {
         _paths = paths;
         _pageState = pageState;
-    }
-
-    /// <summary>
-    /// Creates a new <see cref="TableModel{T, TKey}"/> with the given key selector and configuration.
-    /// </summary>
-    public TableModel<T, TKey> Build<T, TKey>(
-        Expression<Func<T, TKey>> keySelector,
-        Action<TableModelBuilder<T, TKey>> config)
-        where T : class
-    {
-        var tableModelBuilder = new TableModelBuilder<T, TKey>(keySelector, _paths);
-        config.Invoke(tableModelBuilder);
-        var tableModel = tableModelBuilder.Build();
-        return tableModel;
     }
 
     /// <summary>
@@ -133,28 +95,6 @@ public class TableProvider : ITableProvider
             };
             return rowContext;
         }).ToList();        
-    }
-
-    /// <summary>
-    /// Uses the given columns and tableState to extend the given queryable for appropriate
-    /// filtering and sorting, and then executes the query twice; once with .CountAsync() so that
-    /// PageCount can be calculated, and once with pagination applied.
-    /// </summary>
-    /// <returns>
-    /// A fully configured <see cref="TableModel<typeparamref name="T"/>"/>  that's ready to be passed to a view
-    /// </returns>
-    public async Task<TableModel<T, TKey>> BuildAndFetchPage<T, TKey>(
-        Expression<Func<T, TKey>> keySelector,
-        IQueryable<T> query,
-        TableState tableState,
-        Action<TableModelBuilder<T, TKey>> config)
-        where T : class
-    {
-        var tableModelBuilder = new TableModelBuilder<T, TKey>(keySelector, _paths);
-        config.Invoke(tableModelBuilder);
-        var tableModel = tableModelBuilder.Build();
-        await FetchPage(tableModel, query, tableState);
-        return tableModel;
     }
 
     public IActionResult RefreshAllViews(ITableModel tableModel)

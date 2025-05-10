@@ -348,7 +348,7 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
             var dbContext = serviceProvider.GetRequiredService<AppDbContext>();
             model.WithKeySelector(r => r.Id)
                 .WithQueryable(() => dbContext.Repos)
-                .WithInsertModel(async repo =>
+                .WithCreateModel(async repo =>
                 {
                     dbContext.Repos.Add(repo);
                     await dbContext.SaveChangesAsync();

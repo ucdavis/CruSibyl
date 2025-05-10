@@ -48,7 +48,7 @@ public class TableController : Controller
     private async Task<IActionResult> _SaveRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        if (modelHandler.InsertModel == null)
+        if (modelHandler.CreateModel == null)
             return BadRequest($"SaveModel not defined for type '{modelHandler.TypeId}'.");
 
         var pageState = this.GetPageState();
@@ -71,7 +71,7 @@ public class TableController : Controller
         {
             if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
                 return Forbid();
-            await modelHandler.InsertModel!(editingItem);
+            await modelHandler.CreateModel!(editingItem);
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
