@@ -41,9 +41,18 @@ public abstract class AppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
-        User.OnModelCreating(builder);
-        Role.OnModelCreating(builder);
-        Permission.OnModelCreating(builder);
+        // Set DeleteBehavior.Restrict for all required relationships
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            foreach (var foreignKey in entityType.GetForeignKeys())
+            {
+                if (!foreignKey.IsOwnership && foreignKey.IsRequired)
+                {
+                    foreignKey.DeleteBehavior = DeleteBehavior.Restrict;
+                }
+            }
+        }
+
         RoleOperation.OnModelCreating(builder);
     }
 }

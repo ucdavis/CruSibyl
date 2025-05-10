@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Core.Domain;
 
+[Index(nameof(Iam), IsUnique = true)]
+[Index(nameof(Email))]
 public class User
 {
     [Key]
@@ -38,17 +40,4 @@ public class User
 
     [JsonIgnore]
     public List<Permission> Permissions { get; set; } = new();
-
-
-    internal static void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<User>().HasIndex(a => a.Iam).IsUnique();
-        modelBuilder.Entity<User>().HasIndex(a => a.Email);
-
-        modelBuilder.Entity<Permission>()
-            .HasOne(p => p.User)
-            .WithMany(u => u.Permissions)
-            .HasForeignKey(p => p.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
-    }
 }

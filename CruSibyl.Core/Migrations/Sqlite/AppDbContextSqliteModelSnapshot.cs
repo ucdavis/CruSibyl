@@ -388,13 +388,13 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Manifest", "Manifest")
                         .WithMany("Dependencies")
                         .HasForeignKey("ManifestId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CruSibyl.Core.Domain.PackageVersion", "PackageVersion")
                         .WithMany()
                         .HasForeignKey("PackageVersionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Manifest");
@@ -407,13 +407,13 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.PlatformVersion", "PlatformVersion")
                         .WithMany()
                         .HasForeignKey("PlatformVersionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CruSibyl.Core.Domain.Repo", "Repo")
                         .WithMany("Manifests")
                         .HasForeignKey("RepoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("PlatformVersion");
@@ -426,7 +426,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Note", "Note")
                         .WithMany("Mappings")
                         .HasForeignKey("NoteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Note");
@@ -437,7 +437,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Platform", "Platform")
                         .WithMany()
                         .HasForeignKey("PlatformId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Platform");
@@ -448,7 +448,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Package", "Package")
                         .WithMany("Versions")
                         .HasForeignKey("PackageId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Package");
@@ -478,7 +478,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Platform", "Platform")
                         .WithMany("Versions")
                         .HasForeignKey("PlatformId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Platform");
@@ -500,7 +500,7 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.HasOne("CruSibyl.Core.Domain.Tag", "Tag")
                         .WithMany("Mappings")
                         .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Tag");

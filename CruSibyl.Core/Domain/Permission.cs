@@ -2,6 +2,9 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Core.Domain;
+
+[Index(nameof(RoleId))]
+[Index(nameof(UserId))]
 public class Permission
 {
     [Key]
@@ -16,16 +19,5 @@ public class Permission
     public Role Role { get; set; } = null!;
 
     public User User { get; set; } = null!;
-
-    internal static void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Permission>().HasIndex(a => a.RoleId);
-        modelBuilder.Entity<Permission>().HasIndex(a => a.UserId);
-        modelBuilder.Entity<Permission>()
-            .HasOne(p => p.Role)
-            .WithMany(r => r.Permissions)
-            .HasForeignKey(p => p.RoleId)
-            .OnDelete(DeleteBehavior.Restrict);
-    }
 }
 

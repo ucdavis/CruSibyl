@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Core.Domain;
+
+[Index(nameof(Name), IsUnique = true)]
 public class Role
 {
     [Key]
@@ -14,11 +16,6 @@ public class Role
     public List<RoleOperation> Operations { get; set; } = new();
 
     public List<Permission> Permissions { get; set; } = new();
-
-    internal static void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<Role>().HasIndex(a => a.Name).IsUnique();        
-    }
 
     public class Codes
     {
