@@ -2,7 +2,7 @@ namespace Htmx.Components.Input;
 
 public class InputFieldBuilder
 {
-    private readonly InputField _field = new();
+    private readonly InputModel _field = new();
 
     public InputFieldBuilder WithName(string name)
     {
@@ -52,5 +52,5 @@ public class InputFieldBuilder
         return this;
     }
 
-    public InputField Build() => _field;
+    public InputModel Build() => _field;
 }

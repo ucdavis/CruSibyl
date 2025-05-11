@@ -4,6 +4,7 @@ using Htmx.Components.Models;
 using Htmx.Components.Services;
 using Htmx.Components.Table;
 using Htmx.Components.Table.Models;
+using Htmx.Components.Utilities;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,12 +38,13 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SaveRow),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SaveRow),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            modelHandler);
 
-        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
-        return await result!;
+        return result;
     }
 
     private async Task<IActionResult> _SaveRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
@@ -101,12 +103,13 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_CancelEditRow),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_CancelEditRow),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            modelHandler);
 
-        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
-        return await result!;
+        return result!;
     }
 
     private async Task<IActionResult> _CancelEditRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
@@ -156,12 +159,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_DeleteRow),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { key, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_DeleteRow),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            key, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _DeleteRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
@@ -196,12 +199,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_EditRow),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { key, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_EditRow),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            key, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _EditRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
@@ -242,12 +245,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SetPage),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { page, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SetPage),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            page, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _SetPage<T, TKey>(int page, ModelHandler<T, TKey> modelHandler)
@@ -273,12 +276,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SetPageSize),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { pageSize, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SetPageSize),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            pageSize, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _SetPageSize<T, TKey>(int pageSize, ModelHandler<T, TKey> modelHandler)
@@ -304,12 +307,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SetSort),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { column, direction, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SetSort),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            column, direction, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _SetSort<T, TKey>(string column, string direction, ModelHandler<T, TKey> modelHandler)
@@ -336,12 +339,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SetCell),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { propertyName, value, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SetCell),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            propertyName, value, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _SetCell<T, TKey>(string propertyName, string value, ModelHandler<T, TKey> modelHandler)
@@ -388,12 +391,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_SetFilter),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { column, filter, input, modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_SetFilter),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            column, filter, input, modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _SetFilter<T, TKey>(string column, string filter, int input, ModelHandler<T, TKey> modelHandler)
@@ -443,12 +446,12 @@ public class TableController : Controller
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
-        var method = typeof(TableController).GetMethod(nameof(_NewTableRow),
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
-            ?.MakeGenericMethod(modelHandler.ModelType, modelHandler.KeyType)!;
-
-        var result = method.Invoke(this, new object[] { modelHandler }) as Task<IActionResult>;
-        return await result!;
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_NewTableRow),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            modelHandler);
+        return result!;
     }
 
     private async Task<IActionResult> _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)

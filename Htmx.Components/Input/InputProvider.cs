@@ -2,18 +2,18 @@ namespace Htmx.Components.Input;
 
 public interface IInputProvider
 {
-    InputField BuildInputField(Action<InputFieldBuilder> config);
+    InputModel BuildInput(Action<InputFieldBuilder> config);
     InputSet BuildInputSet(Action<InputSetBuilder> config);
     InputSet BuildInputSet<T>() where T : class;
     InputSet BuildInputSet<T>(T fromModel) where T : class;
     T BuildModel<T>(InputSet inputSet) where T : class, new();
-    object? GetValue(InputField inputField);
-    T? GetValue<T>(InputField inputField);
+    object? GetValue(InputModel inputField);
+    T? GetValue<T>(InputModel inputField);
 }
 
 public class InputProvider : IInputProvider
 {
-    public InputField BuildInputField(Action<InputFieldBuilder> config)
+    public InputModel BuildInput(Action<InputFieldBuilder> config)
     {
         var builder = new InputFieldBuilder();
         config(builder);
@@ -65,7 +65,7 @@ public class InputProvider : IInputProvider
     {
         var model = new T();
         var type = typeof(T);
-        foreach (var field in inputSet.Fields)
+        foreach (var field in inputSet.Inputs)
         {
             var prop = type.GetProperty(field.Name);
             if (prop == null) continue;
@@ -75,12 +75,12 @@ public class InputProvider : IInputProvider
         return model;
     }
 
-    public object? GetValue(InputField inputField)
+    public object? GetValue(InputModel inputField)
     {
         return inputField.Value;
     }
 
-    public T? GetValue<T>(InputField inputField)
+    public T? GetValue<T>(InputModel inputField)
     {
         if (inputField.Value == null) return default;
         return (T)Convert.ChangeType(inputField.Value, typeof(T));

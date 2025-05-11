@@ -3,7 +3,7 @@ namespace Htmx.Components.Input;
 /// <summary>
 /// Represents a single input field.
 /// </summary>
-public class InputField
+public class InputModel
 {
     public string Name { get; set; } = "";
     public string Label { get; set; } = "";
@@ -21,5 +21,5 @@ public class InputField
 public class InputSet
 {
     public string? Label { get; set; } = null;
-    public List<InputField> Fields { get; set; } = new();
+    public List<InputModel> Inputs { get; set; } = new();
 }

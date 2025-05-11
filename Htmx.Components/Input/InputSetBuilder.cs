@@ -8,19 +8,19 @@ public class InputSetBuilder
     {
         var builder = new InputFieldBuilder();
         configure(builder);
-        _set.Fields.Add(builder.Build());
+        _set.Inputs.Add(builder.Build());
         return this;
     }
 
-    public InputSetBuilder AddField(InputField field)
+    public InputSetBuilder AddField(InputModel field)
     {
-        _set.Fields.Add(field);
+        _set.Inputs.Add(field);
         return this;
     }
 
-    public InputSetBuilder AddRange(IEnumerable<InputField> fields)
+    public InputSetBuilder AddRange(IEnumerable<InputModel> fields)
     {
-        _set.Fields.AddRange(fields);
+        _set.Inputs.AddRange(fields);
         return this;
     }
 
