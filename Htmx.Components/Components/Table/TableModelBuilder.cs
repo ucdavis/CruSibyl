@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Action;
 using Htmx.Components.Extensions;
+using Htmx.Components.Models;
 using Htmx.Components.Services;
 using Htmx.Components.Table.Models;
 using Microsoft.EntityFrameworkCore;
@@ -20,13 +21,13 @@ public class TableModelBuilder<T, TKey> where T : class
     private Expression<Func<T, TKey>> _keySelector;
     private Func<TableModel<T, TKey>, IEnumerable<ActionModel>> _actionsFactory = _ => [];
     private string _typeId = typeof(T).Name;
-    private readonly CrudFeatures _crudFeatures;
+    private readonly ModelHandler<T, TKey> _modelHandler;
 
-    internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths, CrudFeatures crudFeatures)
+    internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths, ModelHandler<T, TKey> modelHandler)
     {
-        _keySelector = keySelector;
         _paths = paths;
-        _crudFeatures = crudFeatures;
+        _keySelector = keySelector;
+        _modelHandler = modelHandler;
     }
 
 
@@ -92,7 +93,7 @@ public class TableModelBuilder<T, TKey> where T : class
             ActionsFactory = _actionsFactory,
             TableViewPaths = _paths,
             KeySelector = _keySelector,
-            CrudFeatures = _crudFeatures,
+            ModelHandler = _modelHandler,
         };
 
         foreach (var column in _columns)

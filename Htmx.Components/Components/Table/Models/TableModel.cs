@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Htmx.Components.Action;
+using Htmx.Components.Models;
 using Htmx.Components.Services;
 
 namespace Htmx.Components.Table.Models;
@@ -13,7 +14,7 @@ public interface ITableModel
     public int PageCount { get; set; }
     public TableState State { get; set; }
     public TableViewPaths TableViewPaths { get; set; }
-    public CrudFeatures CrudFeatures { get; set; }
+    public ModelHandler ModelHandler { get; set; }
     public IEnumerable<ActionModel> GetActions();
 }
 
@@ -27,8 +28,15 @@ public class TableModel<T, TKey> : ITableModel
     public int PageCount { get; set; } = 1;
     public TableState State { get; set; } = new();
     public TableViewPaths TableViewPaths { get; set; } = new();
-    public CrudFeatures CrudFeatures { get; set; } = CrudFeatures.None;
+    public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
     public Func<TableModel<T, TKey>, IEnumerable<ActionModel>> ActionsFactory = _ => [];
+
+    ModelHandler ITableModel.ModelHandler { 
+        get => ModelHandler; 
+        set => ModelHandler = (ModelHandler<T, TKey>)value; 
+    }
+
+    
 
     // Explicit implementation of ITableModel
     List<ITableRowContext> ITableModel.Rows
