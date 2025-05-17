@@ -1,4 +1,4 @@
-using Htmx.Components.Table.Models;
+using Htmx.Components.Models.Table;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Htmx.Components.Table;

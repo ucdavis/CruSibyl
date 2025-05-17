@@ -1,9 +1,9 @@
 using System.Text.Json;
 using Htmx.Components.Authorization;
 using Htmx.Components.Models;
+using Htmx.Components.Models.Table;
 using Htmx.Components.Services;
 using Htmx.Components.Table;
-using Htmx.Components.Table.Models;
 using Htmx.Components.Utilities;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Authorization;

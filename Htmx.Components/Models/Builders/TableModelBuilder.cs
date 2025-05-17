@@ -1,13 +1,12 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
-using Htmx.Components.Action;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models;
+using Htmx.Components.Models.Table;
 using Htmx.Components.Services;
-using Htmx.Components.Table.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace Htmx.Components.Table;
+namespace Htmx.Components.Models.Builders;
 
 
 /// <summary>
@@ -41,7 +40,7 @@ public class TableModelBuilder<T, TKey> where T : class
     public TableModelBuilder<T, TKey> AddSelectorColumn(string header, Expression<Func<T, object>> selector, 
         Action<ColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
+        var builder = new ColumnModelBuilder<T, TKey>(header, _paths, _modelHandler);
         builder.Column.SelectorExpression = selector;
         builder.Column.DataType = selector.GetMemberType();
         builder.Column.DataName = selector.GetPropertyName();
@@ -59,7 +58,7 @@ public class TableModelBuilder<T, TKey> where T : class
     /// <returns></returns>
     public TableModelBuilder<T, TKey> AddDisplayColumn(string header, Action<ColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new ColumnModelBuilder<T, TKey>(header, _paths);
+        var builder = new ColumnModelBuilder<T, TKey>(header, _paths, _modelHandler);
         builder.Column.Sortable = false;
         builder.Column.Filterable = false;
         builder.Column.ColumnType = ColumnType.Display;
@@ -110,7 +109,7 @@ public class ColumnModelBuilder<T, TKey> where T : class
     internal readonly TableColumnModel<T, TKey> Column = new();
     private readonly TableViewPaths _paths;
 
-    internal ColumnModelBuilder(string header, TableViewPaths paths)
+    internal ColumnModelBuilder(string header, TableViewPaths paths, ModelHandler<T, TKey> modelHandler)
     {
         _paths = paths;
 

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
@@ -9,18 +8,13 @@ using CruSibyl.Core.Services;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
 using CruSibyl.Web.Middleware.Auth;
-using Htmx;
 using Htmx.Components;
-using Htmx.Components.Action;
+using Htmx.Components.Models;
+using Htmx.Components.Models.Builders;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Razor;
-using Microsoft.AspNetCore.Routing.Constraints;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.SqlServer;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -371,6 +365,14 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                     }
                     return Htmx.Components.Models.Result.Error("Repo not found");
                 })
+                .WithInputModel(r => r.Name, config => config
+                    .WithLabel("Name")
+                    .WithPlaceholder("Enter repo name")
+                    .WithCssClass("form-control"))
+                .WithInputModel(r => r.Description, config => config
+                    .WithLabel("Description")
+                    .WithPlaceholder("Enter repo description")
+                    .WithCssClass("form-control"))
                 .WithTableModel(table => table
                     .WithTypeId(typeId)
                     .WithActions(table => [

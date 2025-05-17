@@ -1,8 +1,11 @@
 using System.Linq.Expressions;
 using Htmx.Components.Authorization;
+using Htmx.Components.Extensions;
+using Htmx.Components.Input;
 using Htmx.Components.Models;
+using Htmx.Components.Models.Builders;
+using Htmx.Components.Models.Table;
 using Htmx.Components.Table;
-using Htmx.Components.Table.Models;
 
 namespace Htmx.Components.Services;
 
@@ -80,6 +83,7 @@ public class ModelHandlerBuilder<T, TKey>
     private Func<T, Task<Result>>? _updateModel;
     private Func<TKey, Task<Result>>? _deleteModel;
     private Action<TableModelBuilder<T, TKey>>? _configureTableModel;
+    private readonly Dictionary<string, Func<IInputModel>> _inputModelBuilders = new();
 
     public ModelHandlerBuilder<T, TKey> WithTypeId(string typeId)
     {
@@ -123,6 +127,20 @@ public class ModelHandlerBuilder<T, TKey>
         return this;
     }
 
+    public ModelHandlerBuilder<T, TKey> WithInputModel<TProp>(Expression<Func<T, TProp>> propertySelector,
+        Action<InputModelBuilder<T, TProp>> configure)
+    {
+        var propName = propertySelector.GetPropertyName();
+        var builder = new InputModelBuilder<T, TProp>(propertySelector);
+        _inputModelBuilders[propName] = () =>
+        {
+            configure(builder);
+            var inputModel = builder.Build();
+            return inputModel;
+        };
+        return this;
+    }
+
     public async Task<ModelHandler<T, TKey>> Build()
     {
         if (_getQueryable != null)
@@ -157,12 +175,20 @@ public class ModelHandlerBuilder<T, TKey>
             UpdateModel = _updateModel,
             DeleteModel = _deleteModel,
             CrudFeatures = crudFeatures,
+            BuildInputModel = (propertyName) =>
+            {
+                if (_inputModelBuilders.TryGetValue(propertyName, out var builderFunc))
+                {
+                    return builderFunc.Invoke();
+                }
+                throw new ArgumentException($"No input model builder found for property '{propertyName}'.");
+            },
         };
 
         if (_configureTableModel != null)
         {
             var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelector!, _tableViewPaths, modelHandler);
-            _configureTableModel?.Invoke(tableModelBuilder);
+            _configureTableModel.Invoke(tableModelBuilder);
             modelHandler.BuildTableModel = tableModelBuilder.Build;
         }
 

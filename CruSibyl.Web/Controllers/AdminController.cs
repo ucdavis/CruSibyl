@@ -1,12 +1,10 @@
 ﻿using Azure;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
-using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Htmx.Components.Table;
-using Htmx.Components.Action;
 using Htmx;
 using Htmx.Components;
 using Htmx.Components.Models;
@@ -14,6 +12,7 @@ using Htmx.Components.ViewResults;
 using Htmx.Components.Services;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Text.Json;
+using Htmx.Components.Models.Table;
 
 namespace CruSibyl.Web.Controllers;
 

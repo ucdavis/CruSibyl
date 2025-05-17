@@ -8,3 +8,15 @@ public interface IOobTargetable
     string? TargetSelector { get; }
     OobTargetDisposition? TargetDisposition { get; }
 }
+
+public enum OobTargetDisposition
+{
+    OuterHtml,
+    InnerHtml,
+    AfterBegin,
+    BeforeEnd,
+    BeforeBegin,
+    AfterEnd,
+    None,
+    Delete,
+}

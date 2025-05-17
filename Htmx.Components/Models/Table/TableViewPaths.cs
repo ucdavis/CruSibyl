@@ -1,4 +1,4 @@
-namespace Htmx.Components.Table.Models;
+namespace Htmx.Components.Models.Table;
 
 public class TableViewPaths
 {

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
-using Htmx.Components.Table.Models;
+using Htmx.Components.Input;
+using Htmx.Components.Models.Table;
 
 namespace Htmx.Components.Models;
 
@@ -34,12 +35,13 @@ public class ModelHandler<T, TKey> : ModelHandler
         }
     }
 
-    public Func<IQueryable<T>>? GetQueryable { get; init; }
-    public Func<T, Task<Result>>? CreateModel { get; init; }
-    public Func<T, Task<Result>>? UpdateModel { get; init; }
-    public Func<TKey, Task<Result>>? DeleteModel { get; init; }
+    public Func<IQueryable<T>>? GetQueryable { get; internal init; }
+    public Func<T, Task<Result>>? CreateModel { get; internal init; }
+    public Func<T, Task<Result>>? UpdateModel { get; internal init; }
+    public Func<TKey, Task<Result>>? DeleteModel { get; internal init; }
     public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
-    public Func<TableModel<T, TKey>>? BuildTableModel { get; set; }
+    public Func<TableModel<T, TKey>>? BuildTableModel { get; internal set; }
+    public Func<string, IInputModel> BuildInputModel { get; internal init; } = _ => null!;
 
     /// <summary>
     /// Creates a predicate expression for the key selector. This is used to filter a collection

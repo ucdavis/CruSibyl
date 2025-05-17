@@ -1,4 +1,4 @@
-namespace Htmx.Components.Action;
+namespace Htmx.Components.Models.Builders;
 
 public class ActionSetBuilder
 {

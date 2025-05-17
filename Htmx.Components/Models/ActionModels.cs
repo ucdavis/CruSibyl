@@ -1,4 +1,4 @@
-namespace Htmx.Components.Action;
+namespace Htmx.Components.Models;
 
 /// <summary>
 /// A visual item that has a label and optional Icon and css properties

@@ -1,10 +1,9 @@
 using System.Linq.Expressions;
 using System.Text.Json;
 using FastExpressionCompiler;
-using Htmx.Components.Action;
 using Htmx.Components.Extensions;
 
-namespace Htmx.Components.Table.Models;
+namespace Htmx.Components.Models.Table;
 
 // We have a non-generic interface, since razor views don't support generic type params
 public interface ITableColumnModel

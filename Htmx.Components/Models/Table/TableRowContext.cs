@@ -2,7 +2,7 @@ using System.Text.Json;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 
-namespace Htmx.Components.Table.Models;
+namespace Htmx.Components.Models.Table;
 
 public interface ITableRowContext : IOobTargetable
 {
@@ -11,14 +11,6 @@ public interface ITableRowContext : IOobTargetable
     int PageIndex { get; } // Row's index within current page
     string Key { get; }
     bool IsEditing { get; }
-}
-
-public enum RowAction
-{
-    Display,
-    Edit,
-    Delete,
-    Insert
 }
 
 public class TableRowContext<T, TKey> : ITableRowContext

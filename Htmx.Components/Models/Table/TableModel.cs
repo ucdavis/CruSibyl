@@ -1,9 +1,6 @@
 using System.Linq.Expressions;
-using Htmx.Components.Action;
-using Htmx.Components.Models;
-using Htmx.Components.Services;
 
-namespace Htmx.Components.Table.Models;
+namespace Htmx.Components.Models.Table;
 
 // We have a separate, non-generic class, since razor views don't support generic type params
 public interface ITableModel
@@ -35,8 +32,6 @@ public class TableModel<T, TKey> : ITableModel
         get => ModelHandler; 
         set => ModelHandler = (ModelHandler<T, TKey>)value; 
     }
-
-    
 
     // Explicit implementation of ITableModel
     List<ITableRowContext> ITableModel.Rows

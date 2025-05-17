@@ -1,4 +1,6 @@
-namespace Htmx.Components.Action;
+using Htmx.Components.Models;
+
+namespace Htmx.Components.Models.Builders;
 
 public class ActionGroupBuilder
 {

@@ -5,10 +5,10 @@ using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 using Htmx.Components.ViewResults;
 using Htmx.Components.State;
-using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Htmx.Components.Models.Table;
 
 namespace Htmx.Components.Table;
 
