@@ -45,7 +45,7 @@ public class AdminController : TabController
         pageState.Set("Table", "State", tableState);
 
         var modelHandler = (await _modelRegistry.GetModelHandler<Repo, int>(nameof(Repo)))!;
-        var tableModel = modelHandler.BuildTableModel!();
+        var tableModel = modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 
         if (Request.IsHtmx())

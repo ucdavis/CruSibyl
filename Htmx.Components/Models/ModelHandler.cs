@@ -2,15 +2,16 @@ using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Input;
 using Htmx.Components.Models.Table;
+using Htmx.Components.Models.Builders;
 
 namespace Htmx.Components.Models;
 
 public abstract class ModelHandler
 {
-    public required string TypeId { get; init; }
+    public string TypeId { get; set; } = null!;
     public Type ModelType { get; protected set; } = null!;
     public Type KeyType { get; protected set; } = null!;
-    public CrudFeatures CrudFeatures { get; init; }
+    public CrudFeatures CrudFeatures { get; internal set; }
 }
 
 public class ModelHandler<T, TKey> : ModelHandler
@@ -25,7 +26,7 @@ public class ModelHandler<T, TKey> : ModelHandler
         KeyType = typeof(TKey);
     }
 
-    public required Expression<Func<T, TKey>> KeySelector
+    public Expression<Func<T, TKey>> KeySelector
     {
         get => _keySelectorExpression;
         set
@@ -35,13 +36,29 @@ public class ModelHandler<T, TKey> : ModelHandler
         }
     }
 
-    public Func<IQueryable<T>>? GetQueryable { get; internal init; }
-    public Func<T, Task<Result>>? CreateModel { get; internal init; }
-    public Func<T, Task<Result>>? UpdateModel { get; internal init; }
-    public Func<TKey, Task<Result>>? DeleteModel { get; internal init; }
+    public Func<IQueryable<T>>? GetQueryable { get; internal set; }
+    public Func<T, Task<Result>>? CreateModel { get; internal set; }
+    public Func<T, Task<Result>>? UpdateModel { get; internal set; }
+    public Func<TKey, Task<Result>>? DeleteModel { get; internal set; }
     public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
-    public Func<TableModel<T, TKey>>? BuildTableModel { get; internal set; }
-    public Func<string, IInputModel> BuildInputModel { get; internal init; } = _ => null!;
+    internal Dictionary<string, Func<IInputModel>>? InputModelBuilders { get; set; }
+    internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
+    internal TableViewPaths Paths { get; set; } = null!;
+
+    public TableModel<T, TKey> BuildTableModel()
+    {
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this);
+        ConfigureTableModel?.Invoke(tableModelBuilder);
+        return tableModelBuilder.Build();
+    }
+    
+    public IInputModel BuildInputModel(string name)
+    {
+        if (InputModelBuilders == null || !InputModelBuilders.TryGetValue(name, out var builder))
+            throw new ArgumentException($"No input model found for name '{name}'.");
+
+        return builder();
+    }
 
     /// <summary>
     /// Creates a predicate expression for the key selector. This is used to filter a collection

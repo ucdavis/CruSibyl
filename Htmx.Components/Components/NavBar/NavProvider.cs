@@ -7,7 +7,7 @@ namespace Htmx.Components.NavBar;
 
 public interface INavProvider
 {
-    Task<IActionSet> BuildAsync(ActionContext context);
+    Task<IActionSet> BuildAsync();
 }
 
 
@@ -18,21 +18,22 @@ public interface INavProvider
 /// </summary>
 public class BuilderBasedNavProvider : INavProvider
 {
-    private readonly IActionContextAccessor _actionContextAccessor;
-    private readonly Func<ActionContext, Task<ActionSetBuilder>> _builderFactory;
+    private readonly Func<ActionSetBuilder, Task> _builderFactory;
+    private readonly IServiceProvider _serviceProvider;
 
-    public BuilderBasedNavProvider(IActionContextAccessor actionContextAccessor, Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
+    public BuilderBasedNavProvider(IServiceProvider serviceProvider, Func<ActionSetBuilder, Task> builderFactory)
     {
-        _actionContextAccessor = actionContextAccessor;
         _builderFactory = builderFactory;
+        _serviceProvider = serviceProvider;
     }
 
-    public async Task<IActionSet> BuildAsync(ActionContext context)
+    public async Task<IActionSet> BuildAsync()
     {
         // Call the async factory to build the ActionSet
-        var builder = await _builderFactory(context);
+        var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+        await _builderFactory(actionSetBuilder);
 
         // Build the final ActionSet
-        return builder.Build();
+        return await actionSetBuilder.Build();
     }
 }

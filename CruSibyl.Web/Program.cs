@@ -179,32 +179,17 @@ try
 
     if (useSql)
     {
-        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>((serviceProvider, o) =>
-        {
-            o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
-                sqlOptions =>
-                {
-                    sqlOptions.MigrationsAssembly("CruSibyl.Core");
-                });
-#if DEBUG
-            o.EnableSensitiveDataLogging();
-#endif
-        });
+        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>(ConfigSqlServer(builder));
+        appBuilder.Services.AddDbContextFactory<AppDbContextSqlServer>(ConfigSqlServer(builder));
+        appBuilder.Services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
+            new DbContextFactoryAdapter<AppDbContextSqlServer>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlServer>>()));
     }
     else
     {
-        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlite>((serviceProvider, o) =>
-        {
-            o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"),
-                sqliteOptions =>
-                {
-                    sqliteOptions.MigrationsAssembly("CruSibyl.Core");
-                });
-
-#if DEBUG
-            o.EnableSensitiveDataLogging();
-#endif
-        });
+        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlite>(ConfigSqlite(builder));
+        appBuilder.Services.AddDbContextFactory<AppDbContextSqlite>(ConfigSqlServer(builder));
+        appBuilder.Services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
+            new DbContextFactoryAdapter<AppDbContextSqlite>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlite>>()));
     }
 
     appBuilder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Authentication"));
@@ -309,26 +294,23 @@ return 0;
 
 static void ConfigureNav(HtmxComponentOptions config)
 {
-    config.WithNavBuilder(context =>
+    config.WithNavBuilder(builder =>
     {
-        var path = context.HttpContext.Request.Path.ToString();
+        // we can use the ActionContext to get the current path or other context
+        // var path = builder.ActionContext.HttpContext.Request.Path.ToString();
+        builder.AddModel(m => m
+            .WithLabel("Home")
+            .WithIcon("fas fa-home")
+            .WithHxGet("/Dashboard")
+            .WithHxPushUrl())
 
-        var navBuilder = new ActionSetBuilder()
+        .AddGroup(g => g
+            .WithLabel("Admin")
+            .WithIcon("fas fa-cogs")
             .AddModel(m => m
-                .WithLabel("Home")
-                .WithIcon("fas fa-home")
-                .WithHxGet("/Dashboard")
-                .WithHxPushUrl())
-
-            .AddGroup(g => g
-                .WithLabel("Admin")
-                .WithIcon("fas fa-cogs")
-                .AddModel(m => m
-                    .WithLabel("Repos")
-                    .WithHxGet("/Admin")
-                    .WithHxPushUrl()));
-
-        return Task.FromResult(navBuilder);
+                .WithLabel("Repos")
+                .WithHxGet("/Admin")
+                .WithHxPushUrl()));
     });
 }
 
@@ -412,4 +394,35 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                     }));
         });
     });
+}
+
+static Action<IServiceProvider, DbContextOptionsBuilder> ConfigSqlServer(WebApplicationBuilder builder)
+{
+    return (serviceProvider, o) =>
+    {
+        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+            sqlOptions =>
+            {
+                sqlOptions.MigrationsAssembly("CruSibyl.Core");
+            });
+#if DEBUG
+        o.EnableSensitiveDataLogging();
+#endif
+    };
+}
+
+static Action<IServiceProvider, DbContextOptionsBuilder> ConfigSqlite(WebApplicationBuilder builder)
+{
+    return (serviceProvider, o) =>
+    {
+        o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"),
+            sqliteOptions =>
+            {
+                sqliteOptions.MigrationsAssembly("CruSibyl.Core");
+            });
+
+#if DEBUG
+        o.EnableSensitiveDataLogging();
+#endif
+    };
 }

@@ -126,12 +126,26 @@ public class HtmxComponentOptions
     internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
 
-    public HtmxComponentOptions WithNavBuilder(Func<ActionContext, Task<ActionSetBuilder>> builderFactory)
+    public HtmxComponentOptions WithNavBuilder(Func<ActionSetBuilder, Task> builderFactory)
     {
         NavProviderFactory = serviceProvider =>
         {
-            var accessor = serviceProvider.GetRequiredService<IActionContextAccessor>();
-            return new BuilderBasedNavProvider(accessor, builderFactory);
+            var actionSetBuilder = new ActionSetBuilder(serviceProvider);
+            return new BuilderBasedNavProvider(serviceProvider, builderFactory);
+        };
+        return this;
+    }
+
+    public HtmxComponentOptions WithNavBuilder(Action<ActionSetBuilder> builderFactory)
+    {
+        NavProviderFactory = serviceProvider =>
+        {
+            var funcBuilderFactory = new Func<ActionSetBuilder, Task>(builder =>
+            {
+                builderFactory(builder);
+                return Task.CompletedTask;
+            });
+            return new BuilderBasedNavProvider(serviceProvider, funcBuilderFactory);
         };
         return this;
     }

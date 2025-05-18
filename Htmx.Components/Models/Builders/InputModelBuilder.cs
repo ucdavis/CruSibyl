@@ -7,73 +7,73 @@ namespace Htmx.Components.Models.Builders;
 
 public interface IInputModelBuilder
 {
-    IInputModel Build();
+    Task<IInputModel> Build();
 }
 
-public class InputModelBuilder<T, TProp> : IInputModelBuilder
+public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TProp>, InputModel<T, TProp>>, IInputModelBuilder
     where T : class
 {
-    private readonly InputModel<T, TProp> _inputModel = new();
-
-    internal InputModelBuilder(Expression<Func<T, TProp>> propertySelector)
+    internal InputModelBuilder(IServiceProvider serviceProvider, Expression<Func<T, TProp>> propertySelector) 
+        : base(serviceProvider)
     {
         var propName = propertySelector.GetPropertyName();
-        _inputModel.Name = propName;
-        _inputModel.Kind = GetInputKind(typeof(TProp));
-        _inputModel.Label = propName.Humanize();
+        _model.Name = propName;
+        _model.Kind = GetInputKind(typeof(TProp));
+        _model.Label = propName.Humanize();
     }
 
     public InputModelBuilder<T, TProp> WithKind(InputKind kind)
     {
-        _inputModel.Kind = kind;
+        _model.Kind = kind;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithName(string name)
     {
-        _inputModel.Name = name;
+        _model.Name = name;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithLabel(string label)
     {
-        _inputModel.Label = label;
+        _model.Label = label;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithPlaceholder(string placeholder)
     {
-        _inputModel.Placeholder = placeholder;
+        _model.Placeholder = placeholder;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithCssClass(string cssClass)
     {
-        _inputModel.CssClass = cssClass;
+        _model.CssClass = cssClass;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithValue(string value)
     {
-        _inputModel.Value = value;
+        _model.Value = value;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithAttribute(string key, string value)
     {
-        _inputModel.Attributes[key] = value;
+        _model.Attributes[key] = value;
         return this;
     }
 
     public InputModelBuilder<T, TProp> WithOptions(IEnumerable<KeyValuePair<string, string>> options)
     {
-        _inputModel.Options = options.ToList();
+        _model.Options = options.ToList();
         return this;
     }
 
-    IInputModel IInputModelBuilder.Build() => Build();
-
-    public InputModel<T, TProp> Build() => _inputModel;
+    async Task<IInputModel> IInputModelBuilder.Build()
+    {
+        return await base.Build();
+    }
 
     private static InputKind GetInputKind(Type type)
     {
@@ -88,5 +88,4 @@ public class InputModelBuilder<T, TProp> : IInputModelBuilder
             _ => InputKind.Text
         };
     }
-
 }

@@ -58,3 +58,12 @@ public abstract class AppDbContext : DbContext
         RoleOperation.OnModelCreating(builder);
     }
 }
+
+// This is a workaround for the fact that IDbContextFactory<T> is not covariant
+public class DbContextFactoryAdapter<TConcrete> : IDbContextFactory<AppDbContext>
+    where TConcrete : AppDbContext
+{
+    private readonly IDbContextFactory<TConcrete> _inner;
+    public DbContextFactoryAdapter(IDbContextFactory<TConcrete> inner) => _inner = inner;
+    public AppDbContext CreateDbContext() => _inner.CreateDbContext();
+}

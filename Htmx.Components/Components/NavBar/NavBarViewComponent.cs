@@ -14,7 +14,7 @@ public class NavBarViewComponent : ViewComponent
 
     public async Task<IViewComponentResult> InvokeAsync()
     {
-        var model = await _navProvider.BuildAsync(ViewContext);
+        var model = await _navProvider.BuildAsync();
         return View("Default", model);
     }
 }

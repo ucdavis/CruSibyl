@@ -17,12 +17,10 @@ public class HtmxResultBuilder
     private readonly List<Task<HtmxViewInfo>> _oobViewInfos = new();
     private Task<HtmxViewInfo>? _mainViewInfo;
 
-    private readonly IActionContextAccessor _actionContextAccessor;
     private readonly INavProvider _navProvider;
     private readonly IPageState _pageState;
 
-    public HtmxResultBuilder(IActionContextAccessor actionContextAccessor, INavProvider navProvider,
-        IPageState pageState, IServiceProvider serviceProvider)
+    public HtmxResultBuilder(INavProvider navProvider, IPageState pageState, IServiceProvider serviceProvider)
     {
         // Ensure the application part is registered. There's no official way to check if an extension has been added,
         // so we use a marker service to check if the extension is registered. This location seemd as good as any.
@@ -36,7 +34,6 @@ public class HtmxResultBuilder
                 $"{nameof(HtmxComponentsApplicationPartMarker)} not registered. Ensure you call {nameof(ServiceCollectionExtensions.AddHtmxComponentsApplicationPart)}() during startup.");
         }
 
-        _actionContextAccessor = actionContextAccessor;
         _navProvider = navProvider;
         _pageState = pageState;
     }
@@ -122,7 +119,7 @@ public class HtmxResultBuilder
 
     private async Task<HtmxViewInfo> GetNavbarPartial(string navComponentName)
     {
-        var nav = await _navProvider.BuildAsync(_actionContextAccessor.GetValidActionContext());
+        var nav = await _navProvider.BuildAsync();
         return new HtmxViewInfo
         {
             ViewName = navComponentName,
