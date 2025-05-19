@@ -56,7 +56,7 @@ public class TableController : Controller
         var pageState = this.GetPageState();
         var editingItem = pageState.Get<T>("Table", "EditingItem")!;
         var editingExistingRecord = pageState.Get<bool>("Table", "EditingExistingRecord")!;
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         if (editingExistingRecord)
         {
             if (!await IsAuthorized(modelHandler.TypeId, Operations.Update))
@@ -115,7 +115,7 @@ public class TableController : Controller
     private async Task<IActionResult> _CancelEditRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         var pageState = this.GetPageState();
         if (pageState.Get<bool>("Table", "EditingExistingRecord"))
         {
@@ -181,7 +181,7 @@ public class TableController : Controller
         await modelHandler.DeleteModel!(key);
 
         var pageState = this.GetPageState();
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = default!,
@@ -225,7 +225,7 @@ public class TableController : Controller
         pageState.Set("Table", "EditingItem", editingItem);
         pageState.Set("Table", "EditingExistingRecord", true);
 
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,
@@ -263,7 +263,7 @@ public class TableController : Controller
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.Page = page;
         pageState.Set("Table", "State", tableState);
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
@@ -294,7 +294,7 @@ public class TableController : Controller
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.PageSize = pageSize;
         pageState.Set("Table", "State", tableState);
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
@@ -326,7 +326,7 @@ public class TableController : Controller
         tableState.SortColumn = column;
         tableState.SortDirection = direction;
         pageState.Set("Table", "State", tableState);
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
         return _tableProvider.RefreshAllViews(tableModel);
@@ -405,7 +405,7 @@ public class TableController : Controller
         if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
             return Forbid();
 
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
         if (columnModel == null)
             return BadRequest($"Column '{column}' not found.");
@@ -466,7 +466,7 @@ public class TableController : Controller
         pageState.Set("Table", "EditingItem", editingItem);
         pageState.Set("Table", "EditingExistingRecord", false);
 
-        var tableModel = modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModel();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,

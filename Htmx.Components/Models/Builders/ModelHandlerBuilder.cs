@@ -14,6 +14,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         _resourceOperationRegistry = resourceOperationRegistry;
         _model.TypeId = typeId;
         _model.Paths = tableViewPaths;
+        _model.ServiceProvider = serviceProvider;
     }
 
     private readonly IResourceOperationRegistry _resourceOperationRegistry;

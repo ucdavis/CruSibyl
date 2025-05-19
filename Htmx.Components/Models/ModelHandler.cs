@@ -44,10 +44,11 @@ public class ModelHandler<T, TKey> : ModelHandler
     internal Dictionary<string, Func<IInputModel>>? InputModelBuilders { get; set; }
     internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
     internal TableViewPaths Paths { get; set; } = null!;
+    internal IServiceProvider ServiceProvider { get; set; } = null!;
 
-    public TableModel<T, TKey> BuildTableModel()
+    public Task<TableModel<T, TKey>> BuildTableModel()
     {
-        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this);
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
         return tableModelBuilder.Build();
     }

@@ -10,7 +10,7 @@ public abstract class BuilderBase<TBuilder, TModel>
     where TBuilder : BuilderBase<TBuilder, TModel>
     where TModel : class, new()
 {
-    protected readonly TModel _model = new();
+    protected internal readonly TModel _model = new();
     protected readonly IServiceProvider _serviceProvider;
     private readonly List<Task> _buildTasks = new();
 
@@ -41,7 +41,13 @@ public abstract class BuilderBase<TBuilder, TModel>
         _buildTasks.Add(task);
     }
 
-    internal async Task<TModel> Build()
+    protected void AddBuildTask(Action action)
+    {
+        var task = Task.Run(action);
+        _buildTasks.Add(task);
+    }
+
+    internal virtual async Task<TModel> Build()
     {
         await Task.WhenAll(_buildTasks);
         return _model;

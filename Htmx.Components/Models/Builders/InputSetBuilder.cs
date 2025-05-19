@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.Models.Builders;
 
-public class InputSetBuilder<T>: BuilderBase<InputSetBuilder<T>, InputSet>
+public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
     where T : class
 {
 
