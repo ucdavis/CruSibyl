@@ -15,10 +15,10 @@ public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
     public InputSetBuilder<T> AddInput<TProp>(Expression<Func<T, TProp>> propSelector,
         Action<InputModelBuilder<T, TProp>> configure)
     {
-        var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propSelector);
-        configure(builder);
-        AddBuildTask(async () =>
+        AddBuildTask(BuildPhase.Inputs, async () =>
         {
+            var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propSelector);
+            configure(builder);
             var inputModel = await builder.Build();
             _model.Inputs.Add(inputModel);
         });

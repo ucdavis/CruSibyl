@@ -15,7 +15,6 @@ public interface ITableColumnModel
     bool Filterable { get; set; }
     bool IsEditable { get; set; }
     ColumnType ColumnType { get; set; }
-    Type DataType { get; set; } // Type of the data in the column
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
@@ -65,7 +64,6 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     public bool Filterable { get; set; } = true;
     public bool IsEditable { get; set; } = false;
     public ColumnType ColumnType { get; set; }
-    public Type DataType { get; set; } = typeof(object);
     public string? CellPartialView { get; set; } // Custom rendering for cell
     public string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }

@@ -5,24 +5,29 @@ namespace Htmx.Components.Models;
 /// </summary>
 public interface IInputModel
 {
-    string Name { get; }
+    string PropName { get; }
+    string Id { get; }
+    ModelHandler ModelHandler { get; }
     string? Label { get; }
     string? Placeholder { get; }
     string? CssClass { get; }
     InputKind Kind { get; }
-    string Value { get; }
+    object? Value { get; }
     Dictionary<string, string> Attributes { get; }
     List<KeyValuePair<string, string>>? Options { get; }
 }
 
 public class InputModel<T, TProp> : IInputModel
 {
-    public string Name { get; set; } = "";
+    public string PropName { get; set; } = "";
+    public string Id { get; set; } = "";
+    public ModelHandler ModelHandler { get; set; } = null!;
+    public string TypeId { get; set; } = typeof(T).Name;
     public string Label { get; set; } = "";
     public string? Placeholder { get; set; }
     public string? CssClass { get; set; }
     public InputKind Kind { get; set; } = InputKind.Text;
-    public string Value { get; set; } = "";
+    public object? Value { get; set; } = null;
     public Dictionary<string, string> Attributes { get; } = new();
     public List<KeyValuePair<string, string>>? Options { get; set; }
 

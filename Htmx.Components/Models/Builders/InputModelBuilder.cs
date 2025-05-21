@@ -17,7 +17,8 @@ public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TPro
         : base(serviceProvider)
     {
         var propName = propertySelector.GetPropertyName();
-        _model.Name = propName;
+        _model.PropName = propName;
+        _model.Id = propName.SanitizeForHtmlId();
         _model.Kind = GetInputKind(typeof(TProp));
         _model.Label = propName.Humanize();
     }
@@ -30,7 +31,7 @@ public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TPro
 
     public InputModelBuilder<T, TProp> WithName(string name)
     {
-        _model.Name = name;
+        _model.PropName = name;
         return this;
     }
 

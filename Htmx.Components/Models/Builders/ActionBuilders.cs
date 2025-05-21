@@ -11,9 +11,13 @@ public abstract class ActionItemsBuilder<TBuilder, TSet> : BuilderBase<TBuilder,
 
     public TBuilder AddModel(Action<ActionModel> configure)
     {
-        var model = new ActionModel();
-        configure(model);
-        _model.Items.Add(model);
+        AddBuildTask(BuildPhase.Actions, () =>
+        {
+            var model = new ActionModel();
+            configure(model);
+            _model.Items.Add(model);
+            return Task.CompletedTask;
+        });
         return (TBuilder)this;
     }
 
@@ -37,10 +41,10 @@ public class ActionSetBuilder : ActionItemsBuilder<ActionSetBuilder, ActionSet>
 
     public ActionSetBuilder AddGroup(Action<ActionGroupBuilder> configure)
     {
-        var actionGroupBuilder = new ActionGroupBuilder(_serviceProvider);
-        configure(actionGroupBuilder);
-        AddBuildTask(async () =>
+        AddBuildTask(BuildPhase.Actions, async () =>
         {
+            var actionGroupBuilder = new ActionGroupBuilder(_serviceProvider);
+            configure(actionGroupBuilder);
             var actionGroup = await actionGroupBuilder.Build();
             _model.Items.Add(actionGroup);
         });

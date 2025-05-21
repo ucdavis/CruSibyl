@@ -38,7 +38,12 @@ public class ModelRegistry : IModelRegistry
     {
         var builder = new ModelHandlerBuilder<T, TKey>(_serviceProvider, typeId, _tableViewPaths, _resourceOperationRegistry);
         config.Invoke(_serviceProvider, builder);
-        _modelHandlers[typeId] = builder.BuildModelHandler();
+        var castTask = async () =>
+        {
+            var modelHandler = await builder.Build();
+            return (ModelHandler)modelHandler;
+        };
+        _modelHandlers[typeId] = castTask();
     }
 
     public async Task<ModelHandler?> GetModelHandler(string typeId)

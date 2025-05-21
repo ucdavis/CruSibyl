@@ -12,12 +12,16 @@ public abstract class BuilderBase<TBuilder, TModel>
 {
     protected internal readonly TModel _model = new();
     protected readonly IServiceProvider _serviceProvider;
-    private readonly List<Task> _buildTasks = new();
-
+    private readonly Dictionary<BuildPhase, List<Func<Task>>> _buildPhaseTasks;
 
     protected BuilderBase(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
+        _buildPhaseTasks = [];
+        foreach (BuildPhase phase in Enum.GetValues(typeof(BuildPhase)))
+        {
+            _buildPhaseTasks[phase] = [];
+        }
     }
 
 
@@ -30,26 +34,39 @@ public abstract class BuilderBase<TBuilder, TModel>
         }
     }
 
-    protected void AddBuildTask(Task task)
+    protected void AddBuildTask(BuildPhase phase, Task task)
     {
-        _buildTasks.Add(task);
+        _buildPhaseTasks[phase].Add(() => task);
     }
 
-    protected void AddBuildTask(Func<Task> taskFunc)
+    protected void AddBuildTask(BuildPhase phase, Func<Task> taskFunc)
     {
-        var task = taskFunc();
-        _buildTasks.Add(task);
+        _buildPhaseTasks[phase].Add(taskFunc);
     }
 
-    protected void AddBuildTask(Action action)
+    protected void AddBuildTask(BuildPhase phase, Action action)
     {
-        var task = Task.Run(action);
-        _buildTasks.Add(task);
+        _buildPhaseTasks[phase].Add(() => Task.Run(action));
     }
 
     internal virtual async Task<TModel> Build()
     {
-        await Task.WhenAll(_buildTasks);
+        // Execute all build tasks in the order of phases
+        foreach (var phase in Enum.GetValues<BuildPhase>())
+        {
+            var tasks = _buildPhaseTasks[(BuildPhase)phase].Select(f => f());
+            await Task.WhenAll(tasks);
+        }
         return _model;
     }
+}
+
+// Helps to ensure that the build tasks are executed in the correct order
+// ie: InputModels should be built before ColumnModels
+public enum BuildPhase
+{
+    Inputs = 0,
+    Columns = 1,
+    Actions = 2,
+    Other = 3
 }

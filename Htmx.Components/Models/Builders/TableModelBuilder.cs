@@ -36,14 +36,13 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     public TableModelBuilder<T, TKey> AddSelectorColumn(string header, Expression<Func<T, object>> selector,
         Action<TableColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-        builder._model.SelectorExpression = selector;
-        builder._model.DataType = selector.GetMemberType();
-        builder._model.DataName = selector.GetPropertyName();
-        builder._model.ColumnType = ColumnType.ValueSelector;
-        configure?.Invoke(builder);
-        AddBuildTask(async () =>
+        AddBuildTask(BuildPhase.Columns, async () =>
         {
+            var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
+            builder._model.SelectorExpression = selector;
+            builder._model.DataName = selector.GetPropertyName();
+            builder._model.ColumnType = ColumnType.ValueSelector;
+            configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _model.Columns.Add(columnModel);
         });
@@ -58,13 +57,13 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     /// <returns></returns>
     public TableModelBuilder<T, TKey> AddDisplayColumn(string header, Action<TableColumnModelBuilder<T, TKey>>? configure = null)
     {
-        var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-        builder._model.Sortable = false;
-        builder._model.Filterable = false;
-        builder._model.ColumnType = ColumnType.Display;
-        configure?.Invoke(builder);
-        AddBuildTask(async () =>
+        AddBuildTask(BuildPhase.Columns, async () =>
         {
+            var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
+            builder._model.Sortable = false;
+            builder._model.Filterable = false;
+            builder._model.ColumnType = ColumnType.Display;
+            configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _model.Columns.Add(columnModel);
         });

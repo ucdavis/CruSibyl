@@ -35,7 +35,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _model.GetQueryable = getQueryable;
         _model.CrudFeatures |= CrudFeatures.Read;
-        AddBuildTask(_resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Read));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Read));
         return this;
     }
 
@@ -43,7 +43,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _model.CreateModel = createModel;
         _model.CrudFeatures |= CrudFeatures.Create;
-        AddBuildTask(_resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Create));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Create));
         return this;
     }
 
@@ -51,7 +51,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _model.UpdateModel = updateModel;
         _model.CrudFeatures |= CrudFeatures.Update;
-        AddBuildTask(_resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Update));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Update));
         return this;
     }
 
@@ -59,7 +59,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _model.DeleteModel = deleteModel;
         _model.CrudFeatures |= CrudFeatures.Delete;
-        AddBuildTask(_resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Delete));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Delete));
         return this;
     }
 
@@ -72,20 +72,15 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     public ModelHandlerBuilder<T, TKey> WithInputModel<TProp>(Expression<Func<T, TProp>> propertySelector,
         Action<InputModelBuilder<T, TProp>> configure)
     {
-        var propName = propertySelector.GetPropertyName();
-        var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propertySelector);
-        AddBuildTask(async () =>
+        AddBuildTask(BuildPhase.Inputs, async () =>
         {
+            var propName = propertySelector.GetPropertyName();
+            var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propertySelector);
             var inputModel = await builder.Build();
-            _model.InputModelBuilders ??= new Dictionary<string, Func<IInputModel>>();
+            inputModel.ModelHandler = _model;
+            _model.InputModelBuilders ??= [];
             _model.InputModelBuilders[propName] = () => inputModel;
         });
         return this;
-    }
-    
-    public async Task<ModelHandler> BuildModelHandler()
-    {
-        var modelHandler = await Build();
-        return modelHandler;
     }
 }
