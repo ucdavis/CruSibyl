@@ -13,8 +13,8 @@ public interface IModelRegistry
 {
     void Register<T, TKey>(string typeId, Action<IServiceProvider, ModelHandlerBuilder<T, TKey>> config)
         where T : class, new();
-    Task<ModelHandler?> GetModelHandler(string typeId);
-    Task<ModelHandler<T, TKey>?> GetModelHandler<T, TKey>(string typeId)
+    Task<ModelHandler> GetModelHandler(string typeId, ModelUI modelUI);
+    Task<ModelHandler<T, TKey>> GetModelHandler<T, TKey>(string typeId, ModelUI modelUI)
         where T : class;
 }
 
@@ -46,25 +46,27 @@ public class ModelRegistry : IModelRegistry
         _modelHandlers[typeId] = castTask();
     }
 
-    public async Task<ModelHandler?> GetModelHandler(string typeId)
+    public async Task<ModelHandler> GetModelHandler(string typeId, ModelUI modelUI)
     {
         var task = _modelHandlers.TryGetValue(typeId, out var handler) ? handler : null;
         if (task == null)
         {
-            return null;
+            throw new InvalidOperationException($"Model handler for typeId '{typeId}' not found.");
         }
-        return await task;
+        var modelHandler = await task;
+        modelHandler.ModelUI = modelUI;
+        return modelHandler;
     }
 
-    public async Task<ModelHandler<T, TKey>?> GetModelHandler<T, TKey>(string typeId)
+    public async Task<ModelHandler<T, TKey>> GetModelHandler<T, TKey>(string typeId, ModelUI modelUI)
         where T : class
     {
-        var handler = await GetModelHandler(typeId);
+        var handler = await GetModelHandler(typeId, modelUI);
         if (handler is ModelHandler<T, TKey> typedHandler)
         {
             return typedHandler;
         }
-        return null;
+        throw new InvalidOperationException($"Model handler for typeId '{typeId}' is not of type '{typeof(ModelHandler<T, TKey>)}'.");
     }
 }
 

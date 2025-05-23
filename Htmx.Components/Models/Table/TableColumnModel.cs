@@ -18,7 +18,7 @@ public interface ITableColumnModel
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
-    IEnumerable<ActionModel> GetActions(ITableRowContext rowContext);
+    Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext);
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
     string GetSerializedValue(ITableRowContext rowContext);
     ITableModel Table { get; set; } // Reference to the parent table
@@ -82,13 +82,13 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// <summary>
     /// A delegate that generates one or more <see cref="ActionModel"/>s that can be mapped to buttons in a view
     /// </summary>
-    public Func<TableRowContext<T, TKey>, IEnumerable<ActionModel>> ActionsFactory { get; set; } = _ => [];
+    public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
 
-    public IEnumerable<ActionModel> GetActions(ITableRowContext rowContext)
+    public async Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext)
     {
         if (rowContext.Item is T typedItem)
         {
-            return ActionsFactory((TableRowContext<T, TKey>)rowContext);
+            return await ActionsFactory((TableRowContext<T, TKey>)rowContext);
         }
         return [];
     }

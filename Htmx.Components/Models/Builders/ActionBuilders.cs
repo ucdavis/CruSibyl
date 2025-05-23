@@ -9,14 +9,14 @@ public abstract class ActionItemsBuilder<TBuilder, TSet> : BuilderBase<TBuilder,
     protected ActionItemsBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
 
-    public TBuilder AddModel(Action<ActionModel> configure)
+    public TBuilder AddModel(Action<ActionModelBuilder> configure)
     {
-        AddBuildTask(BuildPhase.Actions, () =>
+        AddBuildTask(BuildPhase.Actions, async () =>
         {
-            var model = new ActionModel();
-            configure(model);
-            _model.Items.Add(model);
-            return Task.CompletedTask;
+            var actionModelBuilder = new ActionModelBuilder(_serviceProvider);
+            configure(actionModelBuilder);
+            var actionModel = await actionModelBuilder.Build();
+            _model.Items.Add(actionModel);
         });
         return (TBuilder)this;
     }
@@ -74,4 +74,41 @@ public class ActionGroupBuilder : ActionItemsBuilder<ActionGroupBuilder, ActionG
         _model.CssClass = cssClass;
         return this;
     }
+}
+
+public class ActionModelBuilder : BuilderBase<ActionModelBuilder, ActionModel>
+{
+    public ActionModelBuilder(IServiceProvider serviceProvider)
+        : base(serviceProvider) { }
+
+    public ActionModelBuilder WithLabel(string label)
+    {
+        _model.Label = label;
+        return this;
+    }
+
+    public ActionModelBuilder WithIcon(string icon)
+    {
+        _model.Icon = icon;
+        return this;
+    }
+
+    public ActionModelBuilder WithClass(string cssClass)
+    {
+        _model.CssClass = cssClass;
+        return this;
+    }
+
+    public ActionModelBuilder WithAttribute(string name, string value)
+    {
+        _model.Attributes[name] = value;
+        return this;
+    }
+
+    public ActionModelBuilder WithHxGet(string url) => WithAttribute("hx-get", url);
+    public ActionModelBuilder WithHxPost(string url) => WithAttribute("hx-post", url);
+    public ActionModelBuilder WithHxTarget(string target) => WithAttribute("hx-target", target);
+    public ActionModelBuilder WithHxSwap(string swap) => WithAttribute("hx-swap", swap);
+    public ActionModelBuilder WithHxPushUrl(string pushUrl = "true") => WithAttribute("hx-push-url", pushUrl);
+    public ActionModelBuilder WithHxInclude(string selector) => WithAttribute("hx-include", selector);
 }

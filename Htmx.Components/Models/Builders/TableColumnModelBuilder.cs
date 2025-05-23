@@ -63,9 +63,15 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         return this;
     }
 
-    public TableColumnModelBuilder<T, TKey> WithActions(Func<TableRowContext<T, TKey>, IEnumerable<ActionModel>> actionsFactory)
+    public TableColumnModelBuilder<T, TKey> WithActions(Action<TableRowContext<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        _model.ActionsFactory = actionsFactory;
+        _model.ActionsFactory = async (rowContext) =>
+        {
+            var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+            actionsFactory.Invoke(rowContext, actionSetBuilder);
+            var actionSet = await actionSetBuilder.Build();
+            return actionSet.Items.Cast<ActionModel>();
+        };
         if (string.IsNullOrWhiteSpace(_model.CellPartialView))
         {
             _model.CellPartialView = _paths.CellActionList;

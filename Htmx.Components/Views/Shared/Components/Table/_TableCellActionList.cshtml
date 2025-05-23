@@ -1,9 +1,13 @@
 @using Htmx.Components.Models.Table
 @using System.Text.Encodings.Web
-
+@using System.Threading.Tasks
 @model TableCellPartialModel
 
-@foreach (var action in Model.Column.GetActions(Model.Row))
+@{
+    var actions = await Model.Column.GetActions(Model.Row);
+}
+
+@foreach (var action in actions)
 {
     <button
         class="btn btn-sm @action.CssClass"

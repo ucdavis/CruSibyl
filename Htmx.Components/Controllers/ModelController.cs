@@ -13,15 +13,15 @@ using Operations = Htmx.Components.Constants.Authorization.Operations;
 
 namespace Htmx.Components.Controllers;
 
-[Route("Table")]
-public class TableController : Controller
+[Route("Model")]
+public class ModelController : Controller
 {
     private readonly ITableProvider _tableProvider;
     private readonly IModelRegistry _modelRegistry;
     private readonly IAuthorizationService _authorizationService;
     private readonly IPermissionRequirementFactory _permissionRequirementFactory;
 
-    public TableController(ITableProvider tableProvider, IModelRegistry modelRegistry,
+    public ModelController(ITableProvider tableProvider, IModelRegistry modelRegistry,
         IAuthorizationService authorizationService, IPermissionRequirementFactory permissionRequirementFactory)
     {
         _tableProvider = tableProvider;
@@ -31,23 +31,23 @@ public class TableController : Controller
     }
 
 
-    [HttpPost("{typeId}/SaveRow")]
-    public async Task<IActionResult> SaveRow(string typeId)
+    [HttpPost("{typeId}/{modelUI}/Save")]
+    public async Task<IActionResult> Save(string typeId, ModelUI modelUI)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_SaveRow),
+            nameof(_Save),
             [modelHandler.ModelType, modelHandler.KeyType],
             modelHandler);
 
         return result;
     }
 
-    private async Task<IActionResult> _SaveRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _Save<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         if (modelHandler.CreateModel == null)
@@ -96,23 +96,23 @@ public class TableController : Controller
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    [HttpPost("{typeId}/CancelEditRow")]
-    public async Task<IActionResult> CancelEditRow(string typeId)
+    [HttpPost("{typeId}/{modelUI}/CancelEdit")]
+    public async Task<IActionResult> CancelEdit(string typeId, ModelUI modelUI)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_CancelEditRow),
+            nameof(_CancelEdit),
             [modelHandler.ModelType, modelHandler.KeyType],
             modelHandler);
 
         return result!;
     }
 
-    private async Task<IActionResult> _CancelEditRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _CancelEdit<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         var tableModel = await modelHandler.BuildTableModel();
@@ -152,22 +152,22 @@ public class TableController : Controller
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    [HttpPost("{typeId}/DeleteRow")]
-    public async Task<IActionResult> DeleteRow(string typeId, string key)
+    [HttpPost("{typeId}/{modelUI}/Delete")]
+    public async Task<IActionResult> Delete(string typeId, ModelUI modelUI, string key)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_DeleteRow),
+            nameof(_Delete),
             [modelHandler.ModelType, modelHandler.KeyType],
             key, modelHandler);
         return result!;
     }
 
-    private async Task<IActionResult> _DeleteRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _Delete<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         if (modelHandler.DeleteModel == null)
@@ -192,22 +192,22 @@ public class TableController : Controller
         return _tableProvider.RefreshEditViews(tableModel);
     }
 
-    [HttpPost("{typeId}/EditRow")]
-    public async Task<IActionResult> EditRow(string typeId, string key)
+    [HttpPost("{typeId}/{modelUI}/Edit")]
+    public async Task<IActionResult> Edit(string typeId, ModelUI modelUI, string key)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_EditRow),
+            nameof(_Edit),
             [modelHandler.ModelType, modelHandler.KeyType],
             key, modelHandler);
         return result!;
     }
 
-    private async Task<IActionResult> _EditRow<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _Edit<T, TKey>(string stringKey, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         if (!await IsAuthorized(modelHandler.TypeId, Operations.Read))
@@ -241,7 +241,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetPage")]
     public async Task<IActionResult> SetPage(string typeId, int page)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -272,7 +272,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetPageSize")]
     public async Task<IActionResult> SetPageSize(string typeId, int pageSize)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -303,7 +303,7 @@ public class TableController : Controller
     [HttpPost("{typeId}/SetSort")]
     public async Task<IActionResult> SetSort(string typeId, string column, string direction)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -332,10 +332,10 @@ public class TableController : Controller
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    [HttpPost("{typeId}/SetCell")]
-    public async Task<IActionResult> SetCell(string typeId, string propertyName, string value)
+    [HttpPost("{typeId}/{modelUI}/SetCell")]
+    public async Task<IActionResult> SetCell(string typeId, ModelUI modelUI, string propertyName, string value)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -384,10 +384,10 @@ public class TableController : Controller
         return new MultiSwapViewResult();
     }
 
-    [HttpPost("{typeId}/SetFilter")]
-    public async Task<IActionResult> SetFilter(string typeId, string column, string filter, int input)
+    [HttpPost("{typeId}/{modelUI}/SetFilter")]
+    public async Task<IActionResult> SetFilter(string typeId, ModelUI modelUI, string column, string filter, int input)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
@@ -439,22 +439,22 @@ public class TableController : Controller
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    [HttpPost("{typeId}/NewTableRow")]
-    public async Task<IActionResult> NewTableRow(string typeId)
+    [HttpPost("{typeId}/{modelUI}/Create")]
+    public async Task<IActionResult> Create(string typeId, ModelUI modelUI)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_NewTableRow),
+            nameof(_Create),
             [modelHandler.ModelType, modelHandler.KeyType],
             modelHandler);
         return result!;
     }
 
-    private async Task<IActionResult> _NewTableRow<T, TKey>(ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _Create<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class, new()
     {
         if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
@@ -478,6 +478,29 @@ public class TableController : Controller
 
         return _tableProvider.RefreshEditViews(tableModel);
     }
+
+    [HttpPost("{typeId}/{modelUI}/ValueChanged")]
+    public async Task<IActionResult> ValueChanged(string typeId, ModelUI modelUI, string propertyName, string value)
+    {
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
+        if (modelHandler == null)
+            return BadRequest($"Model handler for type '{typeId}' not found.");
+
+        var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
+            this,
+            nameof(_ValueChanged),
+            [modelHandler.ModelType, modelHandler.KeyType],
+            propertyName, value, modelHandler);
+        return result!;
+    }
+
+    private Task<IActionResult> _ValueChanged<T, TKey>(string propertyName, string value,
+        ModelHandler<T, TKey> modelHandler)
+        where T : class
+    {
+        throw new NotImplementedException("This method is not implemented yet.");
+    }
+
 
     private async Task<bool> IsAuthorized(string typeId, string operation)
     {

@@ -21,7 +21,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     {
         _model.KeySelector = keySelector;
         _model.ModelHandler = modelHandler;
-        _model.TypeId = typeof(T).Name;
+        _model.TypeId = modelHandler.TypeId;
         _model.TableViewPaths = paths;
     }
 
@@ -71,9 +71,15 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     }
 
 
-    public TableModelBuilder<T, TKey> WithActions(Func<TableModel<T, TKey>, IEnumerable<ActionModel>> actionsFactory)
+    public TableModelBuilder<T, TKey> WithActions(Action<TableModel<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        _model.ActionsFactory = actionsFactory;
+        AddBuildTask(BuildPhase.Actions, async () =>
+        {
+            var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+            actionsFactory.Invoke(_model, actionSetBuilder);
+            var actionSet = await actionSetBuilder.Build();
+            _model.ActionsFactory = () => actionSet.Items.Cast<ActionModel>();
+        });
         return this;
     }
 

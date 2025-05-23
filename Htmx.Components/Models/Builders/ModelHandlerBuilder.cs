@@ -33,32 +33,76 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
 
     public ModelHandlerBuilder<T, TKey> WithQueryable(Func<IQueryable<T>> getQueryable)
     {
-        _model.GetQueryable = getQueryable;
         _model.CrudFeatures |= CrudFeatures.Read;
+        _model.GetQueryable = getQueryable;
         AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Read));
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithCreateModel(Func<T, Task<Result>> createModel)
     {
-        _model.CreateModel = createModel;
         _model.CrudFeatures |= CrudFeatures.Create;
+        _model.CreateModel = createModel;
+        _model.GetCreateActionModel = () => new ActionModel
+        {
+            Label = "Create",
+            Icon = "fas fa-plus mr-1",
+            Attributes = new Dictionary<string, string>
+            {
+                { "hx-post", $"/Model/{_model.TypeId}/{_model.ModelUI}/Create" },
+            }
+        };
+        SetCancelActionModel();
         AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Create));
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithUpdateModel(Func<T, Task<Result>> updateModel)
     {
-        _model.UpdateModel = updateModel;
         _model.CrudFeatures |= CrudFeatures.Update;
+        _model.UpdateModel = updateModel;
+        _model.GetUpdateActionModel = () => new ActionModel
+        {
+            Label = "Update",
+            Icon = "fas fa-edit mr-1",
+            Attributes = new Dictionary<string, string>
+            {
+                { "hx-post", $"/Model/{_model.TypeId}/{_model.ModelUI}/Update" },
+            }
+        };
+        SetCancelActionModel();
         AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Update));
         return this;
     }
 
+    private void SetCancelActionModel()
+    {
+        if (_model.GetCancelActionModel != null)
+            return;
+        _model.GetCancelActionModel = () => new ActionModel
+        {
+            Label = "Cancel",
+            Icon = "fas fa-times mr-1",
+            Attributes = new Dictionary<string, string>
+            {
+                { "hx-get", $"/Model/{_model.TypeId}/{_model.ModelUI}/Cancel" },
+            }
+        };
+    }
+
     public ModelHandlerBuilder<T, TKey> WithDeleteModel(Func<TKey, Task<Result>> deleteModel)
     {
-        _model.DeleteModel = deleteModel;
         _model.CrudFeatures |= CrudFeatures.Delete;
+        _model.DeleteModel = deleteModel;
+        _model.GetDeleteActionModel = () => new ActionModel
+        {
+            Label = "Delete",
+            Icon = "fas fa-trash mr-1",
+            Attributes = new Dictionary<string, string>
+            {
+                { "hx-delete", $"/Model/{_model.TypeId}/{_model.ModelUI}/Delete" },
+            }
+        };
         AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Delete));
         return this;
     }

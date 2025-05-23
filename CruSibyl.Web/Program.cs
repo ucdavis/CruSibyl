@@ -356,12 +356,12 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                     .WithPlaceholder("Enter repo description")
                     .WithCssClass("form-control"))
                 .WithTableModel(table => table
-                    .WithTypeId(typeId)
-                    .WithActions(table => [
-                        new ActionModel("Add New")
+                    .WithActions((table, actions) =>
+                        actions.AddModel(action => action
+                            .WithLabel("Add New")
                             .WithIcon("fas fa-plus mr-1")
-                            .WithHxPost($"/Table/{typeId}/NewTableRow")
-                    ])
+                            .WithHxPost($"/Model/{typeId}/Table/Create")
+                    ))
                     .AddSelectorColumn("Name", x => x.Name, config => config
                         .WithEditable()
                         .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
@@ -369,28 +369,30 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                         .WithEditable())
                     .AddDisplayColumn("Actions", col =>
                     {
-                        col.WithActions(row =>
-                        row.IsEditing ?
-                        [
-                            new ActionModel("Save")
-                                .WithIcon("fas fa-save") // Font Awesome 5 icon for save
-                                .WithHxPost($"/Table/{typeId}/SaveRow"),
-
-                            new ActionModel("Cancel")
-                                .WithIcon("fas fa-times") // Font Awesome 5 icon for cancel
-                                .WithHxPost($"/Table/{typeId}/CancelEditRow")
-                        ]
-                        :
-                        [
-                            new ActionModel("Edit")
-                                .WithIcon("fas fa-edit") // Font Awesome 5 icon for edit
-                                .WithHxPost($"/Table/{typeId}/EditRow?key={row.Key}"),
-
-                            new ActionModel("Delete")
-                                .WithIcon("fas fa-trash") // Font Awesome 5 icon for delete
-                                .WithClass("text-red-600")
-                                .WithHxPost($"/Table/{typeId}/DeleteRow?key={row.Key}")
-                        ]);
+                        col.WithActions((row, actions) =>
+                        {
+                            if (row.IsEditing)
+                                actions
+                                    .AddModel(action => action
+                                        .WithLabel("Save")
+                                        .WithIcon("fas fa-save")
+                                        .WithHxPost($"/Model/{typeId}/Table/Save"))
+                                    .AddModel(action => action
+                                        .WithLabel("Cancel")
+                                        .WithIcon("fas fa-times")
+                                        .WithHxPost($"/Model/{typeId}/Table/CancelEdit"));
+                            else
+                                actions
+                                    .AddModel(action => action
+                                        .WithLabel("Edit")
+                                        .WithIcon("fas fa-edit")
+                                        .WithHxPost($"/Model/{typeId}/Table/Edit?key={row.Key}"))
+                                    .AddModel(action => action
+                                        .WithLabel("Delete")
+                                        .WithIcon("fas fa-trash")
+                                        .WithClass("text-red-600")
+                                        .WithHxPost($"/Model/{typeId}/Table/Delete?key={row.Key}"));
+                        });
                     }));
         });
     });

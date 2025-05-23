@@ -12,6 +12,13 @@ public abstract class ModelHandler
     public Type ModelType { get; protected set; } = null!;
     public Type KeyType { get; protected set; } = null!;
     public CrudFeatures CrudFeatures { get; internal set; }
+    public ModelUI ModelUI { get; set; }
+}
+
+public enum ModelUI
+{
+    Table,
+    Form,
 }
 
 public class ModelHandler<T, TKey> : ModelHandler
@@ -40,6 +47,10 @@ public class ModelHandler<T, TKey> : ModelHandler
     public Func<T, Task<Result>>? CreateModel { get; internal set; }
     public Func<T, Task<Result>>? UpdateModel { get; internal set; }
     public Func<TKey, Task<Result>>? DeleteModel { get; internal set; }
+    public Func<ActionModel>? GetCreateActionModel { get; internal set; }
+    public Func<ActionModel>? GetUpdateActionModel { get; internal set; }
+    public Func<ActionModel>? GetCancelActionModel { get; internal set; }
+    public Func<ActionModel>? GetDeleteActionModel { get; internal set; }
     public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
     internal Dictionary<string, Func<IInputModel>>? InputModelBuilders { get; set; }
     internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
@@ -52,7 +63,7 @@ public class ModelHandler<T, TKey> : ModelHandler
         ConfigureTableModel?.Invoke(tableModelBuilder);
         return tableModelBuilder.Build();
     }
-    
+
     public IInputModel BuildInputModel(string name)
     {
         if (InputModelBuilders == null || !InputModelBuilders.TryGetValue(name, out var builder))

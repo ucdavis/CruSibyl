@@ -44,7 +44,7 @@ public class AdminController : TabController
         var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
-        var modelHandler = (await _modelRegistry.GetModelHandler<Repo, int>(nameof(Repo)))!;
+        var modelHandler = await _modelRegistry.GetModelHandler<Repo, int>(nameof(Repo), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 
@@ -58,5 +58,4 @@ public class AdminController : TabController
 
         return RenderInitialMainContent("_Content", tableModel);
     }
-
 }
