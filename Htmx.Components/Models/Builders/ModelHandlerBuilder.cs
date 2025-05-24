@@ -49,7 +49,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             Icon = "fas fa-plus mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-post", $"/Model/{_model.TypeId}/{_model.ModelUI}/Create" },
+                { "hx-post", $"/Form/{_model.TypeId}/{_model.ModelUI}/Create" },
             }
         };
         SetCancelActionModel();
@@ -67,7 +67,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             Icon = "fas fa-edit mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-post", $"/Model/{_model.TypeId}/{_model.ModelUI}/Update" },
+                { "hx-post", $"/Form/{_model.TypeId}/{_model.ModelUI}/Update" },
             }
         };
         SetCancelActionModel();
@@ -85,7 +85,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             Icon = "fas fa-times mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-get", $"/Model/{_model.TypeId}/{_model.ModelUI}/Cancel" },
+                { "hx-get", $"/Form/{_model.TypeId}/{_model.ModelUI}/Cancel" },
             }
         };
     }
@@ -100,7 +100,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             Icon = "fas fa-trash mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-delete", $"/Model/{_model.TypeId}/{_model.ModelUI}/Delete" },
+                { "hx-delete", $"/Form/{_model.TypeId}/{_model.ModelUI}/Delete" },
             }
         };
         AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Delete));

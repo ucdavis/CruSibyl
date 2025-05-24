@@ -22,6 +22,7 @@ public interface ITableColumnModel
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
     string GetSerializedValue(ITableRowContext rowContext);
     ITableModel Table { get; set; } // Reference to the parent table
+    Func<ITableRowContext, IInputModel> GetInputModel { get; }
 }
 
 public enum ColumnType
@@ -83,6 +84,11 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// A delegate that generates one or more <see cref="ActionModel"/>s that can be mapped to buttons in a view
     /// </summary>
     public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
+
+    public Func<ITableRowContext, IInputModel> GetInputModel { get; internal set; } = _ =>
+    {
+        throw new InvalidOperationException("GetInputModel is not set. Ensure that the column is configured with WithEditable(true).");
+    };
 
     public async Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext)
     {

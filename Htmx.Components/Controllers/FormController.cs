@@ -13,15 +13,15 @@ using Operations = Htmx.Components.Constants.Authorization.Operations;
 
 namespace Htmx.Components.Controllers;
 
-[Route("Model")]
-public class ModelController : Controller
+[Route("Form")]
+public class FormController : Controller
 {
     private readonly ITableProvider _tableProvider;
     private readonly IModelRegistry _modelRegistry;
     private readonly IAuthorizationService _authorizationService;
     private readonly IPermissionRequirementFactory _permissionRequirementFactory;
 
-    public ModelController(ITableProvider tableProvider, IModelRegistry modelRegistry,
+    public FormController(ITableProvider tableProvider, IModelRegistry modelRegistry,
         IAuthorizationService authorizationService, IPermissionRequirementFactory permissionRequirementFactory)
     {
         _tableProvider = tableProvider;
@@ -332,8 +332,8 @@ public class ModelController : Controller
         return _tableProvider.RefreshAllViews(tableModel);
     }
 
-    [HttpPost("{typeId}/{modelUI}/SetCell")]
-    public async Task<IActionResult> SetCell(string typeId, ModelUI modelUI, string propertyName, string value)
+    [HttpPost("{typeId}/{modelUI}/SetValue")]
+    public async Task<IActionResult> SetValue(string typeId, ModelUI modelUI, string propertyName, string value)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
         if (modelHandler == null)
@@ -341,13 +341,13 @@ public class ModelController : Controller
 
         var result = await GenericMethodInvoker.InvokeAsync<IActionResult>(
             this,
-            nameof(_SetCell),
+            nameof(_SetValue),
             [modelHandler.ModelType, modelHandler.KeyType],
             propertyName, value, modelHandler);
         return result!;
     }
 
-    private async Task<IActionResult> _SetCell<T, TKey>(string propertyName, string value, ModelHandler<T, TKey> modelHandler)
+    private async Task<IActionResult> _SetValue<T, TKey>(string propertyName, string value, ModelHandler<T, TKey> modelHandler)
         where T : class
     {
         var pageState = this.GetPageState();
@@ -384,10 +384,10 @@ public class ModelController : Controller
         return new MultiSwapViewResult();
     }
 
-    [HttpPost("{typeId}/{modelUI}/SetFilter")]
-    public async Task<IActionResult> SetFilter(string typeId, ModelUI modelUI, string column, string filter, int input)
+    [HttpPost("{typeId}/SetFilter")]
+    public async Task<IActionResult> SetFilter(string typeId, string column, string filter, int input)
     {
-        var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
+        var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
         if (modelHandler == null)
             return BadRequest($"Model handler for type '{typeId}' not found.");
 

@@ -13,12 +13,13 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
     where T : class
 {
     private readonly TableViewPaths _paths;
+    private readonly ModelHandler<T, TKey> _modelHandler;
 
     internal TableColumnModelBuilder(string header, TableViewPaths paths, ModelHandler<T, TKey> modelHandler, IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
         _paths = paths;
-
+        _modelHandler = modelHandler;
         _model.Header = header;
         // Default to Sortable and Filterable being true
         _model.Sortable = true;
@@ -27,7 +28,21 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
 
     public TableColumnModelBuilder<T, TKey> WithEditable(bool isEditable = true)
     {
+        if (!(_modelHandler.InputModelBuilders?.TryGetValue(_model.DataName, out var inputModelBuilder) == true))
+        {
+            throw new InvalidOperationException($"No input model builder found for column '{_model.DataName}'. Ensure that the input model is registered in the ModelHandler.");
+        }
         _model.IsEditable = isEditable;
+        if (isEditable)
+        {
+            _model.GetInputModel = (ITableRowContext c) =>
+            {
+                var rowContext = (TableRowContext<T, TKey>)c;
+                var inputModel = inputModelBuilder.Invoke();
+                inputModel.ObjectValue = _model.SelectorFunc(rowContext.Item);
+                return inputModel;
+            };
+        }
         return this;
     }
 

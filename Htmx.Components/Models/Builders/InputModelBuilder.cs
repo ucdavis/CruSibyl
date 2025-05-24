@@ -53,9 +53,9 @@ public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TPro
         return this;
     }
 
-    public InputModelBuilder<T, TProp> WithValue(string value)
+    public InputModelBuilder<T, TProp> WithValue(TProp value)
     {
-        _model.Value = value;
+        _model.ObjectValue = value;
         return this;
     }
 

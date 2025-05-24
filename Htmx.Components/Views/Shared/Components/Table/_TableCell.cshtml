@@ -10,6 +10,8 @@
 
 @if (isEditing)
 {
+    var inputModel = Model.Column.GetInputModel(Model.Row);
+    @await Html.PartialAsync("_Input", inputModel)
 }
 else
 {

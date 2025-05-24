@@ -18,7 +18,6 @@ public abstract class ModelHandler
 public enum ModelUI
 {
     Table,
-    Form,
 }
 
 public class ModelHandler<T, TKey> : ModelHandler

@@ -10,12 +10,9 @@
             var nextSortDirection = isCurrentSort && Model.State.SortDirection == "asc" ? "desc" : "asc";
             var indicator = isCurrentSort ? (Model.State.SortDirection == "asc" ? "▲" : "▼") : "";
             <th>
-                <a href="#"
-                    hx-post="@Url.Action("SetSort", "Model", new { typeId = Model.TypeId })"
-                    hx-vals='{"column": "@column.Header", "direction": "@nextSortDirection"}'
-                    hx-swap="none"
-                    >
-                        @column.Header @indicator
+                <a href="#" hx-post="@Url.Action("SetSort", "Form", new { typeId = Model.TypeId })"
+                    hx-vals='{"column": "@column.Header", "direction": "@nextSortDirection"}' hx-swap="none">
+                    @column.Header @indicator
                 </a>
             </th>
         }
@@ -23,7 +20,7 @@
         {
             <th>
                 @column.Header
-            </th>            
+            </th>
         }
     }
 </tr>

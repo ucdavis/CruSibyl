@@ -360,7 +360,7 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                         actions.AddModel(action => action
                             .WithLabel("Add New")
                             .WithIcon("fas fa-plus mr-1")
-                            .WithHxPost($"/Model/{typeId}/Table/Create")
+                            .WithHxPost($"/Form/{typeId}/Table/Create")
                     ))
                     .AddSelectorColumn("Name", x => x.Name, config => config
                         .WithEditable()
@@ -376,22 +376,22 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                                     .AddModel(action => action
                                         .WithLabel("Save")
                                         .WithIcon("fas fa-save")
-                                        .WithHxPost($"/Model/{typeId}/Table/Save"))
+                                        .WithHxPost($"/Form/{typeId}/Table/Save"))
                                     .AddModel(action => action
                                         .WithLabel("Cancel")
                                         .WithIcon("fas fa-times")
-                                        .WithHxPost($"/Model/{typeId}/Table/CancelEdit"));
+                                        .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
                             else
                                 actions
                                     .AddModel(action => action
                                         .WithLabel("Edit")
                                         .WithIcon("fas fa-edit")
-                                        .WithHxPost($"/Model/{typeId}/Table/Edit?key={row.Key}"))
+                                        .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"))
                                     .AddModel(action => action
                                         .WithLabel("Delete")
                                         .WithIcon("fas fa-trash")
                                         .WithClass("text-red-600")
-                                        .WithHxPost($"/Model/{typeId}/Table/Delete?key={row.Key}"));
+                                        .WithHxPost($"/Form/{typeId}/Table/Delete?key={row.Key}"));
                         });
                     }));
         });

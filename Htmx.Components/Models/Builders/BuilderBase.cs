@@ -10,7 +10,9 @@ public abstract class BuilderBase<TBuilder, TModel>
     where TBuilder : BuilderBase<TBuilder, TModel>
     where TModel : class, new()
 {
-    protected internal readonly TModel _model = new();
+    protected readonly TModel _model = new();
+    private bool _isBuilt = false;
+
     protected readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<BuildPhase, List<Func<Task>>> _buildPhaseTasks;
 
@@ -24,6 +26,22 @@ public abstract class BuilderBase<TBuilder, TModel>
         }
     }
 
+    /// This is used to access the model before it is built. Anything accessing the model via this property
+    /// should be careful about relying on the state of any given model property.
+    internal TModel IncompleteModel => _model;
+
+    /// This is used to access the model after it is built. It will throw an exception if the model has not been built yet.
+    internal TModel Model
+    {
+        get
+        {
+            if (!_isBuilt)
+            {
+                throw new InvalidOperationException("Builder has not been built yet. Call Build() before accessing the model.");
+            }
+            return _model;
+        }
+    }
 
     public ActionContext ActionContext
     {
@@ -57,6 +75,8 @@ public abstract class BuilderBase<TBuilder, TModel>
             var tasks = _buildPhaseTasks[(BuildPhase)phase].Select(f => f());
             await Task.WhenAll(tasks);
         }
+
+        _isBuilt = true;
         return _model;
     }
 }

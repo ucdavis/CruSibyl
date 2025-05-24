@@ -39,9 +39,9 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         AddBuildTask(BuildPhase.Columns, async () =>
         {
             var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-            builder._model.SelectorExpression = selector;
-            builder._model.DataName = selector.GetPropertyName();
-            builder._model.ColumnType = ColumnType.ValueSelector;
+            builder.IncompleteModel.SelectorExpression = selector;
+            builder.IncompleteModel.DataName = selector.GetPropertyName();
+            builder.IncompleteModel.ColumnType = ColumnType.ValueSelector;
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _model.Columns.Add(columnModel);
@@ -60,9 +60,9 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         AddBuildTask(BuildPhase.Columns, async () =>
         {
             var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-            builder._model.Sortable = false;
-            builder._model.Filterable = false;
-            builder._model.ColumnType = ColumnType.Display;
+            builder.IncompleteModel.Sortable = false;
+            builder.IncompleteModel.Filterable = false;
+            builder.IncompleteModel.ColumnType = ColumnType.Display;
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _model.Columns.Add(columnModel);

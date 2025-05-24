@@ -1,3 +1,5 @@
+using Htmx.Components.Extensions;
+
 namespace Htmx.Components.Models;
 
 /// <summary>
@@ -12,7 +14,8 @@ public interface IInputModel
     string? Placeholder { get; }
     string? CssClass { get; }
     InputKind Kind { get; }
-    object? Value { get; }
+    string Value { get; }
+    object? ObjectValue { get; set; }
     Dictionary<string, string> Attributes { get; }
     List<KeyValuePair<string, string>>? Options { get; }
 }
@@ -27,7 +30,8 @@ public class InputModel<T, TProp> : IInputModel
     public string? Placeholder { get; set; }
     public string? CssClass { get; set; }
     public InputKind Kind { get; set; } = InputKind.Text;
-    public object? Value { get; set; } = null;
+    public string Value => ObjectValue?.ConvertToInputString() ?? string.Empty;
+    public object? ObjectValue { get; set; } = null;
     public Dictionary<string, string> Attributes { get; } = new();
     public List<KeyValuePair<string, string>>? Options { get; set; }
 
