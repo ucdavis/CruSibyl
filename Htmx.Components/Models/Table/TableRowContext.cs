@@ -14,8 +14,10 @@ public interface ITableRowContext : IOobTargetable
 }
 
 public class TableRowContext<T, TKey> : ITableRowContext
+    where T : class
 {
     public required T Item { get; set; }
+    public required ModelHandler<T, TKey> ModelHandler { get; set; }
     public string RowId => "row_" + StringKey.SanitizeForHtmlId();
     public int PageIndex { get; set; } = 0; // Row's index within current page
     private TKey _key = default!;

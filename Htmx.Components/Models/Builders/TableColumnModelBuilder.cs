@@ -12,34 +12,27 @@ namespace Htmx.Components.Models.Builders;
 public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuilder<T, TKey>, TableColumnModel<T, TKey>>
     where T : class
 {
-    private readonly TableViewPaths _paths;
-    private readonly ModelHandler<T, TKey> _modelHandler;
+    private readonly TableColumnModelConfig<T, TKey> _config;
 
-    internal TableColumnModelBuilder(string header, TableViewPaths paths, ModelHandler<T, TKey> modelHandler, IServiceProvider serviceProvider)
+    internal TableColumnModelBuilder(TableColumnModelConfig<T, TKey> config, IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
-        _paths = paths;
-        _modelHandler = modelHandler;
-        _model.Header = header;
-        // Default to Sortable and Filterable being true
-        _model.Sortable = true;
-        _model.Filterable = false;
+        _config = config;
     }
 
     public TableColumnModelBuilder<T, TKey> WithEditable(bool isEditable = true)
     {
-        if (!(_modelHandler.InputModelBuilders?.TryGetValue(_model.DataName, out var inputModelBuilder) == true))
+        if (!(_config.ModelHandler?.InputModelBuilders?.TryGetValue(_config.DataName, out var inputModelBuilder) == true))
         {
-            throw new InvalidOperationException($"No input model builder found for column '{_model.DataName}'. Ensure that the input model is registered in the ModelHandler.");
+            throw new InvalidOperationException($"No input model builder found for column '{_config.DataName}'. Ensure that the input model is registered in the ModelHandler.");
         }
-        _model.IsEditable = isEditable;
+        _config.IsEditable = isEditable;
         if (isEditable)
         {
-            _model.GetInputModel = (ITableRowContext c) =>
+            _config.GetInputModel = async (rowContext) =>
             {
-                var rowContext = (TableRowContext<T, TKey>)c;
-                var inputModel = inputModelBuilder.Invoke();
-                inputModel.ObjectValue = _model.SelectorFunc(rowContext.Item);
+                var inputModel = await inputModelBuilder.Invoke(rowContext.ModelHandler);
+                inputModel.ObjectValue = _config.SelectorFunc!(rowContext.Item);
                 return inputModel;
             };
         }
@@ -48,50 +41,61 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
 
     public TableColumnModelBuilder<T, TKey> WithCellPartial(string cellPartial)
     {
-        _model.CellPartialView = cellPartial;
+        _config.CellPartialView = cellPartial;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithFilterPartial(string filterPartial)
     {
-        _model.FilterPartialView = filterPartial;
-        _model.IsEditable = true;
+        _config.FilterPartialView = filterPartial;
+        _config.IsEditable = true;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithFilter(Func<IQueryable<T>, string, IQueryable<T>> filter)
     {
-        _model.Filter = filter;
-        _model.Filterable = true;
+        _config.Filter = filter;
+        _config.Filterable = true;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
     {
         //TODO: not tested and probably won't work. need to figure out how to support different column types
-        _model.RangeFilter = rangeFilter;
-        _model.Filterable = true;
-        if (string.IsNullOrWhiteSpace(_model.FilterPartialView))
+        _config.RangeFilter = rangeFilter;
+        _config.Filterable = true;
+        if (string.IsNullOrWhiteSpace(_config.FilterPartialView))
         {
-            _model.FilterPartialView = _paths.FilterDateRange;
+            _config.FilterPartialView = _config.Paths.FilterDateRange;
         }
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithActions(Action<TableRowContext<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        _model.ActionsFactory = async (rowContext) =>
+        _config.ActionsFactory = async (rowContext) =>
         {
             var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
             actionsFactory.Invoke(rowContext, actionSetBuilder);
             var actionSet = await actionSetBuilder.Build();
             return actionSet.Items.Cast<ActionModel>();
         };
-        if (string.IsNullOrWhiteSpace(_model.CellPartialView))
+        if (string.IsNullOrWhiteSpace(_config.CellPartialView))
         {
-            _model.CellPartialView = _paths.CellActionList;
+            _config.CellPartialView = _config.Paths.CellActionList;
         }
         return this;
+    }
+
+    protected override Task<TableColumnModel<T, TKey>> BuildImpl()
+    {
+        if (_config.SelectorFunc == null && _config.SelectorExpression != null)
+        {
+            _config.SelectorFunc = _config.SelectorExpression.CompileFast();
+        }
+
+        var model = new TableColumnModel<T, TKey>(_config);
+        return Task.FromResult(model);
     }
 }
 

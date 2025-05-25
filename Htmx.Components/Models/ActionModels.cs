@@ -36,7 +36,14 @@ public class ActionItem: IActionItem
 /// </summary>
 public class ActionSet : IActionSet
 {
-    public List<IActionItem> Items { get; set; } = new();
+    public List<IActionItem> Items { get; set; }
+
+    public ActionSet(ActionSetConfig config)
+    {
+        Items = config.Items;
+    }
+
+    public ActionSet() : this(new ActionSetConfig()) { }
 }
 
 /// <summary>
@@ -44,7 +51,17 @@ public class ActionSet : IActionSet
 /// </summary>
 public class ActionGroup : ActionItem, IActionSet
 {
-    public List<IActionItem> Items { get; set; } = new();
+    public List<IActionItem> Items { get; set; }
+
+    public ActionGroup(ActionGroupConfig config)
+    {
+        Label = config.Label;
+        Icon = config.Icon;
+        CssClass = config.CssClass;
+        Items = config.Items;
+    }
+
+    public ActionGroup() : this(new ActionGroupConfig()) { }
 }
 
 /// <summary>
@@ -54,11 +71,31 @@ public class ActionModel : ActionItem
 {
     public Dictionary<string, string> Attributes { get; init; } = new();
 
-    public ActionModel() { }
-    
-    public ActionModel(string label)
+    public ActionModel(ActionModelConfig config)
     {
-        Label = label;
+        Label = config.Label;
+        Icon = config.Icon;
+        CssClass = config.CssClass;
+        Attributes = new Dictionary<string, string>(config.Attributes);
     }
-    
+}
+
+public class ActionModelConfig
+{
+    public string Label { get; set; } = "";
+    public string? Icon { get; set; }
+    public string? CssClass { get; set; }
+    public Dictionary<string, string> Attributes { get; set; } = new();
+}
+
+public class ActionSetConfig
+{
+    public List<IActionItem> Items { get; set; } = new();
+}
+
+public class ActionGroupConfig : ActionSetConfig
+{
+    public string Label { get; set; } = "";
+    public string? Icon { get; set; }
+    public string? CssClass { get; set; }
 }

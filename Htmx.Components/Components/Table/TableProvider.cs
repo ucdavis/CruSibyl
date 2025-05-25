@@ -90,6 +90,7 @@ public class TableProvider : ITableProvider
             var rowContext = new TableRowContext<T, TKey>
             {
                 Item = item,
+                ModelHandler = tableModel.ModelHandler,
                 PageIndex = tableState.Page - 1,
                 Key = key
             };

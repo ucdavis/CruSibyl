@@ -8,123 +8,131 @@ namespace Htmx.Components.Models.Builders;
 public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, TKey>, ModelHandler<T, TKey>>
     where T : class, new()
 {
+    private readonly IResourceOperationRegistry _resourceOperationRegistry;
+    private readonly ModelHandlerOptions<T, TKey> _options = new();
+
     internal ModelHandlerBuilder(IServiceProvider serviceProvider, string typeId, TableViewPaths tableViewPaths, IResourceOperationRegistry resourceOperationRegistry)
         : base(serviceProvider)
     {
         _resourceOperationRegistry = resourceOperationRegistry;
-        _model.TypeId = typeId;
-        _model.Paths = tableViewPaths;
-        _model.ServiceProvider = serviceProvider;
+        _options.TypeId = typeId;
+        _options.ModelUI = ModelUI.Table;
+        _options.Table.Paths = tableViewPaths;
+        _options.ServiceProvider = serviceProvider;
     }
-
-    private readonly IResourceOperationRegistry _resourceOperationRegistry;
 
     public ModelHandlerBuilder<T, TKey> WithTypeId(string typeId)
     {
-        _model.TypeId = typeId;
+        _options.TypeId = typeId;
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithKeySelector(Expression<Func<T, TKey>> keySelector)
     {
-        _model.KeySelector = keySelector;
+        _options.KeySelector = keySelector;
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithQueryable(Func<IQueryable<T>> getQueryable)
     {
-        _model.CrudFeatures |= CrudFeatures.Read;
-        _model.GetQueryable = getQueryable;
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Read));
+        _options.Crud.CrudFeatures |= CrudFeatures.Read;
+        _options.Crud.GetQueryable = getQueryable;
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Read));
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithCreateModel(Func<T, Task<Result>> createModel)
     {
-        _model.CrudFeatures |= CrudFeatures.Create;
-        _model.CreateModel = createModel;
-        _model.GetCreateActionModel = () => new ActionModel
+        _options.Crud.CrudFeatures |= CrudFeatures.Create;
+        _options.Crud.CreateModel = createModel;
+        _options.Crud.GetCreateActionModel = () => new ActionModel(new ActionModelConfig
         {
             Label = "Create",
             Icon = "fas fa-plus mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-post", $"/Form/{_model.TypeId}/{_model.ModelUI}/Create" },
+                { "hx-post", $"/Form/{_options.TypeId}/{_options.ModelUI}/Create" },
             }
-        };
+        });
         SetCancelActionModel();
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Create));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Create));
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithUpdateModel(Func<T, Task<Result>> updateModel)
     {
-        _model.CrudFeatures |= CrudFeatures.Update;
-        _model.UpdateModel = updateModel;
-        _model.GetUpdateActionModel = () => new ActionModel
+        _options.Crud.CrudFeatures |= CrudFeatures.Update;
+        _options.Crud.UpdateModel = updateModel;
+        _options.Crud.GetUpdateActionModel = () => new ActionModel(new ActionModelConfig
         {
             Label = "Update",
             Icon = "fas fa-edit mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-post", $"/Form/{_model.TypeId}/{_model.ModelUI}/Update" },
+                { "hx-post", $"/Form/{_options.TypeId}/{_options.ModelUI}/Update" },
             }
-        };
+        });
         SetCancelActionModel();
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Update));
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Update));
         return this;
     }
 
     private void SetCancelActionModel()
     {
-        if (_model.GetCancelActionModel != null)
+        if (_options.Crud.GetCancelActionModel != null)
             return;
-        _model.GetCancelActionModel = () => new ActionModel
+        _options.Crud.GetCancelActionModel = () => new ActionModel(new ActionModelConfig
         {
             Label = "Cancel",
             Icon = "fas fa-times mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-get", $"/Form/{_model.TypeId}/{_model.ModelUI}/Cancel" },
+                { "hx-get", $"/Form/{_options.TypeId}/{_options.ModelUI}/Cancel" },
             }
-        };
+        });
     }
 
     public ModelHandlerBuilder<T, TKey> WithDeleteModel(Func<TKey, Task<Result>> deleteModel)
     {
-        _model.CrudFeatures |= CrudFeatures.Delete;
-        _model.DeleteModel = deleteModel;
-        _model.GetDeleteActionModel = () => new ActionModel
+        _options.Crud.CrudFeatures |= CrudFeatures.Delete;
+        _options.Crud.DeleteModel = deleteModel;
+        _options.Crud.GetDeleteActionModel = () => new ActionModel(new ActionModelConfig
         {
             Label = "Delete",
             Icon = "fas fa-trash mr-1",
             Attributes = new Dictionary<string, string>
             {
-                { "hx-delete", $"/Form/{_model.TypeId}/{_model.ModelUI}/Delete" },
+                { "hx-delete", $"/Form/{_options.TypeId}/{_options.ModelUI}/Delete" },
             }
-        };
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_model.TypeId, Constants.Authorization.Operations.Delete));
+        });
+        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Delete));
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithTableModel(Action<TableModelBuilder<T, TKey>> configure)
     {
-        _model.ConfigureTableModel = configure;
+        _options.Table.ConfigureTableModel = configure;
         return this;
     }
 
     public ModelHandlerBuilder<T, TKey> WithInputModel<TProp>(Expression<Func<T, TProp>> propertySelector,
         Action<InputModelBuilder<T, TProp>> configure)
     {
-        AddBuildTask(BuildPhase.Inputs, async () =>
+        _options.Inputs.InputModelBuilders.TryAdd(propertySelector.GetPropertyName(), async (modelHandler) =>
         {
-            var propName = propertySelector.GetPropertyName();
             var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propertySelector);
+            configure(builder);
             var inputModel = await builder.Build();
-            inputModel.ModelHandler = _model;
-            _model.InputModelBuilders ??= [];
-            _model.InputModelBuilders[propName] = () => inputModel;
+            inputModel.ModelHandler = modelHandler;
+            return inputModel;
         });
         return this;
     }
+
+    protected override Task<ModelHandler<T, TKey>> BuildImpl()
+    {
+        var handler = new ModelHandler<T, TKey>(_options);
+        return Task.FromResult(handler);
+    }
+
 }

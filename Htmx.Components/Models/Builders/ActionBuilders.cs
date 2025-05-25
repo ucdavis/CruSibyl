@@ -2,10 +2,13 @@ using Htmx.Components.Models;
 
 namespace Htmx.Components.Models.Builders;
 
-public abstract class ActionItemsBuilder<TBuilder, TSet> : BuilderBase<TBuilder, TSet>
-    where TBuilder : ActionItemsBuilder<TBuilder, TSet>
+public abstract class ActionItemsBuilder<TBuilder, TSet, TConfig> : BuilderBase<TBuilder, TSet>
+    where TBuilder : ActionItemsBuilder<TBuilder, TSet, TConfig>
     where TSet : class, IActionSet, new()
+    where TConfig : ActionSetConfig, new()
 {
+    protected readonly TConfig _config = new();
+
     protected ActionItemsBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
 
@@ -16,25 +19,25 @@ public abstract class ActionItemsBuilder<TBuilder, TSet> : BuilderBase<TBuilder,
             var actionModelBuilder = new ActionModelBuilder(_serviceProvider);
             configure(actionModelBuilder);
             var actionModel = await actionModelBuilder.Build();
-            _model.Items.Add(actionModel);
+            _config.Items.Add(actionModel);
         });
         return (TBuilder)this;
     }
 
     public TBuilder AddItem(IActionItem item)
     {
-        _model.Items.Add(item);
+        _config.Items.Add(item);
         return (TBuilder)this;
     }
 
     public TBuilder AddRange(IEnumerable<IActionItem> items)
     {
-        _model.Items.AddRange(items);
+        _config.Items.AddRange(items);
         return (TBuilder)this;
     }
 }
 
-public class ActionSetBuilder : ActionItemsBuilder<ActionSetBuilder, ActionSet>
+public class ActionSetBuilder : ActionItemsBuilder<ActionSetBuilder, ActionSet, ActionSetConfig>
 {
     public ActionSetBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
@@ -46,62 +49,70 @@ public class ActionSetBuilder : ActionItemsBuilder<ActionSetBuilder, ActionSet>
             var actionGroupBuilder = new ActionGroupBuilder(_serviceProvider);
             configure(actionGroupBuilder);
             var actionGroup = await actionGroupBuilder.Build();
-            _model.Items.Add(actionGroup);
+            _config.Items.Add(actionGroup);
         });
         return this;
     }
+
+    protected override Task<ActionSet> BuildImpl()
+        => Task.FromResult(new ActionSet(_config));
 }
 
-public class ActionGroupBuilder : ActionItemsBuilder<ActionGroupBuilder, ActionGroup>
+public class ActionGroupBuilder : ActionItemsBuilder<ActionGroupBuilder, ActionGroup, ActionGroupConfig>
 {
     public ActionGroupBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
 
     public ActionGroupBuilder WithLabel(string label)
     {
-        _model.Label = label;
+        _config.Label = label;
         return this;
     }
 
     public ActionGroupBuilder WithIcon(string icon)
     {
-        _model.Icon = icon;
+        _config.Icon = icon;
         return this;
     }
 
     public ActionGroupBuilder WithClass(string cssClass)
     {
-        _model.CssClass = cssClass;
+        _config.CssClass = cssClass;
         return this;
     }
+
+    protected override Task<ActionGroup> BuildImpl()
+        => Task.FromResult(new ActionGroup(_config));
 }
 
 public class ActionModelBuilder : BuilderBase<ActionModelBuilder, ActionModel>
 {
+    private readonly ActionModelConfig _config = new();
+
     public ActionModelBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
 
     public ActionModelBuilder WithLabel(string label)
     {
-        _model.Label = label;
+        _config.Label = label;
         return this;
     }
 
     public ActionModelBuilder WithIcon(string icon)
     {
-        _model.Icon = icon;
+        _config.Icon = icon;
         return this;
     }
 
     public ActionModelBuilder WithClass(string cssClass)
     {
-        _model.CssClass = cssClass;
+        _config.CssClass = cssClass;
         return this;
     }
 
     public ActionModelBuilder WithAttribute(string name, string value)
     {
-        _model.Attributes[name] = value;
+        _config.Attributes[name] = value;
         return this;
     }
 
@@ -111,4 +122,8 @@ public class ActionModelBuilder : BuilderBase<ActionModelBuilder, ActionModel>
     public ActionModelBuilder WithHxSwap(string swap) => WithAttribute("hx-swap", swap);
     public ActionModelBuilder WithHxPushUrl(string pushUrl = "true") => WithAttribute("hx-push-url", pushUrl);
     public ActionModelBuilder WithHxInclude(string selector) => WithAttribute("hx-include", selector);
+
+    protected override Task<ActionModel> BuildImpl()
+    => Task.FromResult(new ActionModel(_config));
+
 }

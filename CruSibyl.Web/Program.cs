@@ -318,11 +318,12 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
 {
     config.WithModelHandlerRegistry(registry =>
     {
-        registry.Register<Repo, int>(nameof(Repo), (serviceProvider, model) =>
+        registry.Register<Repo, int>(nameof(Repo), (serviceProvider, builder) =>
         {
             var typeId = nameof(Repo);
             var dbContext = serviceProvider.GetRequiredService<AppDbContext>();
-            model.WithKeySelector(r => r.Id)
+            builder
+                .WithKeySelector(r => r.Id)
                 .WithQueryable(() => dbContext.Repos)
                 .WithCreateModel(async repo =>
                 {

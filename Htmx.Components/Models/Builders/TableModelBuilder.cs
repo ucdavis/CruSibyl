@@ -4,6 +4,7 @@ using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Htmx.Components.Models.Builders;
@@ -16,13 +17,15 @@ namespace Htmx.Components.Models.Builders;
 public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>, TableModel<T, TKey>>
     where T : class
 {
+    private readonly TableModelConfig<T, TKey> _config = new();
+
     internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths, ModelHandler<T, TKey> modelHandler, IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
-        _model.KeySelector = keySelector;
-        _model.ModelHandler = modelHandler;
-        _model.TypeId = modelHandler.TypeId;
-        _model.TableViewPaths = paths;
+        _config.KeySelector = keySelector;
+        _config.ModelHandler = modelHandler;
+        _config.TypeId = modelHandler.TypeId;
+        _config.TableViewPaths = paths;
     }
 
 
@@ -38,13 +41,20 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     {
         AddBuildTask(BuildPhase.Columns, async () =>
         {
-            var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-            builder.IncompleteModel.SelectorExpression = selector;
-            builder.IncompleteModel.DataName = selector.GetPropertyName();
-            builder.IncompleteModel.ColumnType = ColumnType.ValueSelector;
+            var config = new TableColumnModelConfig<T, TKey>
+            {
+                Header = header,
+                SelectorExpression = selector,
+                DataName = selector.GetPropertyName(),
+                ColumnType = ColumnType.ValueSelector,
+                Paths = _config.TableViewPaths!,
+                ModelHandler = _config.ModelHandler!,
+                
+            };
+            var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
-            _model.Columns.Add(columnModel);
+            _config.Columns.Add(columnModel);
         });
         return this;
     }
@@ -59,13 +69,19 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     {
         AddBuildTask(BuildPhase.Columns, async () =>
         {
-            var builder = new TableColumnModelBuilder<T, TKey>(header, _model.TableViewPaths, _model.ModelHandler, _serviceProvider);
-            builder.IncompleteModel.Sortable = false;
-            builder.IncompleteModel.Filterable = false;
-            builder.IncompleteModel.ColumnType = ColumnType.Display;
+            var config = new TableColumnModelConfig<T, TKey>
+            {
+                Header = header,
+                ColumnType = ColumnType.Display,
+                Paths = _config.TableViewPaths!,
+                ModelHandler = _config.ModelHandler!,
+                Sortable = false,
+                Filterable = false,
+            };
+            var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
-            _model.Columns.Add(columnModel);
+            _config.Columns.Add(columnModel);
         });
         return this;
     }
@@ -73,29 +89,32 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
 
     public TableModelBuilder<T, TKey> WithActions(Action<TableModel<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        AddBuildTask(BuildPhase.Actions, async () =>
+        AddBuildTask(BuildPhase.Actions, () =>
         {
-            var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
-            actionsFactory.Invoke(_model, actionSetBuilder);
-            var actionSet = await actionSetBuilder.Build();
-            _model.ActionsFactory = () => actionSet.Items.Cast<ActionModel>();
+            _config.ActionsFactory = async (tableModel) =>
+            {
+                var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+                actionsFactory.Invoke(tableModel, actionSetBuilder);
+                var actionSet = await actionSetBuilder.Build();
+                return actionSet.Items.Cast<ActionModel>();
+            };
         });
         return this;
     }
 
     public TableModelBuilder<T, TKey> WithTypeId(string typeId)
     {
-        _model.TypeId = typeId;
+        _config.TypeId = typeId;
         return this;
     }
 
-    internal override async Task<TableModel<T, TKey>> Build()
+    protected override Task<TableModel<T, TKey>> BuildImpl()
     {
-        var model = await base.Build();
+        var model = new TableModel<T, TKey>(_config);
         foreach (var column in model.Columns)
         {
             column.Table = model;
         }
-        return model;
+        return Task.FromResult(model);
     }
 }

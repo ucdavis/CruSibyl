@@ -32,6 +32,41 @@ public class ModelHandler<T, TKey> : ModelHandler
         KeyType = typeof(TKey);
     }
 
+    public ModelHandler(ModelHandlerOptions<T, TKey> options)
+        : this()
+    {
+        if (options.TypeId == null) throw new ArgumentNullException(nameof(options.TypeId));
+        if (options.KeySelector == null) throw new ArgumentNullException(nameof(options.KeySelector));
+        if (options.Table.Paths == null) throw new ArgumentNullException(nameof(options.Table.Paths));
+        if (options.ServiceProvider == null) throw new ArgumentNullException(nameof(options.ServiceProvider));
+
+        TypeId = options.TypeId;
+        ModelType = typeof(T);
+        KeyType = typeof(TKey);
+        ModelUI = options.ModelUI;
+        Paths = options.Table.Paths;
+        ServiceProvider = options.ServiceProvider;
+
+        KeySelector = options.KeySelector;
+
+        // CRUD
+        CrudFeatures = options.Crud.CrudFeatures;
+        GetQueryable = options.Crud.GetQueryable;
+        CreateModel = options.Crud.CreateModel;
+        UpdateModel = options.Crud.UpdateModel;
+        DeleteModel = options.Crud.DeleteModel;
+        GetCreateActionModel = options.Crud.GetCreateActionModel;
+        GetUpdateActionModel = options.Crud.GetUpdateActionModel;
+        GetCancelActionModel = options.Crud.GetCancelActionModel;
+        GetDeleteActionModel = options.Crud.GetDeleteActionModel;
+
+        // Table
+        ConfigureTableModel = options.Table.ConfigureTableModel;
+
+        // Inputs
+        InputModelBuilders = options.Inputs.InputModelBuilders;
+    }
+
     public Expression<Func<T, TKey>> KeySelector
     {
         get => _keySelectorExpression;
@@ -51,7 +86,7 @@ public class ModelHandler<T, TKey> : ModelHandler
     public Func<ActionModel>? GetCancelActionModel { get; internal set; }
     public Func<ActionModel>? GetDeleteActionModel { get; internal set; }
     public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
-    internal Dictionary<string, Func<IInputModel>>? InputModelBuilders { get; set; }
+    internal Dictionary<string, Func<ModelHandler<T, TKey>, Task<IInputModel>>>? InputModelBuilders { get; set; }
     internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
     internal TableViewPaths Paths { get; set; } = null!;
     internal IServiceProvider ServiceProvider { get; set; } = null!;
@@ -63,12 +98,12 @@ public class ModelHandler<T, TKey> : ModelHandler
         return tableModelBuilder.Build();
     }
 
-    public IInputModel BuildInputModel(string name)
+    public async Task<IInputModel> BuildInputModel(string name)
     {
         if (InputModelBuilders == null || !InputModelBuilders.TryGetValue(name, out var builder))
             throw new ArgumentException($"No input model found for name '{name}'.");
 
-        return builder();
+        return await builder(this);
     }
 
     /// <summary>
@@ -134,4 +169,42 @@ public enum CrudFeatures
     Read = 2,
     Update = 4,
     Delete = 8
+}
+
+public class CrudOptions<T, TKey>
+{
+    public Func<IQueryable<T>>? GetQueryable { get; set; }
+    public Func<T, Task<Result>>? CreateModel { get; set; }
+    public Func<T, Task<Result>>? UpdateModel { get; set; }
+    public Func<TKey, Task<Result>>? DeleteModel { get; set; }
+    public CrudFeatures CrudFeatures { get; set; }
+    public Func<ActionModel>? GetCreateActionModel { get; set; }
+    public Func<ActionModel>? GetUpdateActionModel { get; set; }
+    public Func<ActionModel>? GetCancelActionModel { get; set; }
+    public Func<ActionModel>? GetDeleteActionModel { get; set; }
+}
+
+public class TableOptions<T, TKey>
+    where T : class
+{
+    public Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
+    public TableViewPaths? Paths { get; set; }
+}
+
+public class InputOptions<T, TKey>
+    where T : class
+{
+    public Dictionary<string, Func<ModelHandler<T, TKey>, Task<IInputModel>>> InputModelBuilders { get; } = new();
+}
+
+public class ModelHandlerOptions<T, TKey>
+    where T : class
+{
+    public string? TypeId { get; set; }
+    public Expression<Func<T, TKey>>? KeySelector { get; set; }
+    public CrudOptions<T, TKey> Crud { get; set; } = new();
+    public TableOptions<T, TKey> Table { get; set; } = new();
+    public InputOptions<T, TKey> Inputs { get; set; } = new();
+    public IServiceProvider? ServiceProvider { get; set; }
+    public ModelUI ModelUI { get; set; } = ModelUI.Table;
 }

@@ -13,7 +13,7 @@ public interface ITableModel
     public TableState State { get; set; }
     public TableViewPaths TableViewPaths { get; set; }
     public ModelHandler ModelHandler { get; set; }
-    public IEnumerable<ActionModel> GetActions();
+    public Task<IEnumerable<ActionModel>> GetActions();
 }
 
 
@@ -27,9 +27,21 @@ public class TableModel<T, TKey> : ITableModel
     public TableState State { get; set; } = new();
     public TableViewPaths TableViewPaths { get; set; } = new();
     public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
-    public Func<IEnumerable<ActionModel>> ActionsFactory { get; set; } = () => Enumerable.Empty<ActionModel>();
+    public Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
+    public Expression<Func<T, TKey>> KeySelector { get; internal set; } = default!;
 
-    ModelHandler ITableModel.ModelHandler {
+    public TableModel(TableModelConfig<T, TKey> config)
+    {
+        TypeId = config.TypeId ?? typeof(T).Name;
+        Columns = config.Columns;
+        TableViewPaths = config.TableViewPaths ?? new TableViewPaths();
+        ModelHandler = config.ModelHandler ?? throw new ArgumentNullException(nameof(config.ModelHandler));
+        ActionsFactory = config.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
+        KeySelector = config.KeySelector ?? throw new ArgumentNullException(nameof(config.KeySelector));
+    }
+
+    ModelHandler ITableModel.ModelHandler
+    {
         get => ModelHandler;
         set => ModelHandler = (ModelHandler<T, TKey>)value;
     }
@@ -47,12 +59,19 @@ public class TableModel<T, TKey> : ITableModel
         set => Columns = value.Cast<TableColumnModel<T, TKey>>().ToList();
     }
 
-    public Expression<Func<T, TKey>> KeySelector { get; internal set; } = default!;
-
-    public IEnumerable<ActionModel> GetActions ()
+    public async Task<IEnumerable<ActionModel>> GetActions()
     {
-        return ActionsFactory.Invoke();
+        return await ActionsFactory.Invoke(this);
     }
-
 }
 
+public class TableModelConfig<T, TKey>
+    where T : class
+{
+    public string? TypeId { get; set; }
+    public Expression<Func<T, TKey>>? KeySelector { get; set; }
+    public ModelHandler<T, TKey>? ModelHandler { get; set; }
+    public TableViewPaths TableViewPaths { get; set; } = new();
+    public List<TableColumnModel<T, TKey>> Columns { get; } = new();
+    public Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>? ActionsFactory { get; set; }
+}

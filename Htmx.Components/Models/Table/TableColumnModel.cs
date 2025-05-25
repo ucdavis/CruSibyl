@@ -22,7 +22,7 @@ public interface ITableColumnModel
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
     string GetSerializedValue(ITableRowContext rowContext);
     ITableModel Table { get; set; } // Reference to the parent table
-    Func<ITableRowContext, IInputModel> GetInputModel { get; }
+    Func<ITableRowContext, Task<IInputModel>> GetInputModel { get; }
 }
 
 public enum ColumnType
@@ -41,6 +41,30 @@ public class TableCellPartialModel
 
 public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
 {
+    public TableColumnModel(TableColumnModelConfig<T, TKey> config)
+    {
+        Header = config.Header;
+        DataName = config.DataName;
+        Sortable = config.Sortable;
+        Filterable = config.Filterable;
+        IsEditable = config.IsEditable;
+        ColumnType = config.ColumnType;
+        CellPartialView = config.CellPartialView;
+        FilterPartialView = config.FilterPartialView;
+        CellEditPartialView = config.CellEditPartialView;
+        Filter = config.Filter;
+        RangeFilter = config.RangeFilter;
+        ActionsFactory = config.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
+        GetInputModel = config.GetInputModel ?? (_ => throw new InvalidOperationException("GetInputModel is not set."));
+        SelectorExpression = config.SelectorExpression ?? (x => x!);
+        SelectorFunc = config.SelectorFunc ?? SelectorExpression.CompileFast();
+        Paths = config.Paths!;
+        ModelHandler = config.ModelHandler!;
+    }
+
+    public TableViewPaths Paths { get; set; } = default!;
+    public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
+
     private Expression<Func<T, object>> _selectorExpression = x => x!;
 
     // used for referencing a member of T when working with IQueryable<T>
@@ -85,9 +109,18 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// </summary>
     public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
 
-    public Func<ITableRowContext, IInputModel> GetInputModel { get; internal set; } = _ =>
+    public Func<TableRowContext<T, TKey>, Task<IInputModel>> GetInputModel { get; internal set; } = _ =>
     {
         throw new InvalidOperationException("GetInputModel is not set. Ensure that the column is configured with WithEditable(true).");
+    };
+
+    Func<ITableRowContext, Task<IInputModel>> ITableColumnModel.GetInputModel => async rowContext =>
+    {
+        if (rowContext is TableRowContext<T, TKey> typedRowContext)
+        {
+            return await GetInputModel(typedRowContext);
+        }
+        throw new InvalidOperationException("Row context is not of the expected type.");
     };
 
     public async Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext)
@@ -117,4 +150,26 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         }
         return "";
     }
+}
+
+
+public class TableColumnModelConfig<T, TKey> where T : class
+{
+    public string Header { get; set; } = "";
+    public string DataName { get; set; } = "";
+    public bool Sortable { get; set; } = true;
+    public bool Filterable { get; set; } = false;
+    public bool IsEditable { get; set; } = false;
+    public ColumnType ColumnType { get; set; } = ColumnType.ValueSelector;
+    public string? CellPartialView { get; set; }
+    public string? FilterPartialView { get; set; }
+    public string? CellEditPartialView { get; set; }
+    public Func<IQueryable<T>, string, IQueryable<T>>? Filter { get; set; }
+    public Func<IQueryable<T>, string, string, IQueryable<T>>? RangeFilter { get; set; }
+    public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>? ActionsFactory { get; set; }
+    public Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; set; }
+    public Expression<Func<T, object>>? SelectorExpression { get; set; }
+    public Func<T, object>? SelectorFunc { get; set; }
+    public required TableViewPaths Paths { get; set; }
+    public ModelHandler<T, TKey>? ModelHandler { get; set; }
 }

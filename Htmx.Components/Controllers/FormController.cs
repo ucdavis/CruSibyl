@@ -65,6 +65,7 @@ public class FormController : Controller
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = editingItem,
+                ModelHandler = modelHandler,
                 Key = modelHandler.KeySelectorFunc(editingItem),
                 TargetDisposition = OobTargetDisposition.OuterHtml,
             });
@@ -77,12 +78,14 @@ public class FormController : Controller
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
+                ModelHandler = modelHandler,
                 StringKey = "new",
                 TargetDisposition = OobTargetDisposition.Delete,
             });
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = editingItem,
+                ModelHandler = modelHandler,
                 Key = modelHandler.KeySelectorFunc(editingItem),
                 TargetDisposition = OobTargetDisposition.AfterBegin,
                 TargetSelector = "#table-body",
@@ -133,6 +136,7 @@ public class FormController : Controller
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = originalItem,
+                ModelHandler = modelHandler,
                 Key = editingKey,
                 TargetDisposition = OobTargetDisposition.OuterHtml,
             });
@@ -142,6 +146,7 @@ public class FormController : Controller
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
+                ModelHandler = modelHandler,
                 StringKey = "new",
                 TargetDisposition = OobTargetDisposition.Delete,
             });
@@ -185,6 +190,7 @@ public class FormController : Controller
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = default!,
+            ModelHandler = modelHandler,
             Key = key,
             TargetDisposition = OobTargetDisposition.Delete,
         });
@@ -229,6 +235,7 @@ public class FormController : Controller
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,
+            ModelHandler = modelHandler,
             Key = key,
             TargetDisposition = OobTargetDisposition.OuterHtml,
             IsEditing = true,
@@ -470,6 +477,7 @@ public class FormController : Controller
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,
+            ModelHandler = modelHandler,
             TargetDisposition = OobTargetDisposition.AfterBegin,
             TargetSelector = "#table-body",
             StringKey = "new",

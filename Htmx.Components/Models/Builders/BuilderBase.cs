@@ -8,11 +8,8 @@ namespace Htmx.Components.Models.Builders;
 
 public abstract class BuilderBase<TBuilder, TModel>
     where TBuilder : BuilderBase<TBuilder, TModel>
-    where TModel : class, new()
+    where TModel : class
 {
-    protected readonly TModel _model = new();
-    private bool _isBuilt = false;
-
     protected readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<BuildPhase, List<Func<Task>>> _buildPhaseTasks;
 
@@ -23,23 +20,6 @@ public abstract class BuilderBase<TBuilder, TModel>
         foreach (BuildPhase phase in Enum.GetValues(typeof(BuildPhase)))
         {
             _buildPhaseTasks[phase] = [];
-        }
-    }
-
-    /// This is used to access the model before it is built. Anything accessing the model via this property
-    /// should be careful about relying on the state of any given model property.
-    internal TModel IncompleteModel => _model;
-
-    /// This is used to access the model after it is built. It will throw an exception if the model has not been built yet.
-    internal TModel Model
-    {
-        get
-        {
-            if (!_isBuilt)
-            {
-                throw new InvalidOperationException("Builder has not been built yet. Call Build() before accessing the model.");
-            }
-            return _model;
         }
     }
 
@@ -67,7 +47,9 @@ public abstract class BuilderBase<TBuilder, TModel>
         _buildPhaseTasks[phase].Add(() => Task.Run(action));
     }
 
-    internal virtual async Task<TModel> Build()
+    protected abstract Task<TModel> BuildImpl();
+
+    internal async Task<TModel> Build()
     {
         // Execute all build tasks in the order of phases
         foreach (var phase in Enum.GetValues<BuildPhase>())
@@ -75,9 +57,7 @@ public abstract class BuilderBase<TBuilder, TModel>
             var tasks = _buildPhaseTasks[(BuildPhase)phase].Select(f => f());
             await Task.WhenAll(tasks);
         }
-
-        _isBuilt = true;
-        return _model;
+        return await BuildImpl();
     }
 }
 

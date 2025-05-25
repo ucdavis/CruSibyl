@@ -6,6 +6,7 @@ namespace Htmx.Components.Models.Builders;
 public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
     where T : class
 {
+    private readonly InputSetConfig _config = new();
 
     public InputSetBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider)
@@ -20,26 +21,30 @@ public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
             var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propSelector);
             configure(builder);
             var inputModel = await builder.Build();
-            _model.Inputs.Add(inputModel);
+            _config.Inputs.Add(inputModel);
         });
         return this;
     }
 
     public InputSetBuilder<T> AddInput(IInputModel inputModel)
     {
-        _model.Inputs.Add(inputModel);
+        _config.Inputs.Add(inputModel);
         return this;
     }
 
     public InputSetBuilder<T> AddRange(IEnumerable<IInputModel> inputModels)
     {
-        _model.Inputs.AddRange(inputModels);
+        _config.Inputs.AddRange(inputModels);
         return this;
     }
 
     public InputSetBuilder<T> WithLabel(string label)
     {
-        _model.Label = label;
+        _config.Label = label;
         return this;
     }
+
+    protected override Task<InputSet> BuildImpl()
+        => Task.FromResult(new InputSet(_config));
+
 }
