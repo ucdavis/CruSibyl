@@ -11,16 +11,12 @@ public abstract class BuilderBase<TBuilder, TModel>
     where TModel : class
 {
     protected readonly IServiceProvider _serviceProvider;
-    private readonly Dictionary<BuildPhase, List<Func<Task>>> _buildPhaseTasks;
+    private readonly List<Func<Task>> _buildTasks;
 
     protected BuilderBase(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        _buildPhaseTasks = [];
-        foreach (BuildPhase phase in Enum.GetValues(typeof(BuildPhase)))
-        {
-            _buildPhaseTasks[phase] = [];
-        }
+        _buildTasks = [];
     }
 
     public ActionContext ActionContext
@@ -32,41 +28,27 @@ public abstract class BuilderBase<TBuilder, TModel>
         }
     }
 
-    protected void AddBuildTask(BuildPhase phase, Task task)
+    protected void AddBuildTask(Task task)
     {
-        _buildPhaseTasks[phase].Add(() => task);
+        _buildTasks.Add(() => task);
     }
 
-    protected void AddBuildTask(BuildPhase phase, Func<Task> taskFunc)
+    protected void AddBuildTask(Func<Task> taskFunc)
     {
-        _buildPhaseTasks[phase].Add(taskFunc);
+        _buildTasks.Add(taskFunc);
     }
 
-    protected void AddBuildTask(BuildPhase phase, Action action)
+    protected void AddBuildTask(Action action)
     {
-        _buildPhaseTasks[phase].Add(() => Task.Run(action));
+        _buildTasks.Add(() => Task.Run(action));
     }
 
     protected abstract Task<TModel> BuildImpl();
 
     internal async Task<TModel> Build()
     {
-        // Execute all build tasks in the order of phases
-        foreach (var phase in Enum.GetValues<BuildPhase>())
-        {
-            var tasks = _buildPhaseTasks[(BuildPhase)phase].Select(f => f());
-            await Task.WhenAll(tasks);
-        }
+        var tasks = _buildTasks.Select(f => f());
+        await Task.WhenAll(tasks);
         return await BuildImpl();
     }
-}
-
-// Helps to ensure that the build tasks are executed in the correct order
-// ie: InputModels should be built before ColumnModels
-public enum BuildPhase
-{
-    Inputs = 0,
-    Columns = 1,
-    Actions = 2,
-    Other = 3
 }

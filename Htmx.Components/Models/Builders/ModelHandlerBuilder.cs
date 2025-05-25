@@ -37,7 +37,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Read;
         _options.Crud.GetQueryable = getQueryable;
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Read));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Read));
         return this;
     }
 
@@ -55,7 +55,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             }
         });
         SetCancelActionModel();
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Create));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Create));
         return this;
     }
 
@@ -73,7 +73,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             }
         });
         SetCancelActionModel();
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Update));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Update));
         return this;
     }
 
@@ -105,7 +105,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
                 { "hx-delete", $"/Form/{_options.TypeId}/{_options.ModelUI}/Delete" },
             }
         });
-        AddBuildTask(BuildPhase.Other, _resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Delete));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Delete));
         return this;
     }
 

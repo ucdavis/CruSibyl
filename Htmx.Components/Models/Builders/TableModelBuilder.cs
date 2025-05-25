@@ -39,7 +39,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     public TableModelBuilder<T, TKey> AddSelectorColumn(string header, Expression<Func<T, object>> selector,
         Action<TableColumnModelBuilder<T, TKey>>? configure = null)
     {
-        AddBuildTask(BuildPhase.Columns, async () =>
+        AddBuildTask(async () =>
         {
             var config = new TableColumnModelConfig<T, TKey>
             {
@@ -67,7 +67,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     /// <returns></returns>
     public TableModelBuilder<T, TKey> AddDisplayColumn(string header, Action<TableColumnModelBuilder<T, TKey>>? configure = null)
     {
-        AddBuildTask(BuildPhase.Columns, async () =>
+        AddBuildTask(async () =>
         {
             var config = new TableColumnModelConfig<T, TKey>
             {
@@ -89,7 +89,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
 
     public TableModelBuilder<T, TKey> WithActions(Action<TableModel<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        AddBuildTask(BuildPhase.Actions, () =>
+        AddBuildTask(() =>
         {
             _config.ActionsFactory = async (tableModel) =>
             {

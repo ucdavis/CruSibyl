@@ -16,7 +16,7 @@ public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
     public InputSetBuilder<T> AddInput<TProp>(Expression<Func<T, TProp>> propSelector,
         Action<InputModelBuilder<T, TProp>> configure)
     {
-        AddBuildTask(BuildPhase.Inputs, async () =>
+        AddBuildTask(async () =>
         {
             var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propSelector);
             configure(builder);
