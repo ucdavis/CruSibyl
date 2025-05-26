@@ -41,7 +41,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithCreateModel(Func<T, Task<Result>> createModel)
+    public ModelHandlerBuilder<T, TKey> WithCreate(Func<T, Task<Result>> createModel)
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Create;
         _options.Crud.CreateModel = createModel;
@@ -59,7 +59,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithUpdateModel(Func<T, Task<Result>> updateModel)
+    public ModelHandlerBuilder<T, TKey> WithUpdate(Func<T, Task<Result>> updateModel)
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Update;
         _options.Crud.UpdateModel = updateModel;
@@ -92,7 +92,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         });
     }
 
-    public ModelHandlerBuilder<T, TKey> WithDeleteModel(Func<TKey, Task<Result>> deleteModel)
+    public ModelHandlerBuilder<T, TKey> WithDelete(Func<TKey, Task<Result>> deleteModel)
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Delete;
         _options.Crud.DeleteModel = deleteModel;
@@ -109,13 +109,13 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithTableModel(Action<TableModelBuilder<T, TKey>> configure)
+    public ModelHandlerBuilder<T, TKey> WithTable(Action<TableModelBuilder<T, TKey>> configure)
     {
         _options.Table.ConfigureTableModel = configure;
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithInputModel<TProp>(Expression<Func<T, TProp>> propertySelector,
+    public ModelHandlerBuilder<T, TKey> WithInput<TProp>(Expression<Func<T, TProp>> propertySelector,
         Action<InputModelBuilder<T, TProp>> configure)
     {
         _options.Inputs.InputModelBuilders.TryAdd(propertySelector.GetPropertyName(), async (modelHandler) =>

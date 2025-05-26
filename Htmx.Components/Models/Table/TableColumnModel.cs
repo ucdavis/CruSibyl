@@ -53,7 +53,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         CellEditPartialView = config.Display.CellEditPartialView;
         Filter = config.FilterOptions.Filter;
         RangeFilter = config.FilterOptions.RangeFilter;
-        ActionsFactory = config.ActionOptions.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
+        ActionsFactories = config.ActionOptions.ActionsFactories;
         GetInputModel = config.InputOptions.GetInputModel ?? (_ => throw new InvalidOperationException("GetInputModel is not set."));
         SelectorExpression = config.DataOptions.SelectorExpression ?? (x => x!);
         SelectorFunc = config.DataOptions.SelectorFunc ?? SelectorExpression.CompileFast();
@@ -106,7 +106,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// <summary>
     /// A delegate that generates one or more <see cref="ActionModel"/>s that can be mapped to buttons in a view
     /// </summary>
-    public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
+    public List<Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 
     public Func<TableRowContext<T, TKey>, Task<IInputModel>> GetInputModel { get; internal set; } = _ =>
     {
@@ -126,7 +126,16 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     {
         if (rowContext.Item is T typedItem)
         {
-            return await ActionsFactory((TableRowContext<T, TKey>)rowContext);
+            var results = new List<ActionModel>();
+            foreach (var factory in ActionsFactories)
+            {
+                var actions = await factory((TableRowContext<T, TKey>)rowContext);
+                if (actions != null)
+                {
+                    results.AddRange(actions);
+                }
+            }
+            return results;
         }
         return [];
     }
@@ -189,7 +198,7 @@ public class TableColumnFilterOptions<T>
 public class TableColumnActionOptions<T, TKey>
     where T : class
 {
-    public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>? ActionsFactory { get; set; }
+    public List<Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 }
 
 public class TableColumnInputOptions<T, TKey>

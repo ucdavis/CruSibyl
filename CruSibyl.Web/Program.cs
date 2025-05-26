@@ -325,19 +325,19 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
             builder
                 .WithKeySelector(r => r.Id)
                 .WithQueryable(() => dbContext.Repos)
-                .WithCreateModel(async repo =>
+                .WithCreate(async repo =>
                 {
                     dbContext.Repos.Add(repo);
                     await dbContext.SaveChangesAsync();
                     return Htmx.Components.Models.Result.Ok();
                 })
-                .WithUpdateModel(async repo =>
+                .WithUpdate(async repo =>
                 {
                     dbContext.Repos.Update(repo);
                     await dbContext.SaveChangesAsync();
                     return Htmx.Components.Models.Result.Ok();
                 })
-                .WithDeleteModel(async id =>
+                .WithDelete(async id =>
                 {
                     var repo = await dbContext.Repos.FindAsync(id);
                     if (repo != null)
@@ -348,15 +348,15 @@ static void ConfigureModelHandlers(HtmxComponentOptions config)
                     }
                     return Htmx.Components.Models.Result.Error("Repo not found");
                 })
-                .WithInputModel(r => r.Name, config => config
+                .WithInput(r => r.Name, config => config
                     .WithLabel("Name")
                     .WithPlaceholder("Enter repo name")
                     .WithCssClass("form-control"))
-                .WithInputModel(r => r.Description, config => config
+                .WithInput(r => r.Description, config => config
                     .WithLabel("Description")
                     .WithPlaceholder("Enter repo description")
                     .WithCssClass("form-control"))
-                .WithTableModel(table => table
+                .WithTable(table => table
                     .WithActions((table, actions) =>
                         actions.AddModel(action => action
                             .WithLabel("Add New")

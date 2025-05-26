@@ -73,13 +73,13 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
 
     public TableColumnModelBuilder<T, TKey> WithActions(Action<TableRowContext<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        _config.ActionOptions.ActionsFactory = async (rowContext) =>
+        _config.ActionOptions.ActionsFactories.Add(async (rowContext) =>
         {
             var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
             actionsFactory.Invoke(rowContext, actionSetBuilder);
             var actionSet = await actionSetBuilder.Build();
             return actionSet.Items.Cast<ActionModel>();
-        };
+        });
         if (string.IsNullOrWhiteSpace(_config.Display.CellPartialView))
         {
             _config.Display.CellPartialView = _config.DataOptions.Paths.CellActionList;
