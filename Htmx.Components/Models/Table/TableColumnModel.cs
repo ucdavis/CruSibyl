@@ -28,7 +28,6 @@ public interface ITableColumnModel
 public enum ColumnType
 {
     ValueSelector,
-    Hidden,
     Display
 }
 
@@ -43,23 +42,23 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
 {
     public TableColumnModel(TableColumnModelConfig<T, TKey> config)
     {
-        Header = config.Header;
-        DataName = config.DataName;
-        Sortable = config.Sortable;
-        Filterable = config.Filterable;
-        IsEditable = config.IsEditable;
-        ColumnType = config.ColumnType;
-        CellPartialView = config.CellPartialView;
-        FilterPartialView = config.FilterPartialView;
-        CellEditPartialView = config.CellEditPartialView;
-        Filter = config.Filter;
-        RangeFilter = config.RangeFilter;
-        ActionsFactory = config.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
-        GetInputModel = config.GetInputModel ?? (_ => throw new InvalidOperationException("GetInputModel is not set."));
-        SelectorExpression = config.SelectorExpression ?? (x => x!);
-        SelectorFunc = config.SelectorFunc ?? SelectorExpression.CompileFast();
-        Paths = config.Paths!;
-        ModelHandler = config.ModelHandler!;
+        Header = config.Display.Header;
+        DataName = config.Display.DataName;
+        Sortable = config.Behavior.Sortable;
+        Filterable = config.Behavior.Filterable;
+        IsEditable = config.Behavior.IsEditable;
+        ColumnType = config.Display.ColumnType;
+        CellPartialView = config.Display.CellPartialView;
+        FilterPartialView = config.Display.FilterPartialView;
+        CellEditPartialView = config.Display.CellEditPartialView;
+        Filter = config.FilterOptions.Filter;
+        RangeFilter = config.FilterOptions.RangeFilter;
+        ActionsFactory = config.ActionOptions.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
+        GetInputModel = config.InputOptions.GetInputModel ?? (_ => throw new InvalidOperationException("GetInputModel is not set."));
+        SelectorExpression = config.DataOptions.SelectorExpression ?? (x => x!);
+        SelectorFunc = config.DataOptions.SelectorFunc ?? SelectorExpression.CompileFast();
+        Paths = config.DataOptions.Paths!;
+        ModelHandler = config.DataOptions.ModelHandler!;
     }
 
     public TableViewPaths Paths { get; set; } = default!;
@@ -152,22 +151,56 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     }
 }
 
+public class TableColumnModelConfig<T, TKey>
+    where T : class
+{
+    public TableColumnDisplayOptions Display { get; set; } = new();
+    public TableColumnBehaviorOptions Behavior { get; set; } = new();
+    public TableColumnFilterOptions<T> FilterOptions { get; set; } = new();
+    public TableColumnActionOptions<T, TKey> ActionOptions { get; set; } = new();
+    public TableColumnInputOptions<T, TKey> InputOptions { get; set; } = new();
+    public TableColumnDataOptions<T, TKey> DataOptions { get; set; } = default!;
+}
 
-public class TableColumnModelConfig<T, TKey> where T : class
+public class TableColumnDisplayOptions
 {
     public string Header { get; set; } = "";
     public string DataName { get; set; } = "";
-    public bool Sortable { get; set; } = true;
-    public bool Filterable { get; set; } = false;
-    public bool IsEditable { get; set; } = false;
-    public ColumnType ColumnType { get; set; } = ColumnType.ValueSelector;
     public string? CellPartialView { get; set; }
     public string? FilterPartialView { get; set; }
     public string? CellEditPartialView { get; set; }
+    public ColumnType ColumnType { get; set; } = ColumnType.ValueSelector;
+}
+
+public class TableColumnBehaviorOptions
+{
+    public bool Sortable { get; set; } = true;
+    public bool Filterable { get; set; } = false;
+    public bool IsEditable { get; set; } = false;
+}
+
+public class TableColumnFilterOptions<T>
+    where T : class
+{
     public Func<IQueryable<T>, string, IQueryable<T>>? Filter { get; set; }
     public Func<IQueryable<T>, string, string, IQueryable<T>>? RangeFilter { get; set; }
+}
+
+public class TableColumnActionOptions<T, TKey>
+    where T : class
+{
     public Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>? ActionsFactory { get; set; }
+}
+
+public class TableColumnInputOptions<T, TKey>
+    where T : class
+{
     public Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; set; }
+}
+
+public class TableColumnDataOptions<T, TKey>
+    where T : class
+{
     public Expression<Func<T, object>>? SelectorExpression { get; set; }
     public Func<T, object>? SelectorFunc { get; set; }
     public required TableViewPaths Paths { get; set; }

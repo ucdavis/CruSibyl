@@ -43,13 +43,18 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         {
             var config = new TableColumnModelConfig<T, TKey>
             {
-                Header = header,
-                SelectorExpression = selector,
-                DataName = selector.GetPropertyName(),
-                ColumnType = ColumnType.ValueSelector,
-                Paths = _config.TableViewPaths!,
-                ModelHandler = _config.ModelHandler!,
-                
+                Display = new TableColumnDisplayOptions
+                {
+                    Header = header,
+                    DataName = selector.GetPropertyName(),
+                    ColumnType = ColumnType.ValueSelector
+                },
+                DataOptions = new TableColumnDataOptions<T, TKey>
+                {
+                    SelectorExpression = selector,
+                    Paths = _config.TableViewPaths!,
+                    ModelHandler = _config.ModelHandler!
+                }
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
             configure?.Invoke(builder);
@@ -71,12 +76,21 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         {
             var config = new TableColumnModelConfig<T, TKey>
             {
-                Header = header,
-                ColumnType = ColumnType.Display,
-                Paths = _config.TableViewPaths!,
-                ModelHandler = _config.ModelHandler!,
-                Sortable = false,
-                Filterable = false,
+                Display = new TableColumnDisplayOptions
+                {
+                    Header = header,
+                    ColumnType = ColumnType.Display
+                },
+                Behavior = new TableColumnBehaviorOptions
+                {
+                    Sortable = false,
+                    Filterable = false
+                },
+                DataOptions = new TableColumnDataOptions<T, TKey>
+                {
+                    Paths = _config.TableViewPaths!,
+                    ModelHandler = _config.ModelHandler!
+                }
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
             configure?.Invoke(builder);

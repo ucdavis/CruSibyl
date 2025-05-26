@@ -22,17 +22,17 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
 
     public TableColumnModelBuilder<T, TKey> WithEditable(bool isEditable = true)
     {
-        if (!(_config.ModelHandler?.InputModelBuilders?.TryGetValue(_config.DataName, out var inputModelBuilder) == true))
+        if (!(_config.DataOptions.ModelHandler?.InputModelBuilders?.TryGetValue(_config.Display.DataName, out var inputModelBuilder) == true))
         {
-            throw new InvalidOperationException($"No input model builder found for column '{_config.DataName}'. Ensure that the input model is registered in the ModelHandler.");
+            throw new InvalidOperationException($"No input model builder found for column '{_config.Display.DataName}'. Ensure that the input model is registered in the ModelHandler.");
         }
-        _config.IsEditable = isEditable;
+        _config.Behavior.IsEditable = isEditable;
         if (isEditable)
         {
-            _config.GetInputModel = async (rowContext) =>
+            _config.InputOptions.GetInputModel = async (rowContext) =>
             {
                 var inputModel = await inputModelBuilder.Invoke(rowContext.ModelHandler);
-                inputModel.ObjectValue = _config.SelectorFunc!(rowContext.Item);
+                inputModel.ObjectValue = _config.DataOptions.SelectorFunc!(rowContext.Item);
                 return inputModel;
             };
         }
@@ -41,57 +41,57 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
 
     public TableColumnModelBuilder<T, TKey> WithCellPartial(string cellPartial)
     {
-        _config.CellPartialView = cellPartial;
+        _config.Display.CellPartialView = cellPartial;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithFilterPartial(string filterPartial)
     {
-        _config.FilterPartialView = filterPartial;
-        _config.IsEditable = true;
+        _config.Display.FilterPartialView = filterPartial;
+        _config.Behavior.IsEditable = true;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithFilter(Func<IQueryable<T>, string, IQueryable<T>> filter)
     {
-        _config.Filter = filter;
-        _config.Filterable = true;
+        _config.FilterOptions.Filter = filter;
+        _config.Behavior.Filterable = true;
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithRangeFilter(Func<IQueryable<T>, string, string, IQueryable<T>> rangeFilter)
     {
         //TODO: not tested and probably won't work. need to figure out how to support different column types
-        _config.RangeFilter = rangeFilter;
-        _config.Filterable = true;
-        if (string.IsNullOrWhiteSpace(_config.FilterPartialView))
+        _config.FilterOptions.RangeFilter = rangeFilter;
+        _config.Behavior.Filterable = true;
+        if (string.IsNullOrWhiteSpace(_config.Display.FilterPartialView))
         {
-            _config.FilterPartialView = _config.Paths.FilterDateRange;
+            _config.Display.FilterPartialView = _config.DataOptions.Paths.FilterDateRange;
         }
         return this;
     }
 
     public TableColumnModelBuilder<T, TKey> WithActions(Action<TableRowContext<T, TKey>, ActionSetBuilder> actionsFactory)
     {
-        _config.ActionsFactory = async (rowContext) =>
+        _config.ActionOptions.ActionsFactory = async (rowContext) =>
         {
             var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
             actionsFactory.Invoke(rowContext, actionSetBuilder);
             var actionSet = await actionSetBuilder.Build();
             return actionSet.Items.Cast<ActionModel>();
         };
-        if (string.IsNullOrWhiteSpace(_config.CellPartialView))
+        if (string.IsNullOrWhiteSpace(_config.Display.CellPartialView))
         {
-            _config.CellPartialView = _config.Paths.CellActionList;
+            _config.Display.CellPartialView = _config.DataOptions.Paths.CellActionList;
         }
         return this;
     }
 
     protected override Task<TableColumnModel<T, TKey>> BuildImpl()
     {
-        if (_config.SelectorFunc == null && _config.SelectorExpression != null)
+        if (_config.DataOptions.SelectorFunc == null && _config.DataOptions.SelectorExpression != null)
         {
-            _config.SelectorFunc = _config.SelectorExpression.CompileFast();
+            _config.DataOptions.SelectorFunc = _config.DataOptions.SelectorExpression.CompileFast();
         }
 
         var model = new TableColumnModel<T, TKey>(_config);
