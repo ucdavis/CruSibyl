@@ -1,16 +1,13 @@
 using System.Diagnostics;
-using System.Security.Claims;
 using CruSibyl.Core.Data;
-using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
+using CruSibyl.Web.Configuration;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
 using CruSibyl.Web.Middleware.Auth;
 using Htmx.Components;
-using Htmx.Components.Models;
-using Htmx.Components.Models.Builders;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -26,9 +23,9 @@ using Serilog.Sinks.Elasticsearch;
 Serilog.Debugging.SelfLog.Enable(msg => Debug.WriteLine(msg));
 #endif
 
-var builder = WebApplication.CreateBuilder(args);
+var appBuilder = WebApplication.CreateBuilder(args);
 
-var loggingSection = builder.Configuration.GetSection("Serilog");
+var loggingSection = appBuilder.Configuration.GetSection("Serilog");
 
 // configure logging as delegate so it can be applied to both Log.Logger and appBuilder.Host.UseSerilog()
 var configureLogging = (LoggerConfiguration cfg) =>
@@ -63,17 +60,16 @@ Log.Logger = configureLogging(new LoggerConfiguration()).CreateBootstrapLogger()
 try
 {
     Log.Information("Starting web host");
-    var appBuilder = WebApplication.CreateBuilder(args);
     appBuilder.Host.UseSerilog((ctx, lc) => configureLogging(lc));
 
     // Add services to the container.
 
-    appBuilder.Services.AddHtmxComponents(config =>
+    appBuilder.Services.AddHtmxComponents(htmxOptions =>
     {
-        ConfigureNav(config);
-        ConfigureModelHandlers(config);
-        config.WithPermissionRequirementFactory<PermissionRequirementFactory>();
-        config.WithResourceOperationRegistry<ResourceOperationRegistry>();
+        htmxOptions.WithNavBuilder(NavConfig.RegisterNavigation);
+        htmxOptions.WithModelHandlerRegistry(ModelHandlerConfig.RegisterModels);
+        htmxOptions.WithPermissionRequirementFactory<PermissionRequirementFactory>();
+        htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
     });
 
     appBuilder.Services.AddControllersWithViews(options =>
@@ -92,9 +88,9 @@ try
     .AddCookie()
     .AddOpenIdConnect(oidc =>
     {
-        oidc.ClientId = builder.Configuration["Authentication:ClientId"];
-        oidc.ClientSecret = builder.Configuration["Authentication:ClientSecret"];
-        oidc.Authority = builder.Configuration["Authentication:Authority"];
+        oidc.ClientId = appBuilder.Configuration["Authentication:ClientId"];
+        oidc.ClientSecret = appBuilder.Configuration["Authentication:ClientSecret"];
+        oidc.Authority = appBuilder.Configuration["Authentication:Authority"];
         oidc.ResponseType = OpenIdConnectResponseType.Code;
         oidc.Scope.Add("openid");
         oidc.Scope.Add("profile");
@@ -105,63 +101,7 @@ try
             NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
         };
         oidc.ConfigureHtmxAuthPopup("/auth/popup-login");
-        oidc.Events.OnTicketReceived = async context =>
-        {
-            if (context.Principal == null || context.Principal.Identity == null)
-            {
-                return;
-            }
-            var identity = (ClaimsIdentity)context.Principal.Identity;
-
-            // Sometimes CAS doesn't return the required IAM ID
-            // If this happens, we take the reliable Kerberos (NameIdentifier claim) and use it to lookup IAM ID
-            if (!identity.HasClaim(c => c.Type == UserService.IamIdClaimType) ||
-                !identity.HasClaim(c => c.Type == ClaimTypes.Surname) ||
-                !identity.HasClaim(c => c.Type == ClaimTypes.GivenName) ||
-                !identity.HasClaim(c => c.Type == ClaimTypes.Email))
-            {
-                var identityService = context.HttpContext.RequestServices.GetRequiredService<IIdentityService>();
-                var kerbId = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-                if (kerbId != null)
-                {
-                    Log.Error($"CAS IAM Id Missing. For Kerb: {kerbId}");
-                    var identityUser = await identityService.GetByKerberos(kerbId.Value);
-
-                    if (identityUser != null)
-                    {
-                        if (!identity.HasClaim(c => c.Type == UserService.IamIdClaimType))
-                        {
-                            identity.AddClaim(new Claim(UserService.IamIdClaimType, identityUser.Iam));
-                        }
-                        //Check for other missing claims
-                        if (!identity.HasClaim(c => c.Type == ClaimTypes.Surname))
-                        {
-                            identity.AddClaim(new Claim(ClaimTypes.Surname, identityUser.LastName));
-                        }
-                        if (!identity.HasClaim(c => c.Type == ClaimTypes.GivenName))
-                        {
-                            identity.AddClaim(new Claim(ClaimTypes.GivenName, identityUser.FirstName));
-                        }
-                        if (!identity.HasClaim(c => c.Type == ClaimTypes.Email))
-                        {
-                            identity.AddClaim(new Claim(ClaimTypes.Email, identityUser.Email));
-                        }
-                    }
-                    else
-                    {
-                        Log.Error($"IAM Id Not Found with identity service. For Kerb: {kerbId}");
-                    }
-                }
-                else
-                {
-                    Log.Error($"CAS IAM Id Missing. Kerb Not Found");
-                }
-            }
-
-            // Ensure user exists in the db
-            var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
-            await userService.GetUser(identity.Claims.ToArray());
-        };
+        oidc.AddIamFallback();
     });
 
 
@@ -172,27 +112,9 @@ try
     });
     appBuilder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-    // Migration scaffolding in EF Core 8 appears to instantiate a DbContext, so we're using
-    // an environment variable set by CreateMigration.sh to ensure the correct provider is used.
-    var migrationUseSql = builder.Configuration.GetValue<bool?>("Migration:UseSql");
-    var useSql = migrationUseSql.HasValue ? migrationUseSql.Value : builder.Configuration.GetValue<bool>("Dev:UseSql");
+    DBContextConfig.Configure(appBuilder, out var migrationScaffoldRequested);
 
-    if (useSql)
-    {
-        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>(ConfigSqlServer(builder));
-        appBuilder.Services.AddDbContextFactory<AppDbContextSqlServer>(ConfigSqlServer(builder));
-        appBuilder.Services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
-            new DbContextFactoryAdapter<AppDbContextSqlServer>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlServer>>()));
-    }
-    else
-    {
-        appBuilder.Services.AddDbContextPool<AppDbContext, AppDbContextSqlite>(ConfigSqlite(builder));
-        appBuilder.Services.AddDbContextFactory<AppDbContextSqlite>(ConfigSqlServer(builder));
-        appBuilder.Services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
-            new DbContextFactoryAdapter<AppDbContextSqlite>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlite>>()));
-    }
-
-    appBuilder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("Authentication"));
+    appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Authentication"));
 
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
@@ -208,7 +130,7 @@ try
     catch (HostAbortedException)
     {
         // swallow exception and return early when generating a new migration
-        if (migrationUseSql.HasValue)
+        if (migrationScaffoldRequested)
         {
             return 0;
         }
@@ -219,7 +141,7 @@ try
     using (var scope = app.Services.CreateScope())
     {
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var recreateDb = builder.Configuration.GetValue<bool>("Dev:RecreateDb");
+        var recreateDb = appBuilder.Configuration.GetValue<bool>("Dev:RecreateDb");
 
         if (recreateDb)
         {
@@ -292,140 +214,5 @@ finally
 
 return 0;
 
-static void ConfigureNav(HtmxComponentOptions config)
-{
-    config.WithNavBuilder(builder =>
-    {
-        // we can use the ActionContext to get the current path or other context
-        // var path = builder.ActionContext.HttpContext.Request.Path.ToString();
-        builder.AddModel(m => m
-            .WithLabel("Home")
-            .WithIcon("fas fa-home")
-            .WithHxGet("/Dashboard")
-            .WithHxPushUrl())
 
-        .AddGroup(g => g
-            .WithLabel("Admin")
-            .WithIcon("fas fa-cogs")
-            .AddModel(m => m
-                .WithLabel("Repos")
-                .WithHxGet("/Admin")
-                .WithHxPushUrl()));
-    });
-}
 
-static void ConfigureModelHandlers(HtmxComponentOptions config)
-{
-    config.WithModelHandlerRegistry(registry =>
-    {
-        registry.Register<Repo, int>(nameof(Repo), (serviceProvider, builder) =>
-        {
-            var typeId = nameof(Repo);
-            var dbContext = serviceProvider.GetRequiredService<AppDbContext>();
-            builder
-                .WithKeySelector(r => r.Id)
-                .WithQueryable(() => dbContext.Repos)
-                .WithCreate(async repo =>
-                {
-                    dbContext.Repos.Add(repo);
-                    await dbContext.SaveChangesAsync();
-                    return Htmx.Components.Models.Result.Ok();
-                })
-                .WithUpdate(async repo =>
-                {
-                    dbContext.Repos.Update(repo);
-                    await dbContext.SaveChangesAsync();
-                    return Htmx.Components.Models.Result.Ok();
-                })
-                .WithDelete(async id =>
-                {
-                    var repo = await dbContext.Repos.FindAsync(id);
-                    if (repo != null)
-                    {
-                        dbContext.Repos.Remove(repo);
-                        await dbContext.SaveChangesAsync();
-                        return Htmx.Components.Models.Result.Ok();
-                    }
-                    return Htmx.Components.Models.Result.Error("Repo not found");
-                })
-                .WithInput(r => r.Name, config => config
-                    .WithLabel("Name")
-                    .WithPlaceholder("Enter repo name")
-                    .WithCssClass("form-control"))
-                .WithInput(r => r.Description, config => config
-                    .WithLabel("Description")
-                    .WithPlaceholder("Enter repo description")
-                    .WithCssClass("form-control"))
-                .WithTable(table => table
-                    .WithActions((table, actions) =>
-                        actions.AddModel(action => action
-                            .WithLabel("Add New")
-                            .WithIcon("fas fa-plus mr-1")
-                            .WithHxPost($"/Form/{typeId}/Table/Create")
-                    ))
-                    .AddSelectorColumn("Name", x => x.Name, config => config
-                        .WithEditable()
-                        .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
-                    .AddSelectorColumn("Description", x => x.Description!, config => config
-                        .WithEditable())
-                    .AddDisplayColumn("Actions", col =>
-                    {
-                        col.WithActions((row, actions) =>
-                        {
-                            if (row.IsEditing)
-                                actions
-                                    .AddModel(action => action
-                                        .WithLabel("Save")
-                                        .WithIcon("fas fa-save")
-                                        .WithHxPost($"/Form/{typeId}/Table/Save"))
-                                    .AddModel(action => action
-                                        .WithLabel("Cancel")
-                                        .WithIcon("fas fa-times")
-                                        .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
-                            else
-                                actions
-                                    .AddModel(action => action
-                                        .WithLabel("Edit")
-                                        .WithIcon("fas fa-edit")
-                                        .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"))
-                                    .AddModel(action => action
-                                        .WithLabel("Delete")
-                                        .WithIcon("fas fa-trash")
-                                        .WithClass("text-red-600")
-                                        .WithHxPost($"/Form/{typeId}/Table/Delete?key={row.Key}"));
-                        });
-                    }));
-        });
-    });
-}
-
-static Action<IServiceProvider, DbContextOptionsBuilder> ConfigSqlServer(WebApplicationBuilder builder)
-{
-    return (serviceProvider, o) =>
-    {
-        o.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
-            sqlOptions =>
-            {
-                sqlOptions.MigrationsAssembly("CruSibyl.Core");
-            });
-#if DEBUG
-        o.EnableSensitiveDataLogging();
-#endif
-    };
-}
-
-static Action<IServiceProvider, DbContextOptionsBuilder> ConfigSqlite(WebApplicationBuilder builder)
-{
-    return (serviceProvider, o) =>
-    {
-        o.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"),
-            sqliteOptions =>
-            {
-                sqliteOptions.MigrationsAssembly("CruSibyl.Core");
-            });
-
-#if DEBUG
-        o.EnableSensitiveDataLogging();
-#endif
-    };
-}

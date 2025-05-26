@@ -59,7 +59,9 @@ public abstract class AppDbContext : DbContext
     }
 }
 
-// This is a workaround for the fact that IDbContextFactory<T> is not covariant
+// This is a workaround for the fact that IDbContextFactory<T> is not covariant. We need to inject a factory
+// in order to use the DbContext in a scoped manner while performing resource operation registrations
+// during app startup.
 public class DbContextFactoryAdapter<TConcrete> : IDbContextFactory<AppDbContext>
     where TConcrete : AppDbContext
 {

@@ -27,7 +27,7 @@ public class TableModel<T, TKey> : ITableModel
     public TableState State { get; set; } = new();
     public TableViewPaths TableViewPaths { get; set; } = new();
     public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
-    public Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>> ActionsFactory { get; set; } = _ => Task.FromResult(Enumerable.Empty<ActionModel>());
+    public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
     public Expression<Func<T, TKey>> KeySelector { get; internal set; } = default!;
 
     public TableModel(TableModelConfig<T, TKey> config)
@@ -36,7 +36,7 @@ public class TableModel<T, TKey> : ITableModel
         Columns = config.Columns;
         TableViewPaths = config.TableViewPaths ?? new TableViewPaths();
         ModelHandler = config.ModelHandler ?? throw new ArgumentNullException(nameof(config.ModelHandler));
-        ActionsFactory = config.ActionsFactory ?? (_ => Task.FromResult(Enumerable.Empty<ActionModel>()));
+        ActionsFactories = config.ActionsFactories;
         KeySelector = config.KeySelector ?? throw new ArgumentNullException(nameof(config.KeySelector));
     }
 
@@ -61,7 +61,14 @@ public class TableModel<T, TKey> : ITableModel
 
     public async Task<IEnumerable<ActionModel>> GetActions()
     {
-        return await ActionsFactory.Invoke(this);
+        var results = new List<ActionModel>();
+        foreach (var factory in ActionsFactories)
+        {
+            var actions = await factory(this);
+            if (actions != null)
+                results.AddRange(actions);
+        }
+        return results;
     }
 }
 
@@ -73,5 +80,5 @@ public class TableModelConfig<T, TKey>
     public ModelHandler<T, TKey>? ModelHandler { get; set; }
     public TableViewPaths TableViewPaths { get; set; } = new();
     public List<TableColumnModel<T, TKey>> Columns { get; } = new();
-    public Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>? ActionsFactory { get; set; }
+    public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 }

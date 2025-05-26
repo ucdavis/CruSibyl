@@ -87,6 +87,36 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         return this;
     }
 
+    public TableColumnModelBuilder<T, TKey> WithCrudActions()
+    {
+        WithActions((row, actions) =>
+        {
+            var typeId = row.ModelHandler.TypeId;
+            if (row.IsEditing)
+                actions
+                    .AddModel(action => action
+                        .WithLabel("Save")
+                        .WithIcon("fas fa-save")
+                        .WithHxPost($"/Form/{typeId}/Table/Save"))
+                    .AddModel(action => action
+                        .WithLabel("Cancel")
+                        .WithIcon("fas fa-times")
+                        .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
+            else
+                actions
+                    .AddModel(action => action
+                        .WithLabel("Edit")
+                        .WithIcon("fas fa-edit")
+                        .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"))
+                    .AddModel(action => action
+                        .WithLabel("Delete")
+                        .WithIcon("fas fa-trash")
+                        .WithClass("text-red-600")
+                        .WithHxPost($"/Form/{typeId}/Table/Delete?key={row.Key}"));
+        });
+        return this;
+    }
+
     protected override Task<TableColumnModel<T, TKey>> BuildImpl()
     {
         if (_config.DataOptions.SelectorFunc == null && _config.DataOptions.SelectorExpression != null)

@@ -100,20 +100,36 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         return this;
     }
 
+    public TableModelBuilder<T, TKey> AddCrudDisplayColumn(string header = "Actions")
+    {
+        return AddDisplayColumn("Actions", col => col.WithCrudActions());
+    }
+
 
     public TableModelBuilder<T, TKey> WithActions(Action<TableModel<T, TKey>, ActionSetBuilder> actionsFactory)
     {
         AddBuildTask(() =>
         {
-            _config.ActionsFactory = async (tableModel) =>
+            _config.ActionsFactories.Add(async (tableModel) =>
             {
                 var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
                 actionsFactory.Invoke(tableModel, actionSetBuilder);
                 var actionSet = await actionSetBuilder.Build();
                 return actionSet.Items.Cast<ActionModel>();
-            };
+            });
         });
         return this;
+    }
+
+    public TableModelBuilder<T, TKey> WithCrudActions()
+    {
+        var typeId = _config.TypeId!;
+        return WithActions((table, actions) =>
+            actions.AddModel(action => action
+                .WithLabel("Add New")
+                .WithIcon("fas fa-plus mr-1")
+                .WithHxPost($"/Form/{typeId}/Table/Create")
+        ));
     }
 
     public TableModelBuilder<T, TKey> WithTypeId(string typeId)
