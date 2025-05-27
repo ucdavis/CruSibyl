@@ -67,7 +67,7 @@ try
     appBuilder.Services.AddHtmxComponents(htmxOptions =>
     {
         htmxOptions.WithNavBuilder(NavConfig.RegisterNavigation);
-        htmxOptions.WithModelHandlerRegistry(ModelHandlerConfig.RegisterModels);
+        htmxOptions.WithModelHandlerRegistry(ModelRegistryConfig.RegisterModels);
         htmxOptions.WithPermissionRequirementFactory<PermissionRequirementFactory>();
         htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
     });

@@ -12,9 +12,7 @@ public interface IUserService
 {
     Task<User?> GetUser(Claim[] userClaims);
     Task<User?> GetCurrentUser();
-    Task<string> GetCurrentUserJsonAsync();
     Task<IEnumerable<Permission>> GetCurrentPermissionsAsync();
-    Task<string> GetCurrentPermissionsJsonAsync();
     string? GetCurrentUserId();
 }
 
@@ -51,18 +49,12 @@ public class UserService : IUserService
         return await GetUser(userClaims);
     }
 
-    public async Task<string> GetCurrentUserJsonAsync()
-    {
-        var user = await GetCurrentUser();
-        return JsonSerializer.Serialize(user, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-    }
-
     public async Task<IEnumerable<Permission>> GetCurrentPermissionsAsync()
     {
         if (_httpContextAccessor.HttpContext == null)
         {
             Log.Warning("No HttpContext found. Unable to retrieve User permissions.");
-            return new Permission[] { };
+            return [];
         }
 
         var iamId = _httpContextAccessor.HttpContext.User.Claims.Single(c => c.Type == IamIdClaimType).Value;
@@ -72,26 +64,6 @@ public class UserService : IUserService
             .ToArrayAsync();
         return permissions;
     }
-
-    public async Task<string> GetCurrentPermissionsJsonAsync()
-    {
-        if (_httpContextAccessor.HttpContext == null)
-        {
-            Log.Warning("No HttpContext found. Unable to retrieve User permissions.");
-            return "[]";
-        }
-
-        var iamId = _httpContextAccessor.HttpContext.User.Claims.Single(c => c.Type == IamIdClaimType).Value;
-        var permissions = await _dbContext.Permissions
-            .Where(p => p.User.Iam == iamId)
-            .Select(p => new PermissionModel
-            {
-                Role = p.Role.Name,
-            })
-            .ToArrayAsync();
-        return JsonSerializer.Serialize(permissions, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
-    }
-
 
     // Get any user based on their claims, creating if necessary
     public async Task<User?> GetUser(Claim[] userClaims)

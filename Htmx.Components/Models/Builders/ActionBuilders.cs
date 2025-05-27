@@ -12,7 +12,7 @@ public abstract class ActionItemsBuilder<TBuilder, TSet, TConfig> : BuilderBase<
     protected ActionItemsBuilder(IServiceProvider serviceProvider)
         : base(serviceProvider) { }
 
-    public TBuilder AddModel(Action<ActionModelBuilder> configure)
+    public TBuilder AddAction(Action<ActionModelBuilder> configure)
     {
         AddBuildTask(async () =>
         {

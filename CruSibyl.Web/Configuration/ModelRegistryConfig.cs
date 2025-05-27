@@ -5,7 +5,7 @@ using Htmx.Components.Services;
 
 namespace CruSibyl.Web.Configuration;
 
-public static class ModelHandlerConfig
+public static class ModelRegistryConfig
 {
     public static Action<IModelRegistry> RegisterModels => registry =>
     {

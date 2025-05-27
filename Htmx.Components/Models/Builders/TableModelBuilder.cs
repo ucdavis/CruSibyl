@@ -125,7 +125,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     {
         var typeId = _config.TypeId!;
         return WithActions((table, actions) =>
-            actions.AddModel(action => action
+            actions.AddAction(action => action
                 .WithLabel("Add New")
                 .WithIcon("fas fa-plus mr-1")
                 .WithHxPost($"/Form/{typeId}/Table/Create")

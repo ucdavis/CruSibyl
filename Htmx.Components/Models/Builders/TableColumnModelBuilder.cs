@@ -94,21 +94,21 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
             var typeId = row.ModelHandler.TypeId;
             if (row.IsEditing)
                 actions
-                    .AddModel(action => action
+                    .AddAction(action => action
                         .WithLabel("Save")
                         .WithIcon("fas fa-save")
                         .WithHxPost($"/Form/{typeId}/Table/Save"))
-                    .AddModel(action => action
+                    .AddAction(action => action
                         .WithLabel("Cancel")
                         .WithIcon("fas fa-times")
                         .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
             else
                 actions
-                    .AddModel(action => action
+                    .AddAction(action => action
                         .WithLabel("Edit")
                         .WithIcon("fas fa-edit")
                         .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"))
-                    .AddModel(action => action
+                    .AddAction(action => action
                         .WithLabel("Delete")
                         .WithIcon("fas fa-trash")
                         .WithClass("text-red-600")
