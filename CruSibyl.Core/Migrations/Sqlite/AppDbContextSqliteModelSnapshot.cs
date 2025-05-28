@@ -137,6 +137,9 @@ namespace CruSibyl.Core.Migrations.Sqlite
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("LastScannedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -145,9 +148,24 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.Property<int>("PlatformId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ScanMessage")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ScanNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ScanStatus")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("LastScannedAt");
+
                     b.HasIndex("PlatformId");
+
+                    b.HasIndex("ScanNumber");
+
+                    b.HasIndex("ScanStatus");
 
                     b.HasIndex("Name", "PlatformId")
                         .IsUnique();
@@ -161,14 +179,20 @@ namespace CruSibyl.Core.Migrations.Sqlite
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsLatestMajor")
+                    b.Property<int?>("Major")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsLatestMinor")
+                    b.Property<int?>("Minor")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("PackageId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<int?>("Patch")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("PreRelease")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Version")
                         .IsRequired()
@@ -254,12 +278,33 @@ namespace CruSibyl.Core.Migrations.Sqlite
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("LastScannedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ScanMessage")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ScanNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ScanStatus")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("LastScannedAt");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("ScanNumber");
+
+                    b.HasIndex("ScanStatus");
 
                     b.ToTable("Repos");
                 });

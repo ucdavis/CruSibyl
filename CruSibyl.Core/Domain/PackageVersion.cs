@@ -18,6 +18,11 @@ public class PackageVersion
     [Required, MaxLength(50)]
     public string Version { get; set; } = null!;
 
-    public bool IsLatestMinor { get; set; }
-    public bool IsLatestMajor { get; set; }
+    public int? Major { get; set; }
+
+    public int? Minor { get; set; }
+
+    public int? Patch { get; set; }
+
+    public string? PreRelease { get; set; }
 }
