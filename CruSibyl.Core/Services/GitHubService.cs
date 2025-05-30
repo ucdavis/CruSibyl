@@ -1,15 +1,10 @@
 
 
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
-using CruSibyl.Core.Extensions;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using Octokit;
+using Serilog;
 
 namespace CruSibyl.Core.Services;
 
@@ -21,6 +16,10 @@ public interface IGitHubService
 public class GitHubService : IGitHubService
 {
     private readonly GitHubSettings _settings;
+    private readonly SemaphoreSlim _rateLimitSemaphore = new(1, 1);
+    private int _requestCount = 0;
+    private const int CoreRequestThreshold = 50;
+    private const int SearchRequestThreshold = 10;
 
     public GitHubService(IOptions<GitHubSettings> settings)
     {
@@ -35,18 +34,19 @@ public class GitHubService : IGitHubService
         var csprojManifests = await GetCSProjManifests(client, owner, repo);
         var npmManifests = await GetNPMManifests(client, owner, repo);
 
-        return csprojManifests.Concat(npmManifests).ToList();
+        return [.. csprojManifests, .. npmManifests];
     }
 
-    Task<GitHubClient> GetGitHubClient()
+    private Task<GitHubClient> GetGitHubClient()
     {
-        var gitHubClient = new GitHubClient(new ProductHeaderValue("YourAppName"));
+        var gitHubClient = new GitHubClient(new ProductHeaderValue("CruSibyl"));
         gitHubClient.Credentials = new Credentials(_settings.AccessToken);
         return Task.FromResult(gitHubClient);
     }
 
-    static async Task<List<ManifestData>> GetCSProjManifests(GitHubClient client, string owner, string repo)
+    private async Task<List<ManifestData>> GetCSProjManifests(GitHubClient client, string owner, string repo)
     {
+        Log.Information("Searching for .csproj files in repository {Repo}", repo);
         var csprojFiles = await SearchFilesInRepo(client, owner, repo, "extension:csproj");
         var manifests = new List<ManifestData>();
 
@@ -68,8 +68,9 @@ public class GitHubService : IGitHubService
         return manifests;
     }
 
-    static async Task<List<ManifestData>> GetNPMManifests(GitHubClient client, string owner, string repo)
+    private async Task<List<ManifestData>> GetNPMManifests(GitHubClient client, string owner, string repo)
     {
+        Log.Information("Searching for package.json files in repository {Repo}", repo);
         var packageJsonFiles = await SearchFilesInRepo(client, owner, repo, "filename:package.json");
         var manifests = new List<ManifestData>();
 
@@ -79,10 +80,10 @@ public class GitHubService : IGitHubService
             using var doc = JsonDocument.Parse(jsonContent);
             var dependencies = ExtractNPMDependencies(doc);
 
-            var platformVersion = doc.RootElement.TryGetProperty("engines", out var engines) &&
-                                  engines.TryGetProperty("node", out var nodeVersion)
-                                  ? nodeVersion.GetString() ?? "Unknown"
-                                  : "Unknown";
+            var platformVersion = doc.RootElement.TryGetProperty("engines", out var engines)
+                && engines.TryGetProperty("node", out var nodeVersion)
+                ? nodeVersion.GetString() ?? "Unknown"
+                : "Unknown";
 
             manifests.Add(new ManifestData
             {
@@ -96,9 +97,9 @@ public class GitHubService : IGitHubService
         return manifests;
     }
 
-
-    static async Task<List<string>> SearchFilesInRepo(GitHubClient client, string owner, string repo, string query)
+    async Task<List<string>> SearchFilesInRepo(GitHubClient client, string owner, string repo, string query)
     {
+        await ThrottleIfNeeded(client, GitHubRequestType.Search);
         var searchQuery = $"{query} repo:{owner}/{repo}";
         var searchRequest = new SearchCodeRequest(searchQuery);
         var searchResults = await client.Search.SearchCode(searchRequest);
@@ -106,14 +107,16 @@ public class GitHubService : IGitHubService
         return searchResults.Items.Select(item => item.Path).ToList();
     }
 
-    static async Task<XDocument> LoadXmlFileFromRepo(GitHubClient client, string owner, string repo, string filePath)
+    async Task<XDocument> LoadXmlFileFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
+        await ThrottleIfNeeded(client, GitHubRequestType.Core);
         string content = await LoadFileContentFromRepo(client, owner, repo, filePath);
         return XDocument.Parse(content);
     }
 
-    static async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
+    async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
+        await ThrottleIfNeeded(client, GitHubRequestType.Core);
         var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
         var content = contents.FirstOrDefault()?.Content ?? "";
         // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
@@ -123,12 +126,12 @@ public class GitHubService : IGitHubService
     static List<DependencyData> ExtractCsprojDependencies(XDocument xmlDoc)
     {
         return xmlDoc.Descendants("PackageReference")
-                     .Select(p => new DependencyData
-                     {
-                         Name = p.Attribute("Include")?.Value ?? "Unknown",
-                         Version = p.Attribute("Version")?.Value ?? "Unknown"
-                     })
-                     .ToList();
+            .Select(p => new DependencyData
+            {
+                Name = p.Attribute("Include")?.Value ?? "Unknown",
+                Version = p.Attribute("Version")?.Value ?? "Unknown"
+            })
+            .ToList();
     }
 
     static List<DependencyData> ExtractNPMDependencies(JsonDocument doc)
@@ -160,6 +163,37 @@ public class GitHubService : IGitHubService
         }
         return packages;
     }
+
+    private async Task ThrottleIfNeeded(GitHubClient client, GitHubRequestType type)
+    {
+        await _rateLimitSemaphore.WaitAsync();
+        try
+        {
+            _requestCount++;
+            int threshold = type == GitHubRequestType.Search ? SearchRequestThreshold : CoreRequestThreshold;
+            if (_requestCount % threshold == 0)
+            {
+                var rateLimits = await client.RateLimit.GetRateLimits();
+                var resource = type == GitHubRequestType.Search ? rateLimits.Resources.Search : rateLimits.Resources.Core;
+                if (resource.Remaining < threshold)
+                {
+                    var waitTime = resource.Reset.UtcDateTime - DateTime.UtcNow;
+                    if (waitTime > TimeSpan.Zero)
+                    {
+                        Log.Information("Rate limit reached for GitHubRequestType {RequestType}. Waiting {WaitTime} before next request.", type, waitTime);
+                        await Task.Delay(waitTime);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _rateLimitSemaphore.Release();
+        }
+    }
+
+    private enum GitHubRequestType { Core, Search }
+
 }
 
 public class ManifestData
