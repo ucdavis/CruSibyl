@@ -1,4 +1,5 @@
 using Htmx.Components.Authorization;
+using Htmx.Components.Filters;
 using Htmx.Components.Models.Builders;
 using Htmx.Components.Models.Table;
 using Htmx.Components.NavBar;
@@ -46,14 +47,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPageState, PageState>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddDataProtection();
+        services.AddScoped<TableOobConverterFilter>();
         services.AddScoped<PageStateOobInjectorFilter>();
 
         services.PostConfigure<MvcOptions>(options =>
         {
+            // Be sure to place filters that convert models to MultiSwapViewResults before the filters that inject OOB content.
+            options.Filters.AddService<TableOobConverterFilter>();
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
 
-        if (options.RegisterPermissionRequirementFactory == null 
+        if (options.RegisterPermissionRequirementFactory == null
             && !services.Any(sd => sd.ServiceType == typeof(IPermissionRequirementFactory)))
         {
             throw new InvalidOperationException(
@@ -61,7 +65,7 @@ public static class ServiceCollectionExtensions
         }
         options.RegisterPermissionRequirementFactory!(services);
 
-        if (options.RegisterResourceOperationRegistry == null 
+        if (options.RegisterResourceOperationRegistry == null
             && !services.Any(sd => sd.ServiceType == typeof(IResourceOperationRegistry)))
         {
             throw new InvalidOperationException(

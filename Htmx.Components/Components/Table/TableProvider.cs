@@ -25,9 +25,6 @@ public interface ITableProvider
         IQueryable<T> query,
         TableState tableState)
         where T : class;
-
-    IActionResult RefreshAllViews(ITableModel tableModel);
-    IActionResult RefreshEditViews(ITableModel tableModel);
 }
 
 public enum EditAction
@@ -46,12 +43,10 @@ public enum EditStatus
 
 public class TableProvider : ITableProvider
 {
-    private readonly TableViewPaths _paths;
     private readonly IPageState _pageState;
 
-    public TableProvider(TableViewPaths paths, IPageState pageState)
+    public TableProvider(IPageState pageState)
     {
-        _paths = paths;
         _pageState = pageState;
     }
 
@@ -96,41 +91,6 @@ public class TableProvider : ITableProvider
             };
             return rowContext;
         }).ToList();        
-    }
-
-    public IActionResult RefreshAllViews(ITableModel tableModel)
-    {
-        if (tableModel.TableViewPaths == null)
-        {
-            tableModel.TableViewPaths = _paths;
-        }
-        
-        return new MultiSwapViewResult()
-            .WithOobContent(_paths.TableActionList, tableModel)
-            .WithOobContent(_paths.EditClassToggle, tableModel)
-            .WithOobContent(_paths.Body, tableModel)
-            .WithOobContent(_paths.Pagination, tableModel)
-            .WithOobContent(_paths.Header, tableModel);
-    }
-
-
-    public IActionResult RefreshEditViews(ITableModel tableModel)
-    {
-        if (tableModel.TableViewPaths == null)
-        {
-            tableModel.TableViewPaths = _paths;
-        }
-
-        var result = new MultiSwapViewResult()
-            .WithOobContent(_paths.EditClassToggle, tableModel)
-            .WithOobContent(_paths.TableActionList, tableModel);
-
-        foreach (var row in tableModel.Rows)
-        {
-            result.WithOobContent(_paths.Row, (tableModel, row), row.TargetDisposition ?? OobTargetDisposition.OuterHtml, row.TargetSelector);
-        }
-        
-        return result;
     }
 
     private IQueryable<T> ApplyRangeFiltering<T, TKey>(IQueryable<T> queryable, TableState tableState, TableModel<T, TKey> tableModel)

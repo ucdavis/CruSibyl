@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Htmx.Components.Attributes;
 using Htmx.Components.Authorization;
 using Htmx.Components.Models;
 using Htmx.Components.Models.Table;
@@ -32,6 +33,7 @@ public class FormController : Controller
 
 
     [HttpPost("{typeId}/{modelUI}/Save")]
+    [TableEditAction]
     public async Task<IActionResult> Save(string typeId, ModelUI modelUI)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
@@ -96,10 +98,11 @@ public class FormController : Controller
         pageState.ClearKey("Table", "EditingItem");
         pageState.ClearKey("Table", "EditingExistingRecord");
 
-        return _tableProvider.RefreshEditViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/CancelEdit")]
+    [TableEditAction]
     public async Task<IActionResult> CancelEdit(string typeId, ModelUI modelUI)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
@@ -154,10 +157,11 @@ public class FormController : Controller
 
         pageState.ClearKey("Table", "EditingItem");
         pageState.ClearKey("Table", "EditingExistingRecord");
-        return _tableProvider.RefreshEditViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/Delete")]
+    [TableEditAction]
     public async Task<IActionResult> Delete(string typeId, ModelUI modelUI, string key)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
@@ -195,10 +199,11 @@ public class FormController : Controller
             TargetDisposition = OobTargetDisposition.Delete,
         });
 
-        return _tableProvider.RefreshEditViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/Edit")]
+    [TableEditAction]
     public async Task<IActionResult> Edit(string typeId, ModelUI modelUI, string key)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
@@ -241,11 +246,12 @@ public class FormController : Controller
             IsEditing = true,
         });
 
-        return _tableProvider.RefreshEditViews(tableModel);
+        return Ok(tableModel);
     }
 
 
     [HttpPost("{typeId}/SetPage")]
+    [TableRefreshAction]
     public async Task<IActionResult> SetPage(string typeId, int page)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
@@ -273,10 +279,11 @@ public class FormController : Controller
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
-        return _tableProvider.RefreshAllViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/SetPageSize")]
+    [TableRefreshAction]
     public async Task<IActionResult> SetPageSize(string typeId, int pageSize)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
@@ -304,10 +311,11 @@ public class FormController : Controller
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
-        return _tableProvider.RefreshAllViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/SetSort")]
+    [TableRefreshAction]
     public async Task<IActionResult> SetSort(string typeId, string column, string direction)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
@@ -336,7 +344,7 @@ public class FormController : Controller
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
 
-        return _tableProvider.RefreshAllViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/SetValue")]
@@ -392,6 +400,7 @@ public class FormController : Controller
     }
 
     [HttpPost("{typeId}/SetFilter")]
+    [TableRefreshAction]
     public async Task<IActionResult> SetFilter(string typeId, string column, string filter, int input)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, ModelUI.Table);
@@ -443,10 +452,11 @@ public class FormController : Controller
 
         pageState.Set("Table", "State", tableState);
         await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
-        return _tableProvider.RefreshAllViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/Create")]
+    [TableEditAction]
     public async Task<IActionResult> Create(string typeId, ModelUI modelUI)
     {
         var modelHandler = await _modelRegistry.GetModelHandler(typeId, modelUI);
@@ -484,7 +494,7 @@ public class FormController : Controller
             IsEditing = true,
         });
 
-        return _tableProvider.RefreshEditViews(tableModel);
+        return Ok(tableModel);
     }
 
     [HttpPost("{typeId}/{modelUI}/ValueChanged")]

@@ -1,8 +1,9 @@
 using Htmx.Components.Models;
+using Htmx.Components.State;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Htmx.Components.State;
+namespace Htmx.Components.Filters;
 
 public class PageStateOobInjectorFilter : IAsyncResultFilter
 {
