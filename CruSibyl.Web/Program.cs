@@ -66,10 +66,11 @@ try
 
     appBuilder.Services.AddHtmxComponents(htmxOptions =>
     {
-        htmxOptions.WithNavBuilder(NavConfig.RegisterNavigation);
+        // htmxOptions.WithNavBuilder(NavConfig.RegisterNavigation);
         htmxOptions.WithModelHandlerRegistry(ModelRegistryConfig.RegisterModels);
         htmxOptions.WithPermissionRequirementFactory<PermissionRequirementFactory>();
         htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
+        htmxOptions.WithUserIdClaimType(UserService.IamIdClaimType);
     });
 
     appBuilder.Services.AddControllersWithViews(options =>

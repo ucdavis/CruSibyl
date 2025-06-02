@@ -13,11 +13,13 @@ using Htmx.Components.Services;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Text.Json;
 using Htmx.Components.Models.Table;
+using Htmx.Components.Attributes;
 
 namespace CruSibyl.Web.Controllers;
 
 [Authorize]
 [Route("Admin")]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 1)]
 public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
@@ -32,6 +34,7 @@ public class AdminController : TabController
     }
 
     [HttpGet]
+    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true)]
     public Task<IActionResult> Index()
     {
         return Table();

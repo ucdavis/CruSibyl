@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Htmx.Components.Authorization;
 using Htmx.Components.Filters;
 using Htmx.Components.Models.Builders;
@@ -33,10 +34,20 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options.TableViewPaths);
         services.AddScoped<ITableProvider, TableProvider>();
+        services.AddMemoryCache();
+        services.Configure<AuthorizationMetadataSettings>(settings =>
+        {
+            settings.UserIdClaimType = options.UserIdClaimType;
+        });
+        services.AddScoped<IAuthorizationMetadataService, AuthorizationMetadataService>();
 
         if (options.NavProviderFactory is not null)
         {
             services.AddScoped<INavProvider, BuilderBasedNavProvider>(options.NavProviderFactory);
+        }
+        else
+        {
+            services.AddScoped<INavProvider, AttributeNavProvider>();
         }
 
         if (options.ModelRegistryFactory is not null)
@@ -129,6 +140,13 @@ public class HtmxComponentOptions
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
+    internal string UserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
+
+    public HtmxComponentOptions WithUserIdClaimType(string claimType)
+    {
+        UserIdClaimType = claimType;
+        return this;
+    }
 
     public HtmxComponentOptions WithNavBuilder(Func<ActionSetBuilder, Task> builderFactory)
     {
