@@ -50,12 +50,12 @@ public class AttributeNavProvider : INavProvider
                 .Select(async desc =>
                 {
                     var meta = await _authMetadataService.GetMetadataAsync(desc);
-                    return new
+                    return new NavActionDescriptor
                     {
-                        desc.MethodInfo,
-                        desc.ControllerTypeInfo,
-                        desc.ActionName,
-                        desc.ControllerName,
+                        MethodInfo = desc.MethodInfo,
+                        ControllerTypeInfo = desc.ControllerTypeInfo,
+                        ActionName = desc.ActionName,
+                        ControllerName = desc.ControllerName,
                         ActionAttr = desc.MethodInfo.GetCustomAttribute<NavActionAttribute>()!,
                         GroupAttr = desc.MethodInfo.GetCustomAttribute<NavActionGroupAttribute>()
                             ?? desc.ControllerTypeInfo.GetCustomAttribute<NavActionGroupAttribute>(),
@@ -92,17 +92,7 @@ public class AttributeNavProvider : INavProvider
                 if (!isAuthorized)
                     continue;
 
-                builder.AddAction(a =>
-                {
-                    a.WithIcon(actionAttr.Icon ?? "");
-                    a.WithLabel(actionAttr.DisplayName ?? desc.ActionName);
-                    if (string.Equals(actionAttr.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
-                        a.WithHxPost($"/{desc.ControllerName}/{desc.ActionName}");
-                    else
-                        a.WithHxGet($"/{desc.ControllerName}/{desc.ActionName}");
-                    a.WithHxPushUrl(actionAttr.PushUrl.ToString().ToLowerInvariant());
-                });
-
+                builder.AddAction(BuildActionModelBuilder(desc));
             }
             else
             {
@@ -111,16 +101,7 @@ public class AttributeNavProvider : INavProvider
                 {
                     if (!await _authMetadataService.IsAuthorizedAsync(desc.Descriptor, user))
                         continue;
-                    actionModelBuilders.Add(a =>
-                    {
-                        a.WithIcon(desc.ActionAttr.Icon ?? "");
-                        a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName);
-                        if (string.Equals(desc.ActionAttr.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
-                            a.WithHxPost($"/{desc.ControllerName}/{desc.ActionName}");
-                        else
-                            a.WithHxGet($"/{desc.ControllerName}/{desc.ActionName}");
-                        a.WithHxPushUrl(desc.ActionAttr.PushUrl.ToString().ToLowerInvariant());
-                    });
+                    actionModelBuilders.Add(BuildActionModelBuilder(desc));
                 }
 
                 if (!actionModelBuilders.Any())
@@ -139,5 +120,36 @@ public class AttributeNavProvider : INavProvider
         }
 
         return await builder.Build();
+    }
+
+    private static Action<ActionModelBuilder> BuildActionModelBuilder(NavActionDescriptor desc)
+    {
+        return a =>
+        {
+            a.WithIcon(desc.ActionAttr.Icon ?? "");
+            a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName);
+            // We're assuming an action named "Index" is the default action for the controller
+            string url = desc.ActionName.Equals("Index", StringComparison.OrdinalIgnoreCase)
+                ? $"/{desc.ControllerName}"
+                : $"/{desc.ControllerName}/{desc.ActionName}";
+
+            if (string.Equals(desc.ActionAttr.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+                a.WithHxPost(url);
+            else
+                a.WithHxGet(url);
+            a.WithHxPushUrl(desc.ActionAttr.PushUrl.ToString().ToLowerInvariant());
+        };
+    }
+
+    private class NavActionDescriptor
+    {
+        public MethodInfo MethodInfo { get; set; } = default!;
+        public TypeInfo ControllerTypeInfo { get; set; } = default!;
+        public string ActionName { get; set; } = "";
+        public string ControllerName { get; set; } = "";
+        public NavActionAttribute ActionAttr { get; set; } = default!;
+        public NavActionGroupAttribute? GroupAttr { get; set; }
+        public object? Metadata { get; set; }
+        public ControllerActionDescriptor Descriptor { get; set; } = default!;
     }
 }
