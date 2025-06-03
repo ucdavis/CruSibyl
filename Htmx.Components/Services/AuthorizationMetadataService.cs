@@ -31,6 +31,8 @@ public class AuthorizationMetadataService : IAuthorizationMetadataService
     private readonly IAuthorizationService _authorizationService;
     private readonly IMemoryCache _cache;
     private readonly AuthorizationMetadataSettings _settings;
+    private const int MetadataCacheExpirationMinutes = 10;
+    private const int AuthorizationCacheExpirationMinutes = 2;
 
     public AuthorizationMetadataService(
         IAuthorizationService authorizationService,
@@ -42,14 +44,14 @@ public class AuthorizationMetadataService : IAuthorizationMetadataService
         _settings = settings.Value ?? new AuthorizationMetadataSettings();
     }
 
-    public Task<AuthorizationMetadata> GetMetadataAsync(ControllerActionDescriptor descriptor)
+    public async Task<AuthorizationMetadata> GetMetadataAsync(ControllerActionDescriptor descriptor)
     {
-        // // Extract and cache attribute metadata (not user-specific)
-        // var result = await _cache.GetOrCreateAsync(
-        //     $"authmeta:{descriptor.UniqueId()}",
-        //     entry =>
-        //     {
-        //         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+        // Extract and cache attribute metadata (not user-specific)
+        var result = await _cache.GetOrCreateAsync(
+            $"authmeta:{descriptor.UniqueId()}",
+            entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(MetadataCacheExpirationMinutes);
                 var authorizeAttrs = descriptor.MethodInfo
                     .GetCustomAttributes<AuthorizeAttribute>(true)
                     .Concat(descriptor.ControllerTypeInfo.GetCustomAttributes<AuthorizeAttribute>(true))
@@ -83,8 +85,8 @@ public class AuthorizationMetadataService : IAuthorizationMetadataService
                     OnlyRequiresAuthentication = onlyRequiresAuthentication,
                     AllowAnonymous = allowAnonymous
                 });
-        //     });
-        // return result!;
+            });
+        return result!;
     }
 
     public async Task<bool> IsAuthorizedAsync(ControllerActionDescriptor descriptor, ClaimsPrincipal user)
@@ -100,17 +102,17 @@ public class AuthorizationMetadataService : IAuthorizationMetadataService
 
         foreach (var policy in meta.Policies)
         {
-            // var userId = user.FindFirst(_settings.UserIdClaimType)?.Value ?? "anonymous";
-            // var result = await _cache.GetOrCreateAsync(
-            //     $"authz:{userId}:{policy}",
-            //     async entry =>
-            //     {
-            //         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
+            var userId = user.FindFirst(_settings.UserIdClaimType)?.Value ?? "anonymous";
+            var isAuthorized = await _cache.GetOrCreateAsync(
+                $"authz:{userId}:{policy}",
+                async entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(AuthorizationCacheExpirationMinutes);
                     var authResult = await _authorizationService.AuthorizeAsync(user, policy);
                     return authResult.Succeeded;
-            //     });
-            // if (result is bool b && b)
-            //     return true;
+                });
+            if (isAuthorized)
+                return true;
         }
 
         var userRoles = user.Claims
