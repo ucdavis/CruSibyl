@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
             settings.UserIdClaimType = options.UserIdClaimType;
         });
         services.AddScoped<IAuthorizationMetadataService, AuthorizationMetadataService>();
+        
 
         if (options.NavProviderFactory is not null)
         {
@@ -58,13 +59,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPageState, PageState>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddDataProtection();
-        services.AddScoped<TableOobConverterFilter>();
+        services.AddScoped<TableOobRefreshFilter>();
         services.AddScoped<PageStateOobInjectorFilter>();
+        services.AddScoped<TableOobEditFilter>();
+        services.AddScoped<NavActionResultFilter>();
 
         services.PostConfigure<MvcOptions>(options =>
         {
             // Be sure to place filters that convert models to MultiSwapViewResults before the filters that inject OOB content.
-            options.Filters.AddService<TableOobConverterFilter>();
+            options.Filters.AddService<TableOobRefreshFilter>();
+            options.Filters.AddService<TableOobEditFilter>();
+            options.Filters.AddService<NavActionResultFilter>();
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
 

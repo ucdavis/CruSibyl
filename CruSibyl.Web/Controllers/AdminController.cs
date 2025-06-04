@@ -34,7 +34,7 @@ public class AdminController : TabController
     }
 
     [HttpGet]
-    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true)]
+    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Content")]
     public Task<IActionResult> Index()
     {
         return Table();
@@ -51,14 +51,6 @@ public class AdminController : TabController
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 
-        if (Request.IsHtmx())
-        {
-            return await HtmxResultBuilder
-                .WithOobNavbar()
-                .WithOob("_Content", tableModel)
-                .BuildAsync();
-        }
-
-        return RenderInitialMainContent("_Content", tableModel);
+        return Ok(tableModel);
     }
 }

@@ -16,4 +16,5 @@ public class NavActionAttribute : Attribute
     public string? DisplayName { get; set; }
     public string? HttpMethod { get; set; } = "GET";
     public bool PushUrl { get; set; }
+    public string? ViewName { get; set; }
 }

@@ -1,4 +1,5 @@
 using System.Text.Encodings.Web;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Htmx.Components.Models;
 using Microsoft.AspNetCore.Http;
@@ -19,6 +20,10 @@ public class MultiSwapViewResult : IActionResult
 {
     private HtmxViewInfo? _main;
     private readonly List<HtmxViewInfo> _oobs = new();
+
+    // holds original model in case it's needed for further processing such as in result filters
+    [JsonIgnore]
+    public object? Model { get; set; }
 
     public MultiSwapViewResult()
     { }
