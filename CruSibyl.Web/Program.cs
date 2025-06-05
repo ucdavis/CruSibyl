@@ -8,6 +8,7 @@ using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
 using CruSibyl.Web.Middleware.Auth;
 using Htmx.Components;
+using Htmx.Components.Configuration;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -67,7 +68,13 @@ try
     appBuilder.Services.AddHtmxComponents(htmxOptions =>
     {
         // htmxOptions.WithNavBuilder(NavConfig.RegisterNavigation);
-        htmxOptions.WithModelHandlerRegistry(ModelRegistryConfig.RegisterModels);
+        htmxOptions.WithModelHandlerRegistry(
+            // ModelRegistryConfig.RegisterModels
+            (registry, serviceProvider) =>
+            {
+                ModelHandlerAttributeRegistrar.RegisterAll(registry);
+            }
+        );
         htmxOptions.WithPermissionRequirementFactory<PermissionRequirementFactory>();
         htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
         htmxOptions.WithUserIdClaimType(UserService.IamIdClaimType);

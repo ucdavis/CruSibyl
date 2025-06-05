@@ -183,14 +183,14 @@ public class HtmxComponentOptions
         return this;
     }
 
-    public HtmxComponentOptions WithModelHandlerRegistry(Action<IModelRegistry> configure)
+    public HtmxComponentOptions WithModelHandlerRegistry(Action<IModelRegistry, IServiceProvider> configure)
     {
         ModelRegistryFactory = serviceProvider =>
         {
             var tableViewPaths = serviceProvider.GetRequiredService<TableViewPaths>();
             var resourceOperationRegistry = serviceProvider.GetRequiredService<IResourceOperationRegistry>();
             var modelRegistry = new ModelRegistry(tableViewPaths, serviceProvider, resourceOperationRegistry);
-            configure(modelRegistry);
+            configure(modelRegistry, serviceProvider);
             return modelRegistry;
         };
         return this;

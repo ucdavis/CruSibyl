@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Text.Json;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Attributes;
+using Htmx.Components.Models.Builders;
+using Result = Htmx.Components.Models.Result;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -24,33 +26,94 @@ public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
     private readonly ITableProvider _tableProvider;
-    private readonly IModelRegistry _modelRegistry;
 
-    public AdminController(AppDbContext dbContext, ITableProvider tableProvider, IModelRegistry modelRegistry)
+    public AdminController(AppDbContext dbContext, ITableProvider tableProvider)
     {
         _dbContext = dbContext;
         _tableProvider = tableProvider;
-        _modelRegistry = modelRegistry;
     }
 
     [HttpGet]
     [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Content")]
-    public Task<IActionResult> Index()
-    {
-        return Table();
-    }
-
-    [HttpGet("Index")]
-    public async Task<IActionResult> Table()
+    public async Task<IActionResult> Index([FromServices] IModelRegistry modelRegistry)
     {
         var pageState = this.GetPageState();
         var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
-        var modelHandler = await _modelRegistry.GetModelHandler<Repo, int>(nameof(Repo), ModelUI.Table);
+        var modelHandler = await modelRegistry.GetModelHandler<Repo, int>(nameof(Repo), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 
         return Ok(tableModel);
+    }
+
+    [ModelCreate]
+    private async Task<Result> CreateRepoAsync(Repo repo)
+    {
+        if (string.IsNullOrWhiteSpace(repo.Name))
+        {
+            return Result.Error("Repo name is required.");
+        }
+
+        _dbContext.Repos.Add(repo);
+        await _dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    [ModelRead]
+    private IQueryable<Repo> ReadRepos()
+    { 
+        return _dbContext.Repos.AsNoTracking();
+    }
+
+    [ModelUpdate]
+    private async Task<Result> UpdateRepoAsync(Repo repo)
+    { 
+        if (string.IsNullOrWhiteSpace(repo.Name))
+        {
+            return Result.Error("Repo name is required.");
+        }
+
+        _dbContext.Repos.Update(repo);
+        await _dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    [ModelDelete]
+    private async Task<Result> DeleteRepoAsync(int id)
+    { 
+        var repo = await _dbContext.Repos.FindAsync(id);
+        if (repo == null)
+        {
+            return Result.Error("Repo not found.");
+        }
+
+        _dbContext.Repos.Remove(repo);
+        await _dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    [ModelConfig]
+    private void ConfigureRepo(ModelHandlerBuilder<Repo, int> builder)
+    {
+        builder
+            .WithKeySelector(r => r.Id)
+            .WithInput(r => r.Name, config => config
+                    .WithLabel("Name")
+                    .WithPlaceholder("Enter repo name")
+                    .WithCssClass("form-control"))
+                .WithInput(r => r.Description, config => config
+                    .WithLabel("Description")
+                    .WithPlaceholder("Enter repo description")
+                    .WithCssClass("form-control"))
+                .WithTable(table => table
+                    .WithCrudActions()
+                    .AddSelectorColumn("Name", x => x.Name, config => config
+                        .WithEditable()
+                        .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
+                    .AddSelectorColumn("Description", x => x.Description!, config => config
+                        .WithEditable())
+                    .AddCrudDisplayColumn());
     }
 }

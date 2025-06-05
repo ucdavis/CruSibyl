@@ -4,6 +4,8 @@ using Serilog;
 using Serilog.Context;
 using Serilog.Events;
 
+namespace CruSibyl.Core.Models;
+
 public class Result<T> : Result
 {
     public T Value { get; }
