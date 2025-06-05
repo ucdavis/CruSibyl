@@ -4,6 +4,7 @@ using FastExpressionCompiler;
 using Htmx.Components.Attributes;
 using Htmx.Components.Models;
 using Htmx.Components.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.Configuration;
 
@@ -42,7 +43,6 @@ public static class ModelHandlerAttributeRegistrar
             var builderType = configParam.ParameterType;
             var modelType = builderType.GetGenericArguments()[0];
             var keyType = builderType.GetGenericArguments()[1];
-            var typeId = modelType.Name;
 
             // Find CRUD methods
             var methods = controllerType.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance);
@@ -50,6 +50,41 @@ public static class ModelHandlerAttributeRegistrar
             var readMethod = methods.FirstOrDefault(m => m.GetCustomAttribute<ModelReadAttribute>() != null);
             var updateMethod = methods.FirstOrDefault(m => m.GetCustomAttribute<ModelUpdateAttribute>() != null);
             var deleteMethod = methods.FirstOrDefault(m => m.GetCustomAttribute<ModelDeleteAttribute>() != null);
+
+            // Get typeId from attribute (mandatory)
+            string typeId = null!;
+            if (configMethod != null)
+            {
+                var attr = configMethod.GetCustomAttribute<ModelConfigAttribute>();
+                if (attr != null)
+                    typeId = attr.ModelTypeId;
+            }
+            else if (createMethod != null)
+            {
+                var attr = createMethod.GetCustomAttribute<ModelCreateAttribute>();
+                if (attr != null)
+                    typeId = attr.ModelTypeId;
+            }
+            else if (readMethod != null)
+            {
+                var attr = readMethod.GetCustomAttribute<ModelReadAttribute>();
+                if (attr != null)
+                    typeId = attr.ModelTypeId;
+            }
+            else if (updateMethod != null)
+            {
+                var attr = updateMethod.GetCustomAttribute<ModelUpdateAttribute>();
+                if (attr != null)
+                    typeId = attr.ModelTypeId;
+            }
+            else if (deleteMethod != null)
+            {
+                var attr = deleteMethod.GetCustomAttribute<ModelDeleteAttribute>();
+                if (attr != null)
+                    typeId = attr.ModelTypeId;
+            }
+            if (typeId == null)
+                throw new InvalidOperationException($"No Model* attribute with typeId found on controller {controllerType.Name}.");
 
             // Compile delegates using FastExpressionCompiler
             var controllerParam = Expression.Parameter(typeof(object), "controller");
@@ -105,7 +140,7 @@ public static class ModelHandlerAttributeRegistrar
                 ModelType = modelType,
                 KeyType = keyType,
                 ControllerType = controllerType,
-                ConfigMethod = configMethod,
+                ConfigMethod = configMethod!,
                 CreateDelegate = createDelegate,
                 ReadDelegate = readDelegate,
                 UpdateDelegate = updateDelegate,
