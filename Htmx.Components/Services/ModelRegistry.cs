@@ -6,8 +6,10 @@ using Htmx.Components.Models;
 using Htmx.Components.Models.Builders;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Table;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.Services;
+
 
 public interface IModelRegistry
 {
@@ -70,4 +72,46 @@ public class ModelRegistry : IModelRegistry
     }
 }
 
+/// <summary>
+/// Factory interface for creating model handlers.
+/// Inject this into your controllers rather than <seealso cref="IModelRegistry"/>"/> in 
+/// order to avoid DI recursion issues.
+/// </summary>
+public interface IModelHandlerFactory
+{
+    Task<ModelHandler> Get(string typeId, ModelUI modelUI);
+}
 
+/// <summary>
+/// Factory interface for creating model handlers.
+/// Inject this into your controllers rather than <seealso cref="IModelRegistry"/>"/> in 
+/// order to avoid DI recursion issues.
+/// </summary>
+public interface IModelHandlerFactoryGeneric
+{
+    Task<ModelHandler<T, TKey>> Get<T, TKey>(string typeId, ModelUI modelUI)
+        where T : class;
+}
+
+public class ModelHandlerFactory : IModelHandlerFactory, IModelHandlerFactoryGeneric
+{
+    private readonly IServiceProvider _serviceProvider;
+
+    public ModelHandlerFactory(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
+
+    public Task<ModelHandler> Get(string typeId, ModelUI modelUI)
+    {
+        var registry = _serviceProvider.GetRequiredService<IModelRegistry>();
+        return registry.GetModelHandler(typeId, modelUI);
+    }
+
+    public Task<ModelHandler<T, TKey>> Get<T, TKey>(string typeId, ModelUI modelUI)
+        where T : class
+    {
+        var registry = _serviceProvider.GetRequiredService<IModelRegistry>();
+        return registry.GetModelHandler<T, TKey>(typeId, modelUI);
+    }
+}

@@ -26,22 +26,25 @@ public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
     private readonly ITableProvider _tableProvider;
+    private readonly IModelHandlerFactoryGeneric _modelHandlerFactory;
 
-    public AdminController(AppDbContext dbContext, ITableProvider tableProvider)
+
+    public AdminController(AppDbContext dbContext, ITableProvider tableProvider, IModelHandlerFactoryGeneric modelHandlerFactory)
     {
         _dbContext = dbContext;
         _tableProvider = tableProvider;
+        _modelHandlerFactory = modelHandlerFactory;
     }
 
     [HttpGet]
     [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Content")]
-    public async Task<IActionResult> Index([FromServices] IModelRegistry modelRegistry)
+    public async Task<IActionResult> Index()
     {
         var pageState = this.GetPageState();
         var tableState = new TableState();
         pageState.Set("Table", "State", tableState);
 
-        var modelHandler = await modelRegistry.GetModelHandler<Repo, int>(nameof(Repo), ModelUI.Table);
+        var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModel();
         await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
 

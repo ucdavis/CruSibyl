@@ -40,7 +40,7 @@ public static class ServiceCollectionExtensions
             settings.UserIdClaimType = options.UserIdClaimType;
         });
         services.AddScoped<IAuthorizationMetadataService, AuthorizationMetadataService>();
-        
+
 
         if (options.NavProviderFactory is not null)
         {
@@ -54,6 +54,8 @@ public static class ServiceCollectionExtensions
         if (options.ModelRegistryFactory is not null)
         {
             services.AddScoped<IModelRegistry>(options.ModelRegistryFactory);
+            services.AddScoped<IModelHandlerFactory, ModelHandlerFactory>();
+            services.AddScoped<IModelHandlerFactoryGeneric, ModelHandlerFactory>();
         }
 
         services.AddScoped<IPageState, PageState>();
