@@ -48,57 +48,37 @@ public class AdminController : TabController
         return Ok(tableModel);
     }
 
-    [ModelCreate]
-    private async Task<Result> CreateRepoAsync(Repo repo)
-    {
-        if (string.IsNullOrWhiteSpace(repo.Name))
-        {
-            return Result.Error("Repo name is required.");
-        }
 
-        _dbContext.Repos.Add(repo);
-        await _dbContext.SaveChangesAsync();
-        return Result.Ok();
-    }
 
-    [ModelRead]
-    private IQueryable<Repo> ReadRepos()
-    { 
-        return _dbContext.Repos.AsNoTracking();
-    }
-
-    [ModelUpdate]
-    private async Task<Result> UpdateRepoAsync(Repo repo)
-    { 
-        if (string.IsNullOrWhiteSpace(repo.Name))
-        {
-            return Result.Error("Repo name is required.");
-        }
-
-        _dbContext.Repos.Update(repo);
-        await _dbContext.SaveChangesAsync();
-        return Result.Ok();
-    }
-
-    [ModelDelete]
-    private async Task<Result> DeleteRepoAsync(int id)
-    { 
-        var repo = await _dbContext.Repos.FindAsync(id);
-        if (repo == null)
-        {
-            return Result.Error("Repo not found.");
-        }
-
-        _dbContext.Repos.Remove(repo);
-        await _dbContext.SaveChangesAsync();
-        return Result.Ok();
-    }
-
-    [ModelConfig]
+    [ModelConfig("Repo")]
     private void ConfigureRepo(ModelHandlerBuilder<Repo, int> builder)
     {
         builder
             .WithKeySelector(r => r.Id)
+            .WithQueryable(() => _dbContext.Repos)
+            .WithCreate(async repo =>
+            {
+                _dbContext.Repos.Add(repo);
+                await _dbContext.SaveChangesAsync();
+                return Htmx.Components.Models.Result.Ok();
+            })
+            .WithUpdate(async repo =>
+            {
+                _dbContext.Repos.Update(repo);
+                await _dbContext.SaveChangesAsync();
+                return Htmx.Components.Models.Result.Ok();
+            })
+            .WithDelete(async id =>
+            {
+                var repo = await _dbContext.Repos.FindAsync(id);
+                if (repo != null)
+                {
+                    _dbContext.Repos.Remove(repo);
+                    await _dbContext.SaveChangesAsync();
+                    return Htmx.Components.Models.Result.Ok();
+                }
+                return Htmx.Components.Models.Result.Error("Repo not found");
+            })
             .WithInput(r => r.Name, config => config
                     .WithLabel("Name")
                     .WithPlaceholder("Enter repo name")
