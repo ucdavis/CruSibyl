@@ -4,7 +4,6 @@ using CruSibyl.Core.Data;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
-using CruSibyl.Web.Configuration;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
 using CruSibyl.Web.Middleware.Auth;
