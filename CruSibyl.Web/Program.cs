@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using CruSibyl.Core.Configuration;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
@@ -120,7 +121,7 @@ try
     });
     appBuilder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-    DBContextConfig.Configure(appBuilder, out var migrationScaffoldRequested);
+    DBContextConfig.Configure(appBuilder.Configuration, appBuilder.Services, out var migrationScaffoldRequested);
 
     appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Authentication"));
 

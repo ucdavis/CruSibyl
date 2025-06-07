@@ -29,9 +29,9 @@ namespace CruSibyl.Jobs.ManifestSync
                 // setup di
                 var provider = ConfigureServices();
 
-                var syncService = provider.GetRequiredService<IManifestSyncService>();
+                var syncService = provider.GetRequiredService<IPackageVersionSyncService>();
 
-                var result = SyncManifests(syncService).GetAwaiter().GetResult();
+                var result = SyncPackageVersions(syncService).GetAwaiter().GetResult();
 
                 if (result.IsError)
                 {
@@ -60,19 +60,19 @@ namespace CruSibyl.Jobs.ManifestSync
 
             DBContextConfig.Configure(Configuration, services, out var _);
             services.AddMemoryCache();
-            services.Configure<GitHubSettings>(Configuration.GetSection("GitHub"));
-            services.AddSingleton<IGitHubService, GitHubService>();
-            services.AddSingleton<IManifestSyncService, ManifestSyncService>();
+            services.AddSingleton<IPackageVersionSyncService, PackageVersionSyncService>();
+            services.AddSingleton<INuGetService, NuGetService>();
+            services.AddSingleton<INpmService, NpmService>();
 
 
             return services.BuildServiceProvider();
         }
 
-        private static async Task<Result> SyncManifests(IManifestSyncService syncService)
+        private static async Task<Result> SyncPackageVersions(IPackageVersionSyncService syncService)
         {
-            Log.Information("Syncing repository manifests");
+            Log.Information("Syncing package versions");
 
-            return await syncService.SyncManifests();
+            return await syncService.SyncPackageVersions();
         }
     }
 }

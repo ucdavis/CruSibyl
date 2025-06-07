@@ -40,6 +40,19 @@
       }
     },
     {
+      "name": ".NET Core Launch (package version sync job)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "buildPackageVersionSync",
+      "program": "${workspaceFolder}/CruSibyl.Jobs.PackageVersionSync/bin/Debug/net8.0/CruSibyl.Jobs.PackageVersionSync.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/CruSibyl.Jobs.PackageVersionSync",
+      "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
       "name": ".NET Core Attach",
       "type": "coreclr",
       "request": "attach"
