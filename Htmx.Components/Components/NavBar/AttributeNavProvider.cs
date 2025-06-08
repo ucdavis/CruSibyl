@@ -9,6 +9,7 @@ using Htmx.Components.Models.Builders;
 using Microsoft.AspNetCore.Http;
 using Htmx.Components.Models;
 using Htmx.Components.Services;
+using Humanizer;
 
 namespace Htmx.Components.NavBar;
 
@@ -127,7 +128,7 @@ public class AttributeNavProvider : INavProvider
         return a =>
         {
             a.WithIcon(desc.ActionAttr.Icon ?? "");
-            a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName);
+            a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName.Humanize());
             // We're assuming an action named "Index" is the default action for the controller
             string url = desc.ActionName.Equals("Index", StringComparison.OrdinalIgnoreCase)
                 ? $"/{desc.ControllerName}"

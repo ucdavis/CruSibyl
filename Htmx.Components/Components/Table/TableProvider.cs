@@ -27,19 +27,6 @@ public interface ITableProvider
         where T : class;
 }
 
-public enum EditAction
-{
-    Create,
-    Update,
-    Delete,
-}
-
-public enum EditStatus
-{
-    Requested,
-    Completed,
-    Cancelled,
-}
 
 public class TableProvider : ITableProvider
 {
@@ -75,13 +62,13 @@ public class TableProvider : ITableProvider
             .Take(tableState.PageSize)
             .ToListAsync();
 
-        var keySelector = tableModel.KeySelector.CompileFast();
+        var keySelector = tableModel.KeySelector?.CompileFast();
 
         tableModel.State = tableState;
         tableModel.PageCount = pageCount;
         tableModel.Rows = pagedData.Select((item, index) =>
         {
-            var key = keySelector(item);
+            var key = keySelector != null ? keySelector(item) : default;
             var rowContext = new TableRowContext<T, TKey>
             {
                 Item = item,

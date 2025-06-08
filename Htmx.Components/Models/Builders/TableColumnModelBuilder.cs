@@ -20,6 +20,12 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         _config = config;
     }
 
+    public TableColumnModelBuilder<T, TKey> WithHeader(string header)
+    {
+        _config.Display.Header = header;
+        return this;
+    }
+
     public TableColumnModelBuilder<T, TKey> WithEditable(bool isEditable = true)
     {
         if (!(_config.DataOptions.ModelHandler?.InputModelBuilders?.TryGetValue(_config.Display.DataName, out var inputModelBuilder) == true))

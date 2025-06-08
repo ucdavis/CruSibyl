@@ -2,6 +2,8 @@ using System.Linq.Expressions;
 using Htmx.Components.Authorization;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models.Table;
+using Htmx.Components.Table;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.Models.Builders;
 
@@ -10,6 +12,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
 {
     private readonly IResourceOperationRegistry _resourceOperationRegistry;
     private readonly ModelHandlerOptions<T, TKey> _options = new();
+    private readonly ITableProvider _tableProvider;
 
     internal ModelHandlerBuilder(IServiceProvider serviceProvider, string typeId, TableViewPaths tableViewPaths, IResourceOperationRegistry resourceOperationRegistry)
         : base(serviceProvider)
@@ -19,6 +22,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         _options.ModelUI = ModelUI.Table;
         _options.Table.Paths = tableViewPaths;
         _options.ServiceProvider = serviceProvider;
+        _tableProvider = serviceProvider.GetRequiredService<ITableProvider>();
     }
 
     public ModelHandlerBuilder<T, TKey> WithTypeId(string typeId)
@@ -131,7 +135,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
 
     protected override Task<ModelHandler<T, TKey>> BuildImpl()
     {
-        var handler = new ModelHandler<T, TKey>(_options);
+        var handler = new ModelHandler<T, TKey>(_options, _tableProvider);
         return Task.FromResult(handler);
     }
 

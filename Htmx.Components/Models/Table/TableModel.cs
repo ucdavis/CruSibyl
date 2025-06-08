@@ -27,7 +27,7 @@ public class TableModel<T, TKey> : ITableModel
     public TableViewPaths TableViewPaths { get; set; } = new();
     public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
     public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
-    public Expression<Func<T, TKey>> KeySelector { get; internal set; } = default!;
+    public Expression<Func<T, TKey>>? KeySelector { get; internal set; } = default!;
 
     public TableModel(TableModelConfig<T, TKey> config)
     {
@@ -36,7 +36,8 @@ public class TableModel<T, TKey> : ITableModel
         TableViewPaths = config.TableViewPaths ?? new TableViewPaths();
         ModelHandler = config.ModelHandler ?? throw new ArgumentNullException(nameof(config.ModelHandler));
         ActionsFactories = config.ActionsFactories;
-        KeySelector = config.KeySelector ?? throw new ArgumentNullException(nameof(config.KeySelector));
+        if (config.KeySelector != null)
+            KeySelector = config.KeySelector;
     }
 
     ModelHandler ITableModel.ModelHandler

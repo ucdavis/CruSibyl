@@ -21,18 +21,16 @@ namespace CruSibyl.Web.Controllers;
 
 [Authorize]
 [Route("Admin")]
-[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 1)]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 2)]
 public class AdminController : TabController
 {
     private readonly AppDbContext _dbContext;
-    private readonly ITableProvider _tableProvider;
     private readonly IModelHandlerFactoryGeneric _modelHandlerFactory;
 
 
-    public AdminController(AppDbContext dbContext, ITableProvider tableProvider, IModelHandlerFactoryGeneric modelHandlerFactory)
+    public AdminController(AppDbContext dbContext, IModelHandlerFactoryGeneric modelHandlerFactory)
     {
         _dbContext = dbContext;
-        _tableProvider = tableProvider;
         _modelHandlerFactory = modelHandlerFactory;
     }
 
@@ -45,8 +43,7 @@ public class AdminController : TabController
         pageState.Set("Table", "State", tableState);
 
         var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModel();
-        await _tableProvider.FetchPage(tableModel, _dbContext.Repos, tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
 
         return Ok(tableModel);
     }
@@ -92,10 +89,10 @@ public class AdminController : TabController
                     .WithCssClass("form-control"))
                 .WithTable(table => table
                     .WithCrudActions()
-                    .AddSelectorColumn("Name", x => x.Name, config => config
+                    .AddSelectorColumn(x => x.Name, config => config
                         .WithEditable()
                         .WithFilter((q, val) => q.Where(x => x.Name.Contains(val))))
-                    .AddSelectorColumn("Description", x => x.Description!, config => config
+                    .AddSelectorColumn(x => x.Description!, config => config
                         .WithEditable())
                     .AddCrudDisplayColumn());
     }

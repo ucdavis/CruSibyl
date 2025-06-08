@@ -276,8 +276,7 @@ public class FormController : Controller
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.Page = page;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await modelHandler.BuildTableModel();
-        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
 
         return Ok(tableModel);
     }
@@ -308,8 +307,7 @@ public class FormController : Controller
         var tableState = pageState.GetOrCreate<TableState>("Table", "State", () => new());
         tableState.PageSize = pageSize;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await modelHandler.BuildTableModel();
-        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
 
         return Ok(tableModel);
     }
@@ -341,8 +339,7 @@ public class FormController : Controller
         tableState.SortColumn = column;
         tableState.SortDirection = direction;
         pageState.Set("Table", "State", tableState);
-        var tableModel = await modelHandler.BuildTableModel();
-        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
 
         return Ok(tableModel);
     }

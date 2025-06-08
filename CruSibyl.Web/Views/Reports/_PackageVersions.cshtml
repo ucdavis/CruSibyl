@@ -1,0 +1,8 @@
+@using Htmx.Components.Models.Table
+@model ITableModel
+
+<div id="main-content">
+  <h2 class="text-2xl font-bold">Package Versions</h2>
+  <p class="text-gray-600">Report to help identify packages in need of upgrading</p>
+  @await Component.InvokeAsync("Table", Model)
+</div>

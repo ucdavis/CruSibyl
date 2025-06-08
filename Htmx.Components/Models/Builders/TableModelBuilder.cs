@@ -4,6 +4,7 @@ using Htmx.Components.Extensions;
 using Htmx.Components.Models;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Services;
+using Humanizer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,17 +37,19 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     /// <param name="selector"></param>
     /// <param name="configure"></param>
     /// <returns></returns>
-    public TableModelBuilder<T, TKey> AddSelectorColumn(string header, Expression<Func<T, object>> selector,
+    public TableModelBuilder<T, TKey> AddSelectorColumn(Expression<Func<T, object>> selector,
         Action<TableColumnModelBuilder<T, TKey>>? configure = null)
     {
         AddBuildTask(async () =>
         {
+            var propertyName = selector.GetPropertyName();
+            var header = propertyName.Humanize();
             var config = new TableColumnModelConfig<T, TKey>
             {
                 Display = new TableColumnDisplayOptions
                 {
                     Header = header,
-                    DataName = selector.GetPropertyName(),
+                    DataName = propertyName,
                     ColumnType = ColumnType.ValueSelector
                 },
                 DataOptions = new TableColumnDataOptions<T, TKey>

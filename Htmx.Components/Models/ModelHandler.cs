@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
-using Htmx.Components.Input;
+using Htmx.Components.Table;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Models.Builders;
 
@@ -25,18 +25,12 @@ public class ModelHandler<T, TKey> : ModelHandler
 {
     private Expression<Func<T, TKey>> _keySelectorExpression = null!;
     private Func<T, TKey> _keySelectorFunc = null!;
+    private ITableProvider _tableProvider;
 
-    public ModelHandler()
+    public ModelHandler(ModelHandlerOptions<T, TKey> options, ITableProvider tableProvider)
     {
-        ModelType = typeof(T);
-        KeyType = typeof(TKey);
-    }
-
-    public ModelHandler(ModelHandlerOptions<T, TKey> options)
-        : this()
-    {
+        _tableProvider = tableProvider ?? throw new ArgumentNullException(nameof(tableProvider));
         if (options.TypeId == null) throw new ArgumentNullException(nameof(options.TypeId));
-        if (options.KeySelector == null) throw new ArgumentNullException(nameof(options.KeySelector));
         if (options.Table.Paths == null) throw new ArgumentNullException(nameof(options.Table.Paths));
         if (options.ServiceProvider == null) throw new ArgumentNullException(nameof(options.ServiceProvider));
 
@@ -47,7 +41,8 @@ public class ModelHandler<T, TKey> : ModelHandler
         Paths = options.Table.Paths;
         ServiceProvider = options.ServiceProvider;
 
-        KeySelector = options.KeySelector;
+        if (options.KeySelector != null)
+            KeySelector = options.KeySelector;
 
         // CRUD
         CrudFeatures = options.Crud.CrudFeatures;
@@ -96,6 +91,16 @@ public class ModelHandler<T, TKey> : ModelHandler
         var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
         return tableModelBuilder.Build();
+    }
+
+    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPage(TableState state)
+    {
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
+        ConfigureTableModel?.Invoke(tableModelBuilder);
+        var tableModel = await tableModelBuilder.Build();
+        var query = GetQueryable?.Invoke() ?? throw new InvalidOperationException("GetQueryable is not set.");
+        await _tableProvider.FetchPage(tableModel, query, state);
+        return tableModel;
     }
 
     public async Task<IInputModel> BuildInputModel(string name)

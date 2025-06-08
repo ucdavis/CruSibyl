@@ -20,14 +20,14 @@ public class TableRowContext<T, TKey> : ITableRowContext
     public required ModelHandler<T, TKey> ModelHandler { get; set; }
     public string RowId => "row_" + StringKey.SanitizeForHtmlId();
     public int PageIndex { get; set; } = 0; // Row's index within current page
-    private TKey _key = default!;
-    public TKey Key
+    private TKey? _key = default!;
+    public TKey? Key
     {
         get => _key;
         set
         {
             _key = value;
-            StringKey = JsonSerializer.Serialize(value);
+            StringKey = EqualityComparer<TKey>.Default.Equals(value, default) ? "" : JsonSerializer.Serialize(value);
         }
     }
     public string StringKey { get; set; } = "";
