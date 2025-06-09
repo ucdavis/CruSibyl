@@ -43,7 +43,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         AddBuildTask(async () =>
         {
             var propertyName = selector.GetPropertyName();
-            var header = propertyName.Humanize();
+            var header = propertyName.Humanize(LetterCasing.Title);
             var config = new TableColumnModelConfig<T, TKey>
             {
                 Display = new TableColumnDisplayOptions
@@ -56,7 +56,17 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                 {
                     SelectorExpression = selector,
                     Paths = _config.TableViewPaths!,
-                    ModelHandler = _config.ModelHandler!
+                    ModelHandler = _config.ModelHandler!,
+                },
+                Behavior = new TableColumnBehaviorOptions
+                {
+                    Sortable = true,
+                    Filterable = true,
+                    IsEditable = false
+                },
+                FilterOptions = new TableColumnFilterOptions<T>
+                {
+                    Filter = (queryable, value) => queryable.Where(x => (EF.Property<object>(x, propertyName).ToString() ?? "").Contains(value))
                 }
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);

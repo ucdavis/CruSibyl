@@ -22,7 +22,7 @@ public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TPro
         _config.PropName = propName;
         _config.Id = propName.SanitizeForHtmlId();
         _config.Kind = GetInputKind(typeof(TProp));
-        _config.Label = propName.Humanize();
+        _config.Label = propName.Humanize(LetterCasing.Title);
     }
 
     public InputModelBuilder<T, TProp> WithKind(InputKind kind)

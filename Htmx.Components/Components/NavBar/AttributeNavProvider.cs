@@ -128,7 +128,7 @@ public class AttributeNavProvider : INavProvider
         return a =>
         {
             a.WithIcon(desc.ActionAttr.Icon ?? "");
-            a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName.Humanize());
+            a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName.Humanize(LetterCasing.Title));
             // We're assuming an action named "Index" is the default action for the controller
             string url = desc.ActionName.Equals("Index", StringComparison.OrdinalIgnoreCase)
                 ? $"/{desc.ControllerName}"

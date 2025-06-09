@@ -61,23 +61,23 @@ public class ReportsController : TabController
                     PkgName = pkg.Name,
                     CurrentVersion = pkgVer.Version,
                     LatestMajorVersion = _dbContext.PackageVersions
-                        .Where(v => v.PackageId == pkg.Id && v.Major == pkgVer.Major && string.IsNullOrEmpty(v.PreRelease))
-                        .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
+                        .Where(v => v.PackageId == pkg.Id && string.IsNullOrEmpty(v.PreRelease))
+                        .OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
                         .Select(v => v.Version)
                         .FirstOrDefault(),
                     LatestMajorVersionPreRelease = _dbContext.PackageVersions
-                        .Where(v => v.PackageId == pkg.Id && v.Major == pkgVer.Major && !string.IsNullOrEmpty(v.PreRelease))
-                        .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
+                        .Where(v => v.PackageId == pkg.Id && !string.IsNullOrEmpty(v.PreRelease))
+                        .OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).ThenByDescending(v => v.Patch).ThenByDescending(v => v.PreRelease)
                         .Select(v => v.Version)
                         .FirstOrDefault(),
                     LatestMinorVersion = _dbContext.PackageVersions
                         .Where(v => v.PackageId == pkg.Id && v.Major == pkgVer.Major && v.Minor == pkgVer.Minor && string.IsNullOrEmpty(v.PreRelease))
-                        .OrderByDescending(v => v.Patch)
+                        .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
                         .Select(v => v.Version)
                         .FirstOrDefault(),
                     LatestMinorVersionPreRelease = _dbContext.PackageVersions
                         .Where(v => v.PackageId == pkg.Id && v.Major == pkgVer.Major && v.Minor == pkgVer.Minor && !string.IsNullOrEmpty(v.PreRelease))
-                        .OrderByDescending(v => v.Patch)
+                        .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch).ThenByDescending(v => v.PreRelease)
                         .Select(v => v.Version)
                         .FirstOrDefault()
                 })

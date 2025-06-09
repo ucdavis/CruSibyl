@@ -110,7 +110,7 @@ public class TableProvider : ITableProvider
         {
             foreach (var filter in tableState.Filters.Where(f => !string.IsNullOrWhiteSpace(f.Value)))
             {
-                var column = tableModel.Columns.FirstOrDefault(c => c.Header == filter.Key);
+                var column = tableModel.Columns.FirstOrDefault(c => c.DataName == filter.Key);
                 if (column?.Filter != null)
                 {
                     query = column.Filter(query, filter.Value);
