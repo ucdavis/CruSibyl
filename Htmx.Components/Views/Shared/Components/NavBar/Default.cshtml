@@ -6,21 +6,21 @@
         <a class="text-xl font-bold">CruSibyl</a>
     </div>
     <div class="flex-none gap-2">
-        <ul class="menu menu-horizontal px-1">
+        <ul class="menu menu-horizontal px-1 flex-nowrap overflow-x-auto">
             @foreach (var item in Model.Items)
             {
                 if (item is ActionModel actionModel)
                 {
                     <li>
                         <a 
-                           @(string.IsNullOrEmpty(actionModel.CssClass) ? "" : $"class=\"{actionModel.CssClass}\"")
-                           @foreach (var attr in actionModel.Attributes)
-                           {
-                               @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
-                           }>
+                            @(string.IsNullOrEmpty(actionModel.CssClass) ? "" : $"class=\"{actionModel.CssClass}\"")
+                            @foreach (var attr in actionModel.Attributes)
+                            {
+                                @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
+                            }>
                             @if (!string.IsNullOrEmpty(actionModel.Icon))
                             {
-                                <i class="model.Icon"></i>
+                                <i class="@actionModel.Icon"></i>
                                 <span class="ml-1">@actionModel.Label</span>
                             }
                             else
@@ -46,18 +46,18 @@
                                     @group.Label
                                 }
                             </summary>
-                            <ul class="p-2 bg-base-100 z-50">
+                            <ul class="p-2 bg-base-100 z-50 flex flex-nowrap overflow-x-auto">
                                 @foreach (var sub in group.Items)
                                 {
                                     if (sub is ActionModel subModel)
                                     {
                                         <li>
                                             <a 
-                                               @(string.IsNullOrEmpty(subModel.CssClass) ? "" : $"class=\"{subModel.CssClass}\"")
-                                               @foreach (var attr in subModel.Attributes)
-                                               {
-                                                   @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
-                                               }>
+                                                class="whitespace-nowrap @(subModel.CssClass)"
+                                                @foreach (var attr in subModel.Attributes)
+                                                {
+                                                    @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
+                                                }>
                                                 @if (!string.IsNullOrEmpty(subModel.Icon))
                                                 {
                                                     <i class="@subModel.Icon"></i>

@@ -18,14 +18,16 @@
         <input type="number" min="1" max="@Model.PageCount"
                 id="table-page"
                 name="page"
-                class="input input-bordered input-sm text-left w-16"
+                class="input input-bordered input-sm text-left"
+                style="width:5rem;"
                 value="@Model.State.Page"
                 hx-post="@Url.Action("SetPage", "Form", new { typeId = Model.TypeId })"
                 hx-swap="none"
                 hx-trigger="change, input changed delay:500ms"
                 />
 
-        <select class="select select-bordered select-sm w-16"
+        <select class="select select-bordered select-sm"
+                style="width:5rem;"
                 id="table-page-Size"
                 name="pageSize"
                 hx-post="@Url.Action("SetPageSize", "Form", new { typeId = Model.TypeId })"
