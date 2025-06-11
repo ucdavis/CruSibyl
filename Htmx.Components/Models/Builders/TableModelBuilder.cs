@@ -64,10 +64,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                     Filterable = true,
                     IsEditable = false
                 },
-                FilterOptions = new TableColumnFilterOptions<T>
-                {
-                    Filter = (queryable, value) => queryable.Where(x => (EF.Property<object>(x, propertyName).ToString() ?? "").Contains(value))
-                }
+                FilterOptions = new ()
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
             configure?.Invoke(builder);
@@ -157,6 +154,14 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         foreach (var column in model.Columns)
         {
             column.Table = model;
+        }
+        // Set up default filtering for columns that are filterable but do not have a custom filter defined
+        foreach (var column in model.Columns.Where(c => c.Filterable && c.Filter == null))
+        {
+            column.Filter = (query, value) =>
+            {
+                return TableColumnHelper.Filter(query, value, column);
+            };
         }
         return Task.FromResult(model);
     }
