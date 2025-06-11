@@ -15,6 +15,8 @@
                 disabled="@(Model.State.Page <= 1)"
                 hx-disabled-elt="this">Prev</button>
 
+        <span class="text-sm">page</span>
+
         <input type="number" min="1" max="@Model.PageCount"
                 id="table-page"
                 name="page"
@@ -26,18 +28,7 @@
                 hx-trigger="change, input changed delay:500ms"
                 />
 
-        <select class="select select-bordered select-sm"
-                style="width:5rem;"
-                id="table-page-Size"
-                name="pageSize"
-                hx-post="@Url.Action("SetPageSize", "Form", new { typeId = Model.TypeId })"
-                hx-swap="none"
-                hx-trigger="change">
-                <option value="10" selected="@(Model.State.PageSize == 10)">10</option>
-                <option value="25" selected="@(Model.State.PageSize == 25)">25</option>
-                <option value="50" selected="@(Model.State.PageSize == 50)">50</option>
-                <option value="100" selected="@(Model.State.PageSize == 100)">100</option>
-        </select>
+        <span class="text-sm">of @Model.PageCount</span>
 
         <button class="btn btn-sm" 
                 hx-post="@Url.Action("SetPage", "Form", new { typeId = Model.TypeId })"
@@ -51,5 +42,21 @@
                 hx-vals='{"page": @Model.PageCount}'
                 disabled="@(Model.State.Page >= Model.PageCount)"
                 hx-disabled-elt="this">Last</button>
+        
+        <span style="display:inline-block; width:3rem;"></span>
+        <span class="text-sm">page size</span>
+
+        <select class="select select-bordered select-sm"
+                style="width:5rem;"
+                id="table-page-Size"
+                name="pageSize"
+                hx-post="@Url.Action("SetPageSize", "Form", new { typeId = Model.TypeId })"
+                hx-swap="none"
+                hx-trigger="change">
+                <option value="10" selected="@(Model.State.PageSize == 10)">10</option>
+                <option value="25" selected="@(Model.State.PageSize == 25)">25</option>
+                <option value="50" selected="@(Model.State.PageSize == 50)">50</option>
+                <option value="100" selected="@(Model.State.PageSize == 100)">100</option>
+        </select>
     </div>
 </div>
