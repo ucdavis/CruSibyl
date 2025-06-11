@@ -34,9 +34,9 @@ public class AdminController : TabController
         _modelHandlerFactory = modelHandlerFactory;
     }
 
-    [HttpGet]
-    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Content")]
-    public async Task<IActionResult> Index()
+    [HttpGet("Repos")]
+    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Repos")]
+    public async Task<IActionResult> Repos()
     {
         var pageState = this.GetPageState();
         var tableState = new TableState();
