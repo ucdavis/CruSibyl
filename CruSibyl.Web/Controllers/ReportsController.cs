@@ -65,7 +65,7 @@ public class ReportsController : TabController
                         .OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
                         .Select(v => v.Version)
                         .FirstOrDefault(),
-                    LatestMajorVersionPreRelease = _dbContext.PackageVersions
+                    LatestMajorPrerelease = _dbContext.PackageVersions
                         .Where(v => v.PackageId == pkg.Id && !string.IsNullOrEmpty(v.PreRelease))
                         .OrderByDescending(v => v.Major).ThenByDescending(v => v.Minor).ThenByDescending(v => v.Patch).ThenByDescending(v => v.PreRelease)
                         .Select(v => v.Version)
@@ -75,7 +75,7 @@ public class ReportsController : TabController
                         .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch)
                         .Select(v => v.Version)
                         .FirstOrDefault(),
-                    LatestMinorVersionPreRelease = _dbContext.PackageVersions
+                    LatestMinorPrerelease = _dbContext.PackageVersions
                         .Where(v => v.PackageId == pkg.Id && v.Major == pkgVer.Major && v.Minor == pkgVer.Minor && !string.IsNullOrEmpty(v.PreRelease))
                         .OrderByDescending(v => v.Minor).ThenByDescending(v => v.Patch).ThenByDescending(v => v.PreRelease)
                         .Select(v => v.Version)
@@ -87,9 +87,9 @@ public class ReportsController : TabController
                 .AddSelectorColumn(x => x.PkgName)
                 .AddSelectorColumn(x => x.CurrentVersion)
                 .AddSelectorColumn(x => x.LatestMajorVersion!)
-                .AddSelectorColumn(x => x.LatestMajorVersionPreRelease!)
                 .AddSelectorColumn(x => x.LatestMinorVersion!)
-                .AddSelectorColumn(x => x.LatestMinorVersionPreRelease!)
+                .AddSelectorColumn(x => x.LatestMajorPrerelease!)
+                .AddSelectorColumn(x => x.LatestMinorPrerelease!)
             );
     }
 }
