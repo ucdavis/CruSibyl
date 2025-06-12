@@ -70,6 +70,7 @@ public class ActionGroup : ActionItem, IActionSet
 public class ActionModel : ActionItem
 {
     public Dictionary<string, string> Attributes { get; init; } = new();
+    public bool IsActive { get; set; } = false;
 
     public ActionModel(ActionModelConfig config)
     {
@@ -77,6 +78,7 @@ public class ActionModel : ActionItem
         Icon = config.Icon;
         CssClass = config.CssClass;
         Attributes = new Dictionary<string, string>(config.Attributes);
+        IsActive = config.IsActive;
     }
 }
 
@@ -86,6 +88,7 @@ public class ActionModelConfig
     public string? Icon { get; set; }
     public string? CssClass { get; set; }
     public Dictionary<string, string> Attributes { get; set; } = new();
+    public bool IsActive { get; set; }
 }
 
 public class ActionSetConfig

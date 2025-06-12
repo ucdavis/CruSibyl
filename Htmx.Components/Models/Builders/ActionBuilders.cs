@@ -116,6 +116,12 @@ public class ActionModelBuilder : BuilderBase<ActionModelBuilder, ActionModel>
         return this;
     }
 
+    public ActionModelBuilder WithIsActive(bool isActive)
+    {
+        _config.IsActive = isActive;
+        return this;
+    }
+
     public ActionModelBuilder WithHxGet(string url) => WithAttribute("hx-get", url);
     public ActionModelBuilder WithHxPost(string url) => WithAttribute("hx-post", url);
     public ActionModelBuilder WithHxTarget(string target) => WithAttribute("hx-target", target);
@@ -125,5 +131,4 @@ public class ActionModelBuilder : BuilderBase<ActionModelBuilder, ActionModel>
 
     protected override Task<ActionModel> BuildImpl()
     => Task.FromResult(new ActionModel(_config));
-
 }

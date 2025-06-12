@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Htmx.Components.Models;
 using Htmx.Components.Services;
 using Humanizer;
+using Microsoft.AspNetCore.Routing;
 
 namespace Htmx.Components.NavBar;
 
@@ -123,11 +124,20 @@ public class AttributeNavProvider : INavProvider
         return await builder.Build();
     }
 
-    private static Action<ActionModelBuilder> BuildActionModelBuilder(NavActionDescriptor desc)
+    private Action<ActionModelBuilder> BuildActionModelBuilder(NavActionDescriptor desc)
     {
+        // Get current route info
+        var httpContext = _httpContextAccessor.HttpContext;
+        var routeData = httpContext?.GetRouteData();
+        var currentController = routeData?.Values["controller"]?.ToString();
+        var currentAction = routeData?.Values["action"]?.ToString();
+        var isActive = string.Equals(desc.ControllerName, currentController, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(desc.ActionName, currentAction, StringComparison.OrdinalIgnoreCase);
+
         return a =>
         {
             a.WithIcon(desc.ActionAttr.Icon ?? "");
+            a.WithIsActive(isActive);
             a.WithLabel(desc.ActionAttr.DisplayName ?? desc.ActionName.Humanize(LetterCasing.Title));
             // We're assuming an action named "Index" is the default action for the controller
             string url = desc.ActionName.Equals("Index", StringComparison.OrdinalIgnoreCase)
