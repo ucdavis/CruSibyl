@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Dynamic.Core;
 using Htmx.Components.Extensions;
+using Serilog;
 
 namespace Htmx.Components.Models.Table;
 
@@ -14,146 +15,154 @@ public static class TableColumnHelper
     public static IQueryable<T> Filter<T, TKey>(IQueryable<T> query, string filter, TableColumnModel<T, TKey> column)
         where T : class
     {
-        if (string.IsNullOrWhiteSpace(filter))
-            return query;
-
-        var tableModel = (TableModel<T, TKey>)column.Table ?? throw new InvalidOperationException("Column Table is not set.");
-        var propertyName = column.DataName ?? throw new InvalidOperationException("Column DataName is not set.");
-        var propertyType = column.SelectorExpression?.GetMemberType() ?? throw new InvalidOperationException("Column SelectorExpression is not set.");
-
-        // Parse filter string
-        var (op, operands) = ParseFilter(filter);
-
-        string dynamicQuery = "";
-        object?[] values = Array.Empty<object?>();
-
-        // Operator logic
-        switch (op.ToLowerInvariant())
+        try
         {
-            case "isnull":
-                dynamicQuery = $"{propertyName} == null";
-                break;
-            case "isnotnull":
-                dynamicQuery = $"{propertyName} != null";
-                break;
-            case "isnullorempty":
-                if (propertyType == typeof(string))
-                    dynamicQuery = $"string.IsNullOrEmpty({propertyName})";
-                break;
-            case "isnotnullorempty":
-                if (propertyType == typeof(string))
-                    dynamicQuery = $"!string.IsNullOrEmpty({propertyName})";
-                break;
-            case "between":
-                if (operands.Count == 2)
-                {
-                    if (IsColumnReference(operands[0], tableModel) && IsColumnReference(operands[1], tableModel))
+            if (string.IsNullOrWhiteSpace(filter))
+                return query;
+
+            var tableModel = (TableModel<T, TKey>)column.Table ?? throw new InvalidOperationException("Column Table is not set.");
+            var propertyName = column.DataName ?? throw new InvalidOperationException("Column DataName is not set.");
+            var propertyType = column.SelectorExpression?.GetMemberType() ?? throw new InvalidOperationException("Column SelectorExpression is not set.");
+
+            // Parse filter string
+            var (op, operands) = ParseFilter(filter);
+
+            string dynamicQuery = "";
+            object?[] values = Array.Empty<object?>();
+
+            // Operator logic
+            switch (op.ToLowerInvariant())
+            {
+                case "isnull":
+                    dynamicQuery = $"{propertyName} == null";
+                    break;
+                case "isnotnull":
+                    dynamicQuery = $"{propertyName} != null";
+                    break;
+                case "isnullorempty":
+                    if (propertyType == typeof(string))
+                        dynamicQuery = $"string.IsNullOrEmpty({propertyName})";
+                    break;
+                case "isnotnullorempty":
+                    if (propertyType == typeof(string))
+                        dynamicQuery = $"!string.IsNullOrEmpty({propertyName})";
+                    break;
+                case "between":
+                    if (operands.Count == 2)
                     {
-                        var col0 = GetColName(tableModel, operands[0]);
-                        var col1 = GetColName(tableModel, operands[1]);
-                        dynamicQuery = $"{propertyName} >= {col0} && {propertyName} <= {col1}";
+                        if (IsColumnReference(operands[0], tableModel) && IsColumnReference(operands[1], tableModel))
+                        {
+                            var col0 = GetColName(tableModel, operands[0]);
+                            var col1 = GetColName(tableModel, operands[1]);
+                            dynamicQuery = $"{propertyName} >= {col0} && {propertyName} <= {col1}";
+                        }
+                        else if (IsColumnReference(operands[0], tableModel))
+                        {
+                            var col0 = GetColName(tableModel, operands[0]);
+                            dynamicQuery = $"{propertyName} >= {col0} && {propertyName} <= @0";
+                            values = [ParseValue(operands[1], propertyType)];
+                        }
+                        else if (IsColumnReference(operands[1], tableModel))
+                        {
+                            var col1 = GetColName(tableModel, operands[1]);
+                            dynamicQuery = $"{propertyName} >= @0 && {propertyName} <= {col1}";
+                            values = [ParseValue(operands[0], propertyType)];
+                        }
+                        else
+                        {
+                            dynamicQuery = $"{propertyName} >= @0 && {propertyName} <= @1";
+                            values = [ParseValue(operands[0], propertyType), ParseValue(operands[1], propertyType)];
+                        }
                     }
-                    else if (IsColumnReference(operands[0], tableModel))
+                    break;
+                case ">":
+                case "<":
+                case ">=":
+                case "<=":
+                case "!=":
+                case "=":
+                case "==":
+                    if (operands.Count == 1)
                     {
-                        var col0 = GetColName(tableModel, operands[0]);
-                        dynamicQuery = $"{propertyName} >= {col0} && {propertyName} <= @0";
-                        values = [ParseValue(operands[1], propertyType)];
+                        if (IsColumnReference(operands[0], tableModel))
+                        {
+                            var otherColName = GetColName(tableModel, operands[0]);
+                            dynamicQuery = $"{propertyName} {op} {otherColName}";
+                        }
+                        else
+                        {
+                            dynamicQuery = $"{propertyName} {op} @0";
+                            values = [ParseValue(operands[0], propertyType)];
+                        }
                     }
-                    else if (IsColumnReference(operands[1], tableModel))
+                    break;
+                case "contains":
+                    if (propertyType == typeof(string) && operands.Count == 1)
                     {
-                        var col1 = GetColName(tableModel, operands[1]);
-                        dynamicQuery = $"{propertyName} >= @0 && {propertyName} <= {col1}";
-                        values = [ParseValue(operands[0], propertyType)];
+                        if (IsColumnReference(operands[0], tableModel))
+                        {
+                            var otherColName = GetColName(tableModel, operands[0]);
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.Contains({otherColName})";
+                        }
+                        else
+                        {
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.Contains(@0)";
+                            values = [ParseValue(operands[0], propertyType)];
+                        }
                     }
-                    else
+                    break;
+                case "startswith":
+                    if (propertyType == typeof(string) && operands.Count == 1)
                     {
-                        dynamicQuery = $"{propertyName} >= @0 && {propertyName} <= @1";
-                        values = [ParseValue(operands[0], propertyType), ParseValue(operands[1], propertyType)];
+                        if (IsColumnReference(operands[0], tableModel))
+                        {
+                            var otherColName = GetColName(tableModel, operands[0]);
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.StartsWith({otherColName})";
+                        }
+                        else
+                        {
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.StartsWith(@0)";
+                            values = [ParseValue(operands[0], propertyType)];
+                        }
                     }
-                }
-                break;
-            case ">":
-            case "<":
-            case ">=":
-            case "<=":
-            case "!=":
-            case "=":
-            case "==":
-                if (operands.Count == 1)
-                {
-                    if (IsColumnReference(operands[0], tableModel))
+                    break;
+                case "endswith":
+                    if (propertyType == typeof(string) && operands.Count == 1)
                     {
-                        var otherColName = GetColName(tableModel, operands[0]);
-                        dynamicQuery = $"{propertyName} {op} {otherColName}";
+                        if (IsColumnReference(operands[0], tableModel))
+                        {
+                            var otherColName = GetColName(tableModel, operands[0]);
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.EndsWith({otherColName})";
+                        }
+                        else
+                        {
+                            dynamicQuery = $"{propertyName} != null && {propertyName}.EndsWith(@0)";
+                            values = [ParseValue(operands[0], propertyType)];
+                        }
                     }
-                    else
-                    {
-                        dynamicQuery = $"{propertyName} {op} @0";
-                        values = [ParseValue(operands[0], propertyType)];
-                    }
-                }
-                break;
-            case "contains":
-                if (propertyType == typeof(string) && operands.Count == 1)
-                {
-                    if (IsColumnReference(operands[0], tableModel))
-                    {
-                        var otherColName = GetColName(tableModel, operands[0]);
-                        dynamicQuery = $"{propertyName} != null && {propertyName}.Contains({otherColName})";
-                    }
-                    else
+                    break;
+                default:
+                    // Fallback: treat as "contains" for string columns
+                    if (propertyType == typeof(string))
                     {
                         dynamicQuery = $"{propertyName} != null && {propertyName}.Contains(@0)";
-                        values = [ParseValue(operands[0], propertyType)];
+                        values = [ParseValue(filter.Trim(), propertyType)];
                     }
-                }
-                break;
-            case "startswith":
-                if (propertyType == typeof(string) && operands.Count == 1)
-                {
-                    if (IsColumnReference(operands[0], tableModel))
-                    {
-                        var otherColName = GetColName(tableModel, operands[0]);
-                        dynamicQuery = $"{propertyName} != null && {propertyName}.StartsWith({otherColName})";
-                    }
-                    else
-                    {
-                        dynamicQuery = $"{propertyName} != null && {propertyName}.StartsWith(@0)";
-                        values = [ParseValue(operands[0], propertyType)];
-                    }
-                }
-                break;
-            case "endswith":
-                if (propertyType == typeof(string) && operands.Count == 1)
-                {
-                    if (IsColumnReference(operands[0], tableModel))
-                    {
-                        var otherColName = GetColName(tableModel, operands[0]);
-                        dynamicQuery = $"{propertyName} != null && {propertyName}.EndsWith({otherColName})";
-                    }
-                    else
-                    {
-                        dynamicQuery = $"{propertyName} != null && {propertyName}.EndsWith(@0)";
-                        values = [ParseValue(operands[0], propertyType)];
-                    }
-                }
-                break;
-            default:
-                // Fallback: treat as "contains" for string columns
-                if (propertyType == typeof(string))
-                {
-                    dynamicQuery = $"{propertyName} != null && {propertyName}.Contains(@0)";
-                    values = [ParseValue(filter.Trim(), propertyType)];
-                }
-                break;
+                    break;
+            }
+
+            if (string.IsNullOrEmpty(dynamicQuery))
+                return query;
+
+            return values.Length > 0
+                ? query.Where(dynamicQuery, values)
+                : query.Where(dynamicQuery);
         }
-
-        if (string.IsNullOrEmpty(dynamicQuery))
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to apply filter '{Filter}' on column '{ColumnName}' of table for type '{TypeId}'.", filter, column.DataName, column.Table?.TypeId);
             return query;
-
-        return values.Length > 0
-            ? query.Where(dynamicQuery, values)
-            : query.Where(dynamicQuery);
+        }
     }
 
     private static string GetColName<T, TKey>(TableModel<T, TKey> tableModel, string operand) where T : class
@@ -188,31 +197,38 @@ public static class TableColumnHelper
             int i = 0;
             while (i < rest.Length)
             {
+                // Skip leading whitespace and commas
+                while (i < rest.Length && (rest[i] == ',' || char.IsWhiteSpace(rest[i]))) i++;
+                if (i >= rest.Length) break;
+
                 if (rest[i] == '"')
                 {
-                    int end = rest.IndexOf('"', i + 1);
-                    if (end == -1) end = rest.Length;
-                    operands.Add(rest.Substring(i + 1, end - i - 1));
-                    i = end + 1;
+                    int start = i + 1;
+                    int end = rest.IndexOf('"', start);
+                    if (end == -1) end = rest.Length; // Incomplete quote: take to end
+                    operands.Add(rest.Substring(start, end - start).Trim());
+                    i = end < rest.Length ? end + 1 : rest.Length;
                 }
                 else if (rest[i] == '[')
                 {
-                    int end = rest.IndexOf(']', i + 1);
-                    if (end == -1) end = rest.Length;
-                    operands.Add(rest.Substring(i, end - i + 1));
-                    i = end + 1;
+                    int start = i;
+                    int end = rest.IndexOf(']', start + 1);
+                    if (end == -1) end = rest.Length - 1; // Incomplete bracket: take to end
+                    operands.Add(rest.Substring(start, end - start + 1).Trim());
+                    i = end < rest.Length ? end + 1 : rest.Length;
                 }
                 else
                 {
-                    int end = rest.IndexOf(',', i);
+                    int start = i;
+                    int end = rest.IndexOf(',', start);
                     if (end == -1) end = rest.Length;
-                    operands.Add(rest.Substring(i, end - i).Trim());
-                    i = end + 1;
+                    operands.Add(rest.Substring(start, end - start).Trim());
+                    i = end;
                 }
-                // Skip comma and whitespace
-                while (i < rest.Length && (rest[i] == ',' || char.IsWhiteSpace(rest[i]))) i++;
             }
         }
+        // Remove empty operands
+        operands = operands.Where(o => !string.IsNullOrEmpty(o)).ToList();
         return (op, operands);
     }
 
