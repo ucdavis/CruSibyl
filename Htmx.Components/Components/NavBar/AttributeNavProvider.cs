@@ -11,6 +11,7 @@ using Htmx.Components.Models;
 using Htmx.Components.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Routing;
+using System.ComponentModel;
 
 namespace Htmx.Components.NavBar;
 
@@ -66,35 +67,25 @@ public class AttributeNavProvider : INavProvider
                     };
                 })
         );
-        var grouped = descriptors.GroupBy(x => (
-            // attributes are transient, so we must explicitly specify the values
-            ActionAttr: (
-                x.ActionAttr.Order,
-                x.ActionAttr.DisplayName,
-                x.ActionAttr.Icon,
-                x.ActionAttr.HttpMethod,
-                x.ActionAttr.PushUrl
-            ),
-            GroupAttr: (
-                x.GroupAttr?.Order,
-                x.GroupAttr?.DisplayName,
-                x.GroupAttr?.Icon
-            )
+        var grouped = descriptors
+        .GroupBy(x => (
+            Order: x.GroupAttr != null ? x.GroupAttr.Order : x.ActionAttr.Order,
+            DisplayNameAttribute: x.GroupAttr != null ? x.GroupAttr.DisplayName : x.ActionAttr.DisplayName,
+            Icon: x.GroupAttr != null ? x.GroupAttr.Icon : x.ActionAttr.Icon
         ))
-        .OrderBy(g => g.Key.GroupAttr.Order ?? g.Key.ActionAttr.Order);
+        .OrderBy(g => g.Key.Order);
 
         foreach (var group in grouped)
         {
-            var (actionAttr, groupAttr) = group.Key;
-            if (groupAttr.Order == null)
+            if (group.Count() == 1 && group.First().GroupAttr == null)
             {
+                // If there's only one action and no group attribute, add it directly
                 var desc = group.First();
-                bool isAuthorized = await _authMetadataService.IsAuthorizedAsync(desc.Descriptor, user);
-
-                if (!isAuthorized)
+                if (!await _authMetadataService.IsAuthorizedAsync(desc.Descriptor, user))
                     continue;
 
                 builder.AddAction(BuildActionModelBuilder(desc));
+                continue;
             }
             else
             {
@@ -111,6 +102,7 @@ public class AttributeNavProvider : INavProvider
 
                 builder.AddGroup(g =>
                 {
+                    var groupAttr = group.First().GroupAttr!;
                     g.WithLabel(groupAttr.DisplayName ?? groupAttr.DisplayName ?? group.First().ControllerName);
                     g.WithIcon(groupAttr.Icon ?? "");
                     foreach (var actionBuilder in actionModelBuilders)

@@ -40,8 +40,6 @@ public class ReportsController : TabController
         return Ok(tableModel);
     }
 
-    public class NoKey { }
-
 
     [ModelConfig(nameof(DependencyVersionReportModel))]
     private void ConfigureRepo(ModelHandlerBuilder<DependencyVersionReportModel, NoKey> builder)

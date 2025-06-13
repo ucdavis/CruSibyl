@@ -82,3 +82,10 @@ public class TableModelConfig<T, TKey>
     public List<TableColumnModel<T, TKey>> Columns { get; } = new();
     public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 }
+
+
+public sealed class NoKey
+{
+    // This class is used as a placeholder for models that do not have a key.
+    // It can be used in scenarios where the model does not require a key, such as for readonly reports.
+}
