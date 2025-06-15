@@ -63,12 +63,17 @@ public class FormController : Controller
         {
             if (!await IsAuthorized(modelHandler.TypeId, Operations.Update))
                 return Forbid();
-            await modelHandler.UpdateModel!(editingItem);
+            var result = await modelHandler.UpdateModel!(editingItem);
+            if (result.IsError)
+            {
+                // If the update failed, we return the error message
+                return BadRequest(result.Message);
+            }
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
-                Item = editingItem,
+                Item = result.Value,
                 ModelHandler = modelHandler,
-                Key = modelHandler.KeySelectorFunc(editingItem),
+                Key = modelHandler.KeySelectorFunc(result.Value),
                 TargetDisposition = OobTargetDisposition.OuterHtml,
             });
         }
@@ -76,7 +81,12 @@ public class FormController : Controller
         {
             if (!await IsAuthorized(modelHandler.TypeId, Operations.Create))
                 return Forbid();
-            await modelHandler.CreateModel!(editingItem);
+            var result = await modelHandler.CreateModel!(editingItem);
+            if (result.IsError)
+            {
+                // If the creation failed, we return the error message
+                return BadRequest(result.Message);
+            }
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
                 Item = null!,
@@ -86,9 +96,9 @@ public class FormController : Controller
             });
             tableModel.Rows.Add(new TableRowContext<T, TKey>
             {
-                Item = editingItem,
+                Item = result.Value,
                 ModelHandler = modelHandler,
-                Key = modelHandler.KeySelectorFunc(editingItem),
+                Key = modelHandler.KeySelectorFunc(result.Value),
                 TargetDisposition = OobTargetDisposition.AfterBegin,
                 TargetSelector = "#table-body",
             });
@@ -187,7 +197,13 @@ public class FormController : Controller
 
         var key = (TKey)JsonSerializer.Deserialize(stringKey, modelHandler.KeyType)!;
 
-        await modelHandler.DeleteModel!(key);
+        var result = await modelHandler.DeleteModel!(key);
+
+        if (result.IsError)
+        {
+            // If the deletion failed, we return the error message
+            return BadRequest(result.Message);
+        }
 
         var pageState = this.GetPageState();
         var tableModel = await modelHandler.BuildTableModel();

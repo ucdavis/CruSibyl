@@ -64,9 +64,9 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                     Filterable = true,
                     IsEditable = false
                 },
-                FilterOptions = new ()
+                FilterOptions = new()
             };
-            var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
+            var builder = new TableColumnModelBuilder<T, TKey>(config, ServiceProvider);
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _config.Columns.Add(columnModel);
@@ -102,7 +102,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                     ModelHandler = _config.ModelHandler!
                 }
             };
-            var builder = new TableColumnModelBuilder<T, TKey>(config, _serviceProvider);
+            var builder = new TableColumnModelBuilder<T, TKey>(config, ServiceProvider);
             configure?.Invoke(builder);
             var columnModel = await builder.Build();
             _config.Columns.Add(columnModel);
@@ -122,7 +122,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
         {
             _config.ActionsFactories.Add(async (tableModel) =>
             {
-                var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+                var actionSetBuilder = new ActionSetBuilder(ServiceProvider);
                 actionsFactory.Invoke(tableModel, actionSetBuilder);
                 var actionSet = await actionSetBuilder.Build();
                 return actionSet.Items.Cast<ActionModel>();
@@ -134,6 +134,9 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
     public TableModelBuilder<T, TKey> WithCrudActions()
     {
         var typeId = _config.TypeId!;
+        var canCreate = (_config.ModelHandler?.CrudFeatures ?? CrudFeatures.None).HasFlag(CrudFeatures.Create);
+        if (!canCreate)
+            return this;
         return WithActions((table, actions) =>
             actions.AddAction(action => action
                 .WithLabel("Add New")
@@ -162,6 +165,15 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
             {
                 return TableColumnHelper.Filter(query, value, column);
             };
+        }
+        // Set IsEditable for columns that have GetInputModel defined
+        if ((model.ModelHandler?.CrudFeatures.HasFlag(CrudFeatures.Create) ?? false)
+            || (model.ModelHandler?.CrudFeatures.HasFlag(CrudFeatures.Update) ?? false))
+        {
+            foreach (var column in model.Columns.Where(c => c.GetInputModel != null))
+            {
+                column.IsEditable = true;
+            }
         }
         return Task.FromResult(model);
     }

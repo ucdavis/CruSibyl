@@ -45,7 +45,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithCreate(Func<T, Task<Result>> createModel)
+    public ModelHandlerBuilder<T, TKey> WithCreate(Func<T, Task<Result<T>>> createModel)
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Create;
         _options.Crud.CreateModel = createModel;
@@ -63,7 +63,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         return this;
     }
 
-    public ModelHandlerBuilder<T, TKey> WithUpdate(Func<T, Task<Result>> updateModel)
+    public ModelHandlerBuilder<T, TKey> WithUpdate(Func<T, Task<Result<T>>> updateModel)
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Update;
         _options.Crud.UpdateModel = updateModel;
@@ -124,7 +124,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _options.Inputs.InputModelBuilders.TryAdd(propertySelector.GetPropertyName(), async (modelHandler) =>
         {
-            var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propertySelector);
+            var builder = new InputModelBuilder<T, TProp>(ServiceProvider, propertySelector);
             configure(builder);
             var inputModel = await builder.Build();
             inputModel.ModelHandler = modelHandler;

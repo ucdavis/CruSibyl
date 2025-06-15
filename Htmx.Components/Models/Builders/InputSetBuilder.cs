@@ -18,7 +18,7 @@ public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
     {
         AddBuildTask(async () =>
         {
-            var builder = new InputModelBuilder<T, TProp>(_serviceProvider, propSelector);
+            var builder = new InputModelBuilder<T, TProp>(ServiceProvider, propSelector);
             configure(builder);
             var inputModel = await builder.Build();
             _config.Inputs.Add(inputModel);

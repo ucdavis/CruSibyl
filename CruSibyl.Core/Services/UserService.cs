@@ -10,8 +10,9 @@ using Serilog;
 namespace CruSibyl.Core.Services;
 public interface IUserService
 {
-    Task<User?> GetUser(Claim[] userClaims);
-    Task<User?> GetCurrentUser();
+    Task<User?> GetUser(Claim[] userClaims, bool includePermissions = false);
+    Task<User?> GetUser(string iamIdOrEmailOrKerberos, bool includePermissions = false);
+    Task<User?> GetCurrentUser(bool includePermissions = false);
     Task<IEnumerable<Permission>> GetCurrentPermissionsAsync();
     string? GetCurrentUserId();
 }
@@ -36,7 +37,7 @@ public class UserService : IUserService
         return userId;
     }
 
-    public async Task<User?> GetCurrentUser()
+    public async Task<User?> GetCurrentUser(bool includePermissions = false)
     {
         if (_httpContextAccessor.HttpContext == null)
         {
@@ -46,7 +47,7 @@ public class UserService : IUserService
 
         var userClaims = _httpContextAccessor.HttpContext.User.Claims.ToArray();
 
-        return await GetUser(userClaims);
+        return await GetUser(userClaims, includePermissions);
     }
 
     public async Task<IEnumerable<Permission>> GetCurrentPermissionsAsync()
@@ -65,51 +66,106 @@ public class UserService : IUserService
         return permissions;
     }
 
-    // Get any user based on their claims, creating if necessary
-    public async Task<User?> GetUser(Claim[] userClaims)
+    // Shared helper for finding or creating a user in the DB
+    private async Task<User?> FindOrCreateUserAsync(User identityUser, bool includePermissions)
     {
-        string iamId = userClaims.Single(c => c.Type == IamIdClaimType).Value;
+        User? dbUser = null;
 
-        var dbUser = await _dbContext.Users.SingleOrDefaultAsync(a => a.Iam == iamId);
+        if (!string.IsNullOrWhiteSpace(identityUser.Iam))
+            dbUser = includePermissions
+            ? await _dbContext.Users.Include(u => u.Permissions).ThenInclude(p => p.Role)
+                .SingleOrDefaultAsync(a => a.Iam == identityUser.Iam)
+            : await _dbContext.Users.SingleOrDefaultAsync(a => a.Iam == identityUser.Iam);
+
+        if (dbUser == null && !string.IsNullOrWhiteSpace(identityUser.Kerberos))
+            dbUser = includePermissions
+            ? await _dbContext.Users.Include(u => u.Permissions).ThenInclude(p => p.Role)
+                .SingleOrDefaultAsync(a => a.Kerberos == identityUser.Kerberos)
+            : await _dbContext.Users.SingleOrDefaultAsync(a => a.Kerberos == identityUser.Kerberos);
+
+        if (dbUser == null && !string.IsNullOrWhiteSpace(identityUser.Email))
+            dbUser = includePermissions
+            ? await _dbContext.Users.Include(u => u.Permissions).ThenInclude(p => p.Role)
+                .SingleOrDefaultAsync(a => a.Email == identityUser.Email)
+            : await _dbContext.Users.SingleOrDefaultAsync(a => a.Email == identityUser.Email);
 
         if (dbUser != null)
         {
-            if (dbUser.MothraId == null)
+            if (string.IsNullOrWhiteSpace(dbUser.MothraId) && !string.IsNullOrWhiteSpace(identityUser.MothraId))
             {
-                var foundUser = await _identityService.GetByKerberos(dbUser.Kerberos);
-                if (foundUser != null)
-                {
-                    dbUser.MothraId = foundUser.MothraId;
-                    await _dbContext.SaveChangesAsync();
-                }
+                dbUser.MothraId = identityUser.MothraId;
+                await _dbContext.SaveChangesAsync();
             }
-
-            return dbUser; // already in the db, just return straight away
+            return dbUser;
         }
         else
         {
-            // not in the db yet, create new user and return
-            var newUser = new User
-            {
-                FirstName = userClaims.Single(c => c.Type == ClaimTypes.GivenName).Value,
-                LastName = userClaims.Single(c => c.Type == ClaimTypes.Surname).Value,
-                Email = userClaims.Single(c => c.Type == ClaimTypes.Email).Value,
-                Iam = iamId,
-                Kerberos = userClaims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value
-            };
-
-            var foundUser = await _identityService.GetByKerberos(newUser.Kerberos);
-            if (foundUser != null)
-            {
-                newUser.MothraId = foundUser.MothraId;
-            }
-
-            await _dbContext.Users.AddAsync(newUser);
-
+            await _dbContext.Users.AddAsync(identityUser);
             await _dbContext.SaveChangesAsync();
-
-            return newUser;
+            return identityUser;
         }
     }
 
+    public async Task<User?> GetUser(Claim[] userClaims, bool includePermissions = false)
+    {
+        string iamId = userClaims.Single(c => c.Type == IamIdClaimType).Value;
+        string firstName = userClaims.Single(c => c.Type == ClaimTypes.GivenName).Value;
+        string lastName = userClaims.Single(c => c.Type == ClaimTypes.Surname).Value;
+        string email = userClaims.Single(c => c.Type == ClaimTypes.Email).Value;
+        string kerberos = userClaims.Single(c => c.Type == ClaimTypes.NameIdentifier).Value;
+
+        // Try to get more info from identity service
+        User? identityUser = await _identityService.GetByKerberos(kerberos);
+
+        if (identityUser == null)
+        {
+            // Fallback to claims if identity service fails
+            identityUser = new User
+            {
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                Iam = iamId,
+                Kerberos = kerberos
+            };
+        }
+        else
+        {
+            // Ensure IAM, email, etc. are set from claims if missing
+            if (string.IsNullOrWhiteSpace(identityUser.Iam)) identityUser.Iam = iamId;
+            if (string.IsNullOrWhiteSpace(identityUser.Email)) identityUser.Email = email;
+            if (string.IsNullOrWhiteSpace(identityUser.FirstName)) identityUser.FirstName = firstName;
+            if (string.IsNullOrWhiteSpace(identityUser.LastName)) identityUser.LastName = lastName;
+            if (string.IsNullOrWhiteSpace(identityUser.Kerberos)) identityUser.Kerberos = kerberos;
+        }
+
+        return await FindOrCreateUserAsync(identityUser, includePermissions);
+    }
+
+    public async Task<User?> GetUser(string iamIdOrEmailOrKerberos, bool includePermissions = false)
+    {
+        if (string.IsNullOrWhiteSpace(iamIdOrEmailOrKerberos))
+            return null;
+
+        User? identityUser = null;
+
+        if (iamIdOrEmailOrKerberos.All(char.IsDigit))
+        {
+            // IAM ID: use GetByKerberos (since IdentityService doesn't have GetByIamId)
+            identityUser = await _identityService.GetByKerberos(iamIdOrEmailOrKerberos);
+        }
+        else if (iamIdOrEmailOrKerberos.Contains('@'))
+        {
+            identityUser = await _identityService.GetByEmail(iamIdOrEmailOrKerberos);
+        }
+        else
+        {
+            identityUser = await _identityService.GetByKerberos(iamIdOrEmailOrKerberos);
+        }
+
+        if (identityUser == null)
+            return null;
+
+        return await FindOrCreateUserAsync(identityUser, includePermissions);
+    }
 }

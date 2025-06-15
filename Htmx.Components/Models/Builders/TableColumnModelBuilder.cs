@@ -81,7 +81,7 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
     {
         _config.ActionOptions.ActionsFactories.Add(async (rowContext) =>
         {
-            var actionSetBuilder = new ActionSetBuilder(_serviceProvider);
+            var actionSetBuilder = new ActionSetBuilder(ServiceProvider);
             actionsFactory.Invoke(rowContext, actionSetBuilder);
             var actionSet = await actionSetBuilder.Build();
             return actionSet.Items.Cast<ActionModel>();
@@ -99,26 +99,35 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         {
             var typeId = row.ModelHandler.TypeId;
             if (row.IsEditing)
-                actions
-                    .AddAction(action => action
-                        .WithLabel("Save")
-                        .WithIcon("fas fa-save")
-                        .WithHxPost($"/Form/{typeId}/Table/Save"))
-                    .AddAction(action => action
-                        .WithLabel("Cancel")
-                        .WithIcon("fas fa-times")
-                        .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
+            {
+                actions.AddAction(action => action
+                    .WithLabel("Save")
+                    .WithIcon("fas fa-save")
+                    .WithHxPost($"/Form/{typeId}/Table/Save"));
+                actions.AddAction(action => action
+                    .WithLabel("Cancel")
+                    .WithIcon("fas fa-times")
+                    .WithHxPost($"/Form/{typeId}/Table/CancelEdit"));
+            }
             else
-                actions
-                    .AddAction(action => action
+            {
+                var crudFeatures = _config.DataOptions.ModelHandler?.CrudFeatures ?? CrudFeatures.None;
+                if (crudFeatures.HasFlag(CrudFeatures.Update))
+                {
+                    actions.AddAction(action => action
                         .WithLabel("Edit")
                         .WithIcon("fas fa-edit")
-                        .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"))
-                    .AddAction(action => action
+                        .WithHxPost($"/Form/{typeId}/Table/Edit?key={row.Key}"));
+                }
+                if (crudFeatures.HasFlag(CrudFeatures.Delete))
+                {
+                    actions.AddAction(action => action
                         .WithLabel("Delete")
                         .WithIcon("fas fa-trash")
                         .WithClass("text-red-600")
                         .WithHxPost($"/Form/{typeId}/Table/Delete?key={row.Key}"));
+                }
+            }
         });
         return this;
     }

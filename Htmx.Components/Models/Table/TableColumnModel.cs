@@ -54,7 +54,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         Filter = config.FilterOptions.Filter;
         RangeFilter = config.FilterOptions.RangeFilter;
         ActionsFactories = config.ActionOptions.ActionsFactories;
-        GetInputModel = config.InputOptions.GetInputModel ?? (_ => throw new InvalidOperationException("GetInputModel is not set."));
+        GetInputModel = config.InputOptions.GetInputModel;
         SelectorExpression = config.DataOptions.SelectorExpression ?? (x => x!);
         SelectorFunc = config.DataOptions.SelectorFunc ?? SelectorExpression.CompileFast();
         Paths = config.DataOptions.Paths!;
@@ -108,18 +108,16 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// </summary>
     public List<Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 
-    public Func<TableRowContext<T, TKey>, Task<IInputModel>> GetInputModel { get; internal set; } = _ =>
-    {
-        throw new InvalidOperationException("GetInputModel is not set. Ensure that the column is configured with WithEditable(true).");
-    };
+    public Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; internal set; }
 
     Func<ITableRowContext, Task<IInputModel>> ITableColumnModel.GetInputModel => async rowContext =>
     {
-        if (rowContext is TableRowContext<T, TKey> typedRowContext)
-        {
-            return await GetInputModel(typedRowContext);
-        }
-        throw new InvalidOperationException("Row context is not of the expected type.");
+        if (rowContext is not TableRowContext<T, TKey> typedRowContext)
+            throw new InvalidOperationException("Row context is not of the expected type.");
+        if (GetInputModel == null)
+            throw new InvalidOperationException("GetInputModel is not set.");
+
+        return await GetInputModel(typedRowContext);
     };
 
     public async Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext)

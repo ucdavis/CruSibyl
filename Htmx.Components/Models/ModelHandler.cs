@@ -73,8 +73,8 @@ public class ModelHandler<T, TKey> : ModelHandler
     }
 
     public Func<IQueryable<T>>? GetQueryable { get; internal set; }
-    public Func<T, Task<Result>>? CreateModel { get; internal set; }
-    public Func<T, Task<Result>>? UpdateModel { get; internal set; }
+    public Func<T, Task<Result<T>>>? CreateModel { get; internal set; }
+    public Func<T, Task<Result<T>>>? UpdateModel { get; internal set; }
     public Func<TKey, Task<Result>>? DeleteModel { get; internal set; }
     public Func<ActionModel>? GetCreateActionModel { get; internal set; }
     public Func<ActionModel>? GetUpdateActionModel { get; internal set; }
@@ -179,8 +179,8 @@ public enum CrudFeatures
 public class CrudOptions<T, TKey>
 {
     public Func<IQueryable<T>>? GetQueryable { get; set; }
-    public Func<T, Task<Result>>? CreateModel { get; set; }
-    public Func<T, Task<Result>>? UpdateModel { get; set; }
+    public Func<T, Task<Result<T>>>? CreateModel { get; set; }
+    public Func<T, Task<Result<T>>>? UpdateModel { get; set; }
     public Func<TKey, Task<Result>>? DeleteModel { get; set; }
     public CrudFeatures CrudFeatures { get; set; }
     public Func<ActionModel>? GetCreateActionModel { get; set; }

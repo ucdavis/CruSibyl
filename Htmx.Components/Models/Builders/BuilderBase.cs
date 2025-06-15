@@ -10,12 +10,12 @@ public abstract class BuilderBase<TBuilder, TModel>
     where TBuilder : BuilderBase<TBuilder, TModel>
     where TModel : class
 {
-    protected readonly IServiceProvider _serviceProvider;
+    public IServiceProvider ServiceProvider { get; }
     private readonly List<Func<Task>> _buildTasks;
 
     protected BuilderBase(IServiceProvider serviceProvider)
     {
-        _serviceProvider = serviceProvider;
+        ServiceProvider = serviceProvider;
         _buildTasks = [];
     }
 
@@ -23,7 +23,7 @@ public abstract class BuilderBase<TBuilder, TModel>
     {
         get
         {
-            var actionContextAccessor = _serviceProvider.GetRequiredService<IActionContextAccessor>();
+            var actionContextAccessor = ServiceProvider.GetRequiredService<IActionContextAccessor>();
             return actionContextAccessor.GetValidActionContext();
         }
     }
