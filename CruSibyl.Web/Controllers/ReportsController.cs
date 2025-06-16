@@ -14,7 +14,7 @@ namespace CruSibyl.Web.Controllers;
 [Authorize]
 [Route("Reports")]
 [NavActionGroup(DisplayName = "Reports", Icon = "fas fa-chart-bar", Order = 1)]
-public class ReportsController : TabController
+public class ReportsController : Controller
 {
     private readonly AppDbContext _dbContext;
     private readonly IModelHandlerFactoryGeneric _modelHandlerFactory;

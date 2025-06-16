@@ -23,7 +23,6 @@ public static class ServiceCollectionExtensions
     {
         services.AddSafeActionContextAccessor(nameof(AddHtmxComponents));
         services.AddHttpContextAccessor();
-        services.AddTransient<HtmxResultBuilder>();
         services.Configure<RazorViewEngineOptions>(options =>
         {
             options.ViewLocationFormats.Add("/Views/Shared/Components/Table/{0}.cshtml");

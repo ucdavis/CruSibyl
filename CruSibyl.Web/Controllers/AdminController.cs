@@ -24,7 +24,7 @@ namespace CruSibyl.Web.Controllers;
 [Authorize]
 [Route("Admin")]
 [NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 2)]
-public class AdminController : TabController
+public class AdminController : Controller
 {
     private readonly AppDbContext _dbContext;
     private readonly IModelHandlerFactoryGeneric _modelHandlerFactory;
