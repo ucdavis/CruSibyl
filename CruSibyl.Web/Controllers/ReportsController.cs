@@ -8,6 +8,7 @@ using Htmx.Components.Models.Table;
 using Htmx.Components.Attributes;
 using Htmx.Components.Models.Builders;
 using CruSibyl.Web.Models.Reports;
+using static Htmx.Components.State.PageStateConstants;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -30,12 +31,8 @@ public class ReportsController : Controller
     [NavAction(Icon = "fas fa-database", Order = 1, PushUrl = true, ViewName = "_PackageVersions")]
     public async Task<IActionResult> PackageVersions()
     {
-        var pageState = this.GetPageState();
-        var tableState = new TableState();
-        pageState.Set("Table", "State", tableState);
-
         var modelHandler = await _modelHandlerFactory.Get<DependencyVersionReportModel, NoKey>(nameof(DependencyVersionReportModel), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
 
         return Ok(tableModel);
     }

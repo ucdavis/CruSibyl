@@ -8,8 +8,8 @@ public static class PageStateExtensions
 {
     public static IPageState GetPageState(this HttpContext context)
     {
-        if (context.Items.TryGetValue(PageStateMiddleware.HttpContextPageStateKey, out var value) && value is IPageState manager)
-            return manager;
+        if (context.Items.TryGetValue(PageStateMiddleware.HttpContextPageStateKey, out var value) && value is IPageState pageState)
+            return pageState;
         throw new InvalidOperationException("PageState not found. Is PageStateMiddleware registered?");
     }
 

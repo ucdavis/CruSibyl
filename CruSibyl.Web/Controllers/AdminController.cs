@@ -18,6 +18,7 @@ using Htmx.Components.Models.Builders;
 using Result = Htmx.Components.Models.Result;
 using CruSibyl.Web.Models.Admin;
 using CruSibyl.Core.Services;
+using static Htmx.Components.State.PageStateConstants;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -40,12 +41,8 @@ public class AdminController : Controller
     [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Repos")]
     public async Task<IActionResult> Repos()
     {
-        var pageState = this.GetPageState();
-        var tableState = new TableState();
-        pageState.Set("Table", "State", tableState);
-
         var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
 
         return Ok(tableModel);
     }
@@ -54,12 +51,8 @@ public class AdminController : Controller
     [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 1, PushUrl = true, ViewName = "_AdminUsers")]
     public async Task<IActionResult> AdminUsers()
     {
-        var pageState = this.GetPageState();
-        var tableState = new TableState();
-        pageState.Set("Table", "State", tableState);
-
         var modelHandler = await _modelHandlerFactory.Get<AdminUserModel, int>(nameof(AdminUserModel), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
 
         return Ok(tableModel);
     }

@@ -3,6 +3,8 @@ using FastExpressionCompiler;
 using Htmx.Components.Table;
 using Htmx.Components.Models.Table;
 using Htmx.Components.Models.Builders;
+using Htmx.Components.State;
+using static Htmx.Components.State.PageStateConstants;
 
 namespace Htmx.Components.Models;
 
@@ -26,10 +28,12 @@ public class ModelHandler<T, TKey> : ModelHandler
     private Expression<Func<T, TKey>> _keySelectorExpression = null!;
     private Func<T, TKey> _keySelectorFunc = null!;
     private ITableProvider _tableProvider;
+    private IPageState _pageState;
 
-    public ModelHandler(ModelHandlerOptions<T, TKey> options, ITableProvider tableProvider)
+    public ModelHandler(ModelHandlerOptions<T, TKey> options, ITableProvider tableProvider, IPageState pageState)
     {
-        _tableProvider = tableProvider ?? throw new ArgumentNullException(nameof(tableProvider));
+        _tableProvider = tableProvider;
+        _pageState = pageState;
         if (options.TypeId == null) throw new ArgumentNullException(nameof(options.TypeId));
         if (options.Table.Paths == null) throw new ArgumentNullException(nameof(options.Table.Paths));
         if (options.ServiceProvider == null) throw new ArgumentNullException(nameof(options.ServiceProvider));
@@ -93,13 +97,20 @@ public class ModelHandler<T, TKey> : ModelHandler
         return tableModelBuilder.Build();
     }
 
-    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPage(TableState state)
+    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPage(TableState? tableState = null)
     {
+        // a null tableState means we are opening a new table with no previous state.
+        if (tableState == null)
+        {
+            tableState = new TableState();
+            _pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
+        }
+
         var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
         var tableModel = await tableModelBuilder.Build();
         var query = GetQueryable?.Invoke() ?? throw new InvalidOperationException("GetQueryable is not set.");
-        await _tableProvider.FetchPage(tableModel, query, state);
+        await _tableProvider.FetchPage(tableModel, query, tableState);
         return tableModel;
     }
 

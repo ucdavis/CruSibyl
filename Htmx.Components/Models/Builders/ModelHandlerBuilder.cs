@@ -2,8 +2,10 @@ using System.Linq.Expressions;
 using Htmx.Components.Authorization;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models.Table;
+using Htmx.Components.State;
 using Htmx.Components.Table;
 using Microsoft.Extensions.DependencyInjection;
+using static Htmx.Components.Authorization.AuthConstants;
 
 namespace Htmx.Components.Models.Builders;
 
@@ -13,6 +15,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     private readonly IResourceOperationRegistry _resourceOperationRegistry;
     private readonly ModelHandlerOptions<T, TKey> _options = new();
     private readonly ITableProvider _tableProvider;
+    private readonly IPageState _pageState;
 
     internal ModelHandlerBuilder(IServiceProvider serviceProvider, string typeId, TableViewPaths tableViewPaths, IResourceOperationRegistry resourceOperationRegistry)
         : base(serviceProvider)
@@ -23,6 +26,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         _options.Table.Paths = tableViewPaths;
         _options.ServiceProvider = serviceProvider;
         _tableProvider = serviceProvider.GetRequiredService<ITableProvider>();
+        _pageState = serviceProvider.GetRequiredService<IPageState>();
     }
 
     public ModelHandlerBuilder<T, TKey> WithTypeId(string typeId)
@@ -41,7 +45,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     {
         _options.Crud.CrudFeatures |= CrudFeatures.Read;
         _options.Crud.GetQueryable = getQueryable;
-        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Read));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, CrudOperations.Read));
         return this;
     }
 
@@ -59,7 +63,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             }
         });
         SetCancelActionModel();
-        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Create));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, CrudOperations.Create));
         return this;
     }
 
@@ -77,7 +81,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
             }
         });
         SetCancelActionModel();
-        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Update));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, CrudOperations.Update));
         return this;
     }
 
@@ -109,7 +113,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
                 { "hx-delete", $"/Form/{_options.TypeId}/{_options.ModelUI}/Delete" },
             }
         });
-        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, Constants.Authorization.Operations.Delete));
+        AddBuildTask(_resourceOperationRegistry.Register(_options.TypeId!, CrudOperations.Delete));
         return this;
     }
 
@@ -135,7 +139,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
 
     protected override Task<ModelHandler<T, TKey>> BuildImpl()
     {
-        var handler = new ModelHandler<T, TKey>(_options, _tableProvider);
+        var handler = new ModelHandler<T, TKey>(_options, _tableProvider, _pageState);
         return Task.FromResult(handler);
     }
 
