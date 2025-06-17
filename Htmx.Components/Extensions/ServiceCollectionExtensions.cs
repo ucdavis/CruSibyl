@@ -146,7 +146,18 @@ public class HtmxComponentOptions
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
+    internal Action<IServiceCollection>? RegisterRoleService { get; set; }
     internal string UserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
+
+    public HtmxComponentOptions WithRoleService<T>()
+        where T : class, IRoleService
+    {
+        RegisterRoleService = services =>
+        {
+            services.AddScoped<IRoleService, T>();
+        };
+        return this;
+    }
 
     public HtmxComponentOptions WithUserIdClaimType(string claimType)
     {

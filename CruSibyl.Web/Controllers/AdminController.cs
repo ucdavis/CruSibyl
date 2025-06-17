@@ -19,6 +19,7 @@ using Result = Htmx.Components.Models.Result;
 using CruSibyl.Web.Models.Admin;
 using CruSibyl.Core.Services;
 using static Htmx.Components.State.PageStateConstants;
+using CruSibyl.Core.Models;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -48,6 +49,7 @@ public class AdminController : Controller
     }
 
     [HttpGet("AdminUsers")]
+    [Authorize(Policy = AccessPolicies.SystemAccess)]
     [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 1, PushUrl = true, ViewName = "_AdminUsers")]
     public async Task<IActionResult> AdminUsers()
     {
