@@ -1,7 +1,7 @@
 @using Htmx.Components.Models.Table
 @model ITableModel
 <div id="table-pagination">
-    <div class="flex justify-center items-center mt-4 space-x-2">
+    <div class="flex justify-center items-center my-4 space-x-2">
         <button class="btn btn-sm" 
                 hx-post="@Url.Action("SetPage", "Form", new { typeId = Model.TypeId })"
                 hx-swap="none"

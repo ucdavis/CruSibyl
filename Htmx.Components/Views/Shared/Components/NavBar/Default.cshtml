@@ -1,18 +1,18 @@
 @using Htmx.Components.Models
 @model IActionSet
 
-<nav id="navbar" class="navbar bg-base-100 shadow-md rounded-box px-4">
-    <div class="flex-1">
+<nav id="navbar" class="navbar bg-base-100 shadow-md rounded-box px-4 z-50">
+    <div class="navbar-start">
         <a class="text-xl font-bold">CruSibyl</a>
     </div>
-    <div class="flex-none gap-2">
+    <div class="navbar-end">
         <ul class="menu menu-horizontal px-1">
             @foreach (var item in Model.Items)
             {
                 if (item is ActionModel actionModel)
                 {
                     <li>
-                        <a class="whitespace-nowrap @(actionModel.CssClass ?? "") @(actionModel.IsActive ? "bg-primary text-primary-content cursor-default pointer-events-none" : "")"
+                        <a class="whitespace-nowrap @(actionModel.CssClass ?? "") @(actionModel.IsActive ? "active bg-primary text-primary-content cursor-default pointer-events-none" : "")"
                             @foreach (var attr in actionModel.Attributes)
                             {
                                 @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
@@ -31,20 +31,20 @@
                     var isActive = group.Items.OfType<ActionModel>().Any(i => i.IsActive);
                     <li>
                         <details>
-                            <summary class="@(group.CssClass ?? "") @(isActive ? "bg-primary text-primary-content" : "")">
+                            <summary class="@(group.CssClass ?? "") @(isActive ? "active bg-primary text-primary-content" : "")">
                                 @if (!string.IsNullOrEmpty(group.Icon))
                                 {
                                     <i class="@group.Icon"></i>
                                 }
                                 @group.Label
                             </summary>
-                            <ul class="p-2 bg-base-100 z-50 flex flex-col">
+                            <ul class="dropdown-content menu p-2 bg-base-100 rounded-box w-52">
                                 @foreach (var sub in group.Items)
                                 {
                                     if (sub is ActionModel subModel)
                                     {
                                         <li>
-                                            <a class="whitespace-nowrap @(subModel.CssClass) @(subModel.IsActive ? "bg-primary text-primary-content cursor-default pointer-events-none" : "")"
+                                            <a class="whitespace-nowrap @(subModel.CssClass) @(subModel.IsActive ? "active bg-primary text-primary-content cursor-default pointer-events-none" : "")"
                                                 @foreach (var attr in subModel.Attributes)
                                                 {
                                                     @Html.Raw($" {attr.Key}=\"{attr.Value}\"")
@@ -65,5 +65,10 @@
                 }
             }
         </ul>
+        <div class="avatar ml-4">
+            <div class="ring-primary ring-offset-base-100 w-12 rounded-full bg-base-300">
+                <span class="flex items-center justify-center h-full text-xs text-base-content">ME</span>
+            </div>
+        </div>
     </div>
 </nav>

@@ -30,26 +30,28 @@
 
 <body class="min-h-screen flex flex-col">
   <div class="flex-1 flex flex-col">
-    <header>
+    <header class="sticky top-0 z-50">
+    @await Component.InvokeAsync("NavBar")
     </header>
 
-    @await Component.InvokeAsync("NavBar")
 
-    <main id="tab-content" class="px-4 flex-1 pb-8">
+    <main id="tab-content" class="px-4 flex-1 flex flex-col min-h-0 pb-8">
       @RenderBody() @* Initial content - first tab loads by default *@
     </main>
   </div>
 
-  <footer class="bg-gray-800 text-white p-4 text-center sticky bottom-0">
-    <p class="text-sm">
-      Copyright &copy; <span id="copywrite-year"></span> The Regents of the University of California, Davis campus.
-      All rights reserved. <br>
-      <a href="https://wiki.cse.ucdavis.edu/support/contact/home" target="_blank"
-        class="text-blue-400 hover:underline">Questions? Contact Us</a>
-    </p>
-  </footer>
-
-
+<footer class="footer footer-center bg-base-300 text-base-content p-4 sticky bottom-0 z-50 h-16">
+    <aside class="flex items-center h-full w-full">
+      <p class="text-sm text-center w-full">
+        Copyright &copy; <span id="copywrite-year">@DateTime.Now.Year</span>
+        The Regents of the University of California, Davis campus. All rights reserved.
+        <br>
+        <a href="https://wiki.cse.ucdavis.edu/support/contact/home" target="_blank" class="link link-primary">
+          Questions? Contact Us
+        </a>
+      </p>
+    </aside>
+</footer>
   @Html.HtmxAntiforgeryScript()
 
   <htmx-page-state></htmx-page-state>
