@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Htmx.Components.Authorization;
+using Htmx.Components.AuthStatus;
 using Htmx.Components.Filters;
 using Htmx.Components.Models.Builders;
 using Htmx.Components.Models.Table;
@@ -117,6 +118,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPageState, PageState>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddDataProtection();
+        services.AddScoped<IAuthStatusProvider>(sp =>
+            options.AuthStatusProviderFactory?.Invoke(sp) ?? new DefaultAuthStatusProvider());
     }
 
     private static void RegisterFilters(IServiceCollection services)
@@ -125,12 +128,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PageStateOobInjectorFilter>();
         services.AddScoped<TableOobEditFilter>();
         services.AddScoped<NavActionResultFilter>();
+        services.AddScoped<AuthStatusUpdateFilter>();
 
         services.PostConfigure<MvcOptions>(options =>
         {
             // Be sure to place filters that convert models to MultiSwapViewResults before the filters that inject OOB content.
             options.Filters.AddService<TableOobRefreshFilter>();
             options.Filters.AddService<TableOobEditFilter>();
+            options.Filters.AddService<AuthStatusUpdateFilter>();
             options.Filters.AddService<NavActionResultFilter>();
             options.Filters.AddService<PageStateOobInjectorFilter>();
         });
@@ -177,9 +182,18 @@ public class HtmxComponentOptions
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
     internal Action<IServiceCollection>? RegisterRoleService { get; set; }
     internal string UserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
+    internal Func<IServiceProvider, IAuthStatusProvider> AuthStatusProviderFactory { get; set; } = sp =>
+        new DefaultAuthStatusProvider();
+    
+
+    public HtmxComponentOptions WithAuthStatusProvider(Func<IServiceProvider, IAuthStatusProvider> factory)
+    {
+        AuthStatusProviderFactory = factory;
+        return this;
+    }
 
     public HtmxComponentOptions WithRoleService<T>()
-        where T : class, IRoleService
+            where T : class, IRoleService
     {
         RegisterRoleService = services =>
         {

@@ -27,12 +27,7 @@
         </div>
         <div class="navbar-end">
           @await Component.InvokeAsync("NavBar")
-          <div class="avatar ml-4">
-            <div class="ring-primary ring-offset-base-100 w-12 rounded-full bg-base-300">
-              <span class="flex items-center justify-center h-full text-xs text-base-content">ME</span>
-            </div>
-          </div>
-
+          @await Component.InvokeAsync("AuthStatus")
         </div>
       </div>
 

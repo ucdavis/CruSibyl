@@ -21,27 +21,36 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
         if (context.ActionDescriptor is ControllerActionDescriptor cad)
         {
             var attribute = cad.MethodInfo.GetCustomAttributes(typeof(T), true).Cast<T>().FirstOrDefault();
-            if (attribute != null && (context.Result is ObjectResult || context.Result is MultiSwapViewResult))
+            if (attribute != null && (
+                context.Result is ObjectResult
+                || context.Result is MultiSwapViewResult
+                || context.Result is OkResult))
             {
                 if (context.HttpContext.Request.IsHtmx())
                 {
                     MultiSwapViewResult multiSwapViewResult = null!;
-                    if (context.Result is ObjectResult objResult)
+                    multiSwapViewResult = context.Result switch
                     {
-                        multiSwapViewResult = new MultiSwapViewResult
+                        ObjectResult objResult => new MultiSwapViewResult
                         {
                             Model = objResult.Value
-                        };
-                    }
-                    else
-                    {
-                        multiSwapViewResult = (MultiSwapViewResult)context.Result;
-                    }
+                        },
+                        // TODO: OkResult is a special case that isn't applicable to all subclasses. Find a way to handle this more gracefully.
+                        OkResult => new MultiSwapViewResult(),
+                        MultiSwapViewResult msvr => msvr,
+                        _ => throw new InvalidOperationException("Unsupported result type.")
+                    };
                     await UpdateMultiSwapViewResultAsync(attribute, multiSwapViewResult, context);
                     context.Result = multiSwapViewResult;
                 }
                 else
                 {
+                    // TODO: OkResult is a special case that isn't applicable to all subclasses. Find a way to handle this more gracefully.
+                    if (context.Result is OkResult)
+                    {
+                        await next();
+                        return;
+                    }
                     var viewName = await GetViewNameForNonHtmxRequest(attribute, cad);
                     var controller = (Controller)context.Controller;
                     context.Result = new ViewResult
