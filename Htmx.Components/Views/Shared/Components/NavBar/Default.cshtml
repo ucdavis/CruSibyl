@@ -1,11 +1,8 @@
 @using Htmx.Components.Models
 @model IActionSet
 
-<nav id="navbar" class="navbar bg-base-100 shadow-md rounded-box px-4 z-50">
-    <div class="navbar-start">
-        <a class="text-xl font-bold">CruSibyl</a>
-    </div>
-    <div class="navbar-end">
+<nav id="navbar">
+    <div>
         <ul class="menu menu-horizontal px-1">
             @foreach (var item in Model.Items)
             {
@@ -65,10 +62,5 @@
                 }
             }
         </ul>
-        <div class="avatar ml-4">
-            <div class="ring-primary ring-offset-base-100 w-12 rounded-full bg-base-300">
-                <span class="flex items-center justify-center h-full text-xs text-base-content">ME</span>
-            </div>
-        </div>
     </div>
 </nav>

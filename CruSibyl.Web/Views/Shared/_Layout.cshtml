@@ -31,16 +31,30 @@
 <body class="min-h-screen flex flex-col">
   <div class="flex-1 flex flex-col">
     <header class="sticky top-0 z-50">
-    @await Component.InvokeAsync("NavBar")
+      <div class="navbar bg-base-100 shadow-md rounded-box px-4 z-50">
+        <div class="navbar-start">
+          <a class="text-xl font-bold">CruSibyl</a>
+        </div>
+        <div class="navbar-end">
+          @await Component.InvokeAsync("NavBar")
+          <div class="avatar ml-4">
+            <div class="ring-primary ring-offset-base-100 w-12 rounded-full bg-base-300">
+              <span class="flex items-center justify-center h-full text-xs text-base-content">ME</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </header>
 
 
-    <main id="tab-content" class="px-4 flex-1 flex flex-col min-h-0 pb-8">
+    <main id="tab-content" class="p-4 flex-1 flex flex-col min-h-0 pb-8">
       @RenderBody() @* Initial content - first tab loads by default *@
     </main>
   </div>
 
-<footer class="footer footer-center bg-base-300 text-base-content p-4 sticky bottom-0 z-50 h-16">
+  <footer class="footer footer-center bg-base-300 text-base-content p-4 sticky bottom-0 z-50 h-16">
     <aside class="flex items-center h-full w-full">
       <p class="text-sm text-center w-full">
         Copyright &copy; <span id="copywrite-year">@DateTime.Now.Year</span>
@@ -51,7 +65,7 @@
         </a>
       </p>
     </aside>
-</footer>
+  </footer>
   @Html.HtmxAntiforgeryScript()
 
   <htmx-page-state></htmx-page-state>
