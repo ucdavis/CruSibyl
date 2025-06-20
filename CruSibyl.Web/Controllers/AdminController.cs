@@ -43,7 +43,7 @@ public class AdminController : Controller
     public async Task<IActionResult> Repos()
     {
         var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
 
         return Ok(tableModel);
     }
@@ -54,7 +54,7 @@ public class AdminController : Controller
     public async Task<IActionResult> AdminUsers()
     {
         var modelHandler = await _modelHandlerFactory.Get<AdminUserModel, int>(nameof(AdminUserModel), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
 
         return Ok(tableModel);
     }

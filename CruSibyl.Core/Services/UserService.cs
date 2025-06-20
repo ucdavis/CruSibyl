@@ -10,9 +10,9 @@ using Serilog;
 namespace CruSibyl.Core.Services;
 public interface IUserService
 {
-    Task<User?> GetUser(Claim[] userClaims, bool includePermissions = false);
+    Task<User?> GetUserAsync(Claim[] userClaims, bool includePermissions = false);
     Task<User?> GetUser(string iamIdOrEmailOrKerberos, bool includePermissions = false);
-    Task<User?> GetCurrentUser(bool includePermissions = false);
+    Task<User?> GetCurrentUserAsync(bool includePermissions = false);
     Task<IEnumerable<Permission>> GetCurrentPermissionsAsync();
     string? GetCurrentUserId();
 }
@@ -37,7 +37,7 @@ public class UserService : IUserService
         return userId;
     }
 
-    public async Task<User?> GetCurrentUser(bool includePermissions = false)
+    public async Task<User?> GetCurrentUserAsync(bool includePermissions = false)
     {
         if (_httpContextAccessor.HttpContext == null)
         {
@@ -47,7 +47,7 @@ public class UserService : IUserService
 
         var userClaims = _httpContextAccessor.HttpContext.User.Claims.ToArray();
 
-        return await GetUser(userClaims, includePermissions);
+        return await GetUserAsync(userClaims, includePermissions);
     }
 
     public async Task<IEnumerable<Permission>> GetCurrentPermissionsAsync()
@@ -106,7 +106,7 @@ public class UserService : IUserService
         }
     }
 
-    public async Task<User?> GetUser(Claim[] userClaims, bool includePermissions = false)
+    public async Task<User?> GetUserAsync(Claim[] userClaims, bool includePermissions = false)
     {
         string iamId = userClaims.Single(c => c.Type == IamIdClaimType).Value;
         string firstName = userClaims.Single(c => c.Type == ClaimTypes.GivenName).Value;

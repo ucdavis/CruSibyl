@@ -4,7 +4,7 @@
 @model TableCellPartialModel
 
 @{
-    var actions = await Model.Column.GetActions(Model.Row);
+    var actions = await Model.Column.GetActionsAsync(Model.Row);
 }
 
 @foreach (var action in actions)

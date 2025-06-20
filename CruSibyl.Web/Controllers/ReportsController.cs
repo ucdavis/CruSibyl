@@ -32,7 +32,7 @@ public class ReportsController : Controller
     public async Task<IActionResult> PackageVersions()
     {
         var modelHandler = await _modelHandlerFactory.Get<DependencyVersionReportModel, NoKey>(nameof(DependencyVersionReportModel), ModelUI.Table);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage();
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
 
         return Ok(tableModel);
     }

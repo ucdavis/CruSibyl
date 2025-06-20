@@ -34,6 +34,6 @@ public class BuilderBasedNavProvider : INavProvider
         await _builderFactory(actionSetBuilder);
 
         // Build the final ActionSet
-        return await actionSetBuilder.Build();
+        return await actionSetBuilder.BuildAsync();
     }
 }

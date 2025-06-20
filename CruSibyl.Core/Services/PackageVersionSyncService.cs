@@ -8,7 +8,7 @@ namespace CruSibyl.Core.Services;
 
 public interface IPackageVersionSyncService
 {
-    Task<Result> SyncPackageVersions();
+    Task<Result> SyncPackageVersionsAsync();
 }
 
 public class PackageVersionSyncService : IPackageVersionSyncService
@@ -27,7 +27,7 @@ public class PackageVersionSyncService : IPackageVersionSyncService
         _dbContextFactory = dbContextFactory;
     }
 
-    public async Task<Result> SyncPackageVersions()
+    public async Task<Result> SyncPackageVersionsAsync()
     {
         // Use a context to coordinate scan batch logic
         using var dbContext = _dbContextFactory.CreateDbContext();

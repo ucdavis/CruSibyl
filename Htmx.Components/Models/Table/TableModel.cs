@@ -12,7 +12,7 @@ public interface ITableModel
     public TableState State { get; set; }
     public TableViewPaths TableViewPaths { get; set; }
     public ModelHandler ModelHandler { get; set; }
-    public Task<IEnumerable<ActionModel>> GetActions();
+    public Task<IEnumerable<ActionModel>> GetActionsAsync();
 }
 
 
@@ -59,7 +59,7 @@ public class TableModel<T, TKey> : ITableModel
         set => Columns = value.Cast<TableColumnModel<T, TKey>>().ToList();
     }
 
-    public async Task<IEnumerable<ActionModel>> GetActions()
+    public async Task<IEnumerable<ActionModel>> GetActionsAsync()
     {
         var results = new List<ActionModel>();
         foreach (var factory in ActionsFactories)

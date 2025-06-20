@@ -47,12 +47,12 @@ public class GitHubService : IGitHubService
     private async Task<List<ManifestData>> GetCSProjManifests(GitHubClient client, string owner, string repo)
     {
         Log.Information("Searching for .csproj files in repository {Repo}", repo);
-        var csprojFiles = await SearchFilesInRepo(client, owner, repo, "extension:csproj");
+        var csprojFiles = await SearchFilesInRepoAsync(client, owner, repo, "extension:csproj");
         var manifests = new List<ManifestData>();
 
         foreach (var filePath in csprojFiles)
         {
-            var xmlDoc = await LoadXmlFileFromRepo(client, owner, repo, filePath);
+            var xmlDoc = await LoadXmlFileFromRepoAsync(client, owner, repo, filePath);
             var dependencies = ExtractCsprojDependencies(xmlDoc);
 
             var targetFramework = xmlDoc.Descendants("TargetFramework").FirstOrDefault()?.Value ?? "Unknown";
@@ -71,12 +71,12 @@ public class GitHubService : IGitHubService
     private async Task<List<ManifestData>> GetNPMManifests(GitHubClient client, string owner, string repo)
     {
         Log.Information("Searching for package.json files in repository {Repo}", repo);
-        var packageJsonFiles = await SearchFilesInRepo(client, owner, repo, "filename:package.json");
+        var packageJsonFiles = await SearchFilesInRepoAsync(client, owner, repo, "filename:package.json");
         var manifests = new List<ManifestData>();
 
         foreach (var filePath in packageJsonFiles)
         {
-            var jsonContent = await LoadFileContentFromRepo(client, owner, repo, filePath);
+            var jsonContent = await LoadFileContentFromRepoAsync(client, owner, repo, filePath);
             using var doc = JsonDocument.Parse(jsonContent);
             var dependencies = ExtractNPMDependencies(doc);
 
@@ -97,9 +97,9 @@ public class GitHubService : IGitHubService
         return manifests;
     }
 
-    async Task<List<string>> SearchFilesInRepo(GitHubClient client, string owner, string repo, string query)
+    async Task<List<string>> SearchFilesInRepoAsync(GitHubClient client, string owner, string repo, string query)
     {
-        await ThrottleIfNeeded(client, GitHubRequestType.Search);
+        await ThrottleIfNeededAsync(client, GitHubRequestType.Search);
         var searchQuery = $"{query} repo:{owner}/{repo}";
         var searchRequest = new SearchCodeRequest(searchQuery);
         var searchResults = await client.Search.SearchCode(searchRequest);
@@ -107,16 +107,16 @@ public class GitHubService : IGitHubService
         return searchResults.Items.Select(item => item.Path).ToList();
     }
 
-    async Task<XDocument> LoadXmlFileFromRepo(GitHubClient client, string owner, string repo, string filePath)
+    async Task<XDocument> LoadXmlFileFromRepoAsync(GitHubClient client, string owner, string repo, string filePath)
     {
-        await ThrottleIfNeeded(client, GitHubRequestType.Core);
-        string content = await LoadFileContentFromRepo(client, owner, repo, filePath);
+        await ThrottleIfNeededAsync(client, GitHubRequestType.Core);
+        string content = await LoadFileContentFromRepoAsync(client, owner, repo, filePath);
         return XDocument.Parse(content);
     }
 
-    async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
+    async Task<string> LoadFileContentFromRepoAsync(GitHubClient client, string owner, string repo, string filePath)
     {
-        await ThrottleIfNeeded(client, GitHubRequestType.Core);
+        await ThrottleIfNeededAsync(client, GitHubRequestType.Core);
         var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
         var content = contents.FirstOrDefault()?.Content ?? "";
         // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
@@ -164,7 +164,7 @@ public class GitHubService : IGitHubService
         return packages;
     }
 
-    private async Task ThrottleIfNeeded(GitHubClient client, GitHubRequestType type)
+    private async Task ThrottleIfNeededAsync(GitHubClient client, GitHubRequestType type)
     {
         await _rateLimitSemaphore.WaitAsync();
         try

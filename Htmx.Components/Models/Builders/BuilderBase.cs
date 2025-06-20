@@ -45,7 +45,7 @@ public abstract class BuilderBase<TBuilder, TModel>
 
     protected abstract Task<TModel> BuildImpl();
 
-    internal async Task<TModel> Build()
+    internal async Task<TModel> BuildAsync()
     {
         var tasks = _buildTasks.Select(f => f());
         await Task.WhenAll(tasks);

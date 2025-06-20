@@ -78,7 +78,7 @@ public class InputModelBuilder<T, TProp> : BuilderBase<InputModelBuilder<T, TPro
 
     async Task<IInputModel> IInputModelBuilder.Build()
     {
-        return await base.Build();
+        return await base.BuildAsync();
     }
 
     private static InputKind GetInputKind(Type type)

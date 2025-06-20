@@ -47,7 +47,7 @@ public partial class FormController
         pageState.Set(FormStateKeys.Partition, FormStateKeys.EditingItem, editingItem);
         pageState.Set(FormStateKeys.Partition, FormStateKeys.EditingExistingRecord, true);
 
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,

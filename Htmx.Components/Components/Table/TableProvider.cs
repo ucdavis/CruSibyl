@@ -20,7 +20,7 @@ public interface ITableProvider
     /// PageCount can be calculated, and once with pagination applied. Places the results in the
     /// given <see cref="TableModel{T, TKey}"/>. The queryable is expected to be an EF Core queryable.
     /// </summary>
-    Task FetchPage<T, TKey>(
+    Task FetchPageAsync<T, TKey>(
         TableModel<T, TKey> tableModel,
         IQueryable<T> query,
         TableState tableState)
@@ -43,7 +43,7 @@ public class TableProvider : ITableProvider
     /// PageCount can be calculated, and once with pagination applied. Places the results in the
     /// given <see cref="TableModel{T, TKey}"/>. The queryable is expected to be an EF Core queryable.
     /// </summary>
-    public async Task FetchPage<T, TKey>(
+    public async Task FetchPageAsync<T, TKey>(
         TableModel<T, TKey> tableModel,
         IQueryable<T> query,
         TableState tableState)

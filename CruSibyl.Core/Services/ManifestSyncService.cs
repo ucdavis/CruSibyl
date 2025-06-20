@@ -13,7 +13,7 @@ namespace CruSibyl.Core.Services;
 
 public interface IManifestSyncService
 {
-    public Task<Result> SyncManifests();
+    public Task<Result> SyncManifestsAsync();
 }
 
 public class ManifestSyncService : IManifestSyncService
@@ -27,7 +27,7 @@ public class ManifestSyncService : IManifestSyncService
         _dbContext = dbContext;
     }
 
-    public async Task<Result> SyncManifests()
+    public async Task<Result> SyncManifestsAsync()
     {
         // TODO: This scan metadata logic is kind of messy. Consider moving the data to a separate table
         var scanInfo = await _dbContext.Repos

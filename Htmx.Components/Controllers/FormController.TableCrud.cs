@@ -38,7 +38,7 @@ public partial class FormController
         var pageState = this.GetPageState();
         var editingItem = pageState.Get<T>(FormStateKeys.Partition, FormStateKeys.EditingItem)!;
         var editingExistingRecord = pageState.Get<bool>(FormStateKeys.Partition, FormStateKeys.EditingExistingRecord)!;
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         if (editingExistingRecord)
         {
             if (!await IsAuthorized(modelHandler.TypeId, CrudOperations.Update))
@@ -110,7 +110,7 @@ public partial class FormController
     private async Task<IActionResult> CancelEditImpl<T, TKey>(ModelHandler<T, TKey> modelHandler)
         where T : class
     {
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         var pageState = this.GetPageState();
         if (pageState.Get<bool>(FormStateKeys.Partition, FormStateKeys.EditingExistingRecord))
         {
@@ -177,7 +177,7 @@ public partial class FormController
         pageState.Set(FormStateKeys.Partition, FormStateKeys.EditingItem, editingItem);
         pageState.Set(FormStateKeys.Partition, FormStateKeys.EditingExistingRecord, false);
 
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = editingItem,
@@ -227,7 +227,7 @@ public partial class FormController
         }
 
         var pageState = this.GetPageState();
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         tableModel.Rows.Add(new TableRowContext<T, TKey>
         {
             Item = default!,

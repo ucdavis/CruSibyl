@@ -3,7 +3,7 @@
 @model ITableModel
 
 <div id="table-action-list" class="flex justify-end mb-2 space-x-2">
-    @foreach (var action in await Model.GetActions())
+    @foreach (var action in await Model.GetActionsAsync())
     {
         <button
             class="btn btn-sm @action.CssClass"

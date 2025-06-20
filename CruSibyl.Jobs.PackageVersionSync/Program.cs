@@ -72,7 +72,7 @@ namespace CruSibyl.Jobs.ManifestSync
         {
             Log.Information("Syncing package versions");
 
-            return await syncService.SyncPackageVersions();
+            return await syncService.SyncPackageVersionsAsync();
         }
     }
 }

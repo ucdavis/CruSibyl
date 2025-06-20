@@ -64,7 +64,7 @@ public static class OidcExtensions
 
             // Ensure user exists in the db
             var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
-            await userService.GetUser(identity.Claims.ToArray());
+            await userService.GetUserAsync(identity.Claims.ToArray());
         };
     }
 }

@@ -113,7 +113,7 @@ public class AttributeNavProvider : INavProvider
             }
         }
 
-        return await builder.Build();
+        return await builder.BuildAsync();
     }
 
     private Action<ActionModelBuilder> BuildActionModelBuilder(NavActionDescriptor desc)

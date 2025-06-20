@@ -42,7 +42,7 @@ public class ModelRegistry : IModelRegistry
         config.Invoke(_serviceProvider, builder);
         var castTask = async () =>
         {
-            var modelHandler = await builder.Build();
+            var modelHandler = await builder.BuildAsync();
             return (ModelHandler)modelHandler;
         };
         _modelHandlers[typeId] = castTask();

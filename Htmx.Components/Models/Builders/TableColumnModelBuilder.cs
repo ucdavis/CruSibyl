@@ -83,7 +83,7 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         {
             var actionSetBuilder = new ActionSetBuilder(ServiceProvider);
             actionsFactory.Invoke(rowContext, actionSetBuilder);
-            var actionSet = await actionSetBuilder.Build();
+            var actionSet = await actionSetBuilder.BuildAsync();
             return actionSet.Items.Cast<ActionModel>();
         });
         if (string.IsNullOrWhiteSpace(_config.Display.CellPartialView))

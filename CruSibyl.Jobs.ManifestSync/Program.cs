@@ -72,7 +72,7 @@ namespace CruSibyl.Jobs.ManifestSync
         {
             Log.Information("Syncing repository manifests");
 
-            return await syncService.SyncManifests();
+            return await syncService.SyncManifestsAsync();
         }
     }
 }

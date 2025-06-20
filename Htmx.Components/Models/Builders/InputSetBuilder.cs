@@ -20,7 +20,7 @@ public class InputSetBuilder<T> : BuilderBase<InputSetBuilder<T>, InputSet>
         {
             var builder = new InputModelBuilder<T, TProp>(ServiceProvider, propSelector);
             configure(builder);
-            var inputModel = await builder.Build();
+            var inputModel = await builder.BuildAsync();
             _config.Inputs.Add(inputModel);
         });
         return this;

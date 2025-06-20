@@ -36,7 +36,7 @@ public partial class FormController
         var tableState = pageState.GetOrCreate<TableState>(TableStateKeys.Partition, TableStateKeys.TableState, () => new());
         tableState.Page = page;
         pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync(tableState);
 
         return Ok(tableModel);
     }
@@ -67,7 +67,7 @@ public partial class FormController
         var tableState = pageState.GetOrCreate<TableState>(TableStateKeys.Partition, TableStateKeys.TableState, () => new());
         tableState.PageSize = pageSize;
         pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync(tableState);
 
         return Ok(tableModel);
     }
@@ -99,7 +99,7 @@ public partial class FormController
         tableState.SortColumn = column;
         tableState.SortDirection = direction;
         pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
-        var tableModel = await modelHandler.BuildTableModelAndFetchPage(tableState);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync(tableState);
 
         return Ok(tableModel);
     }
@@ -126,7 +126,7 @@ public partial class FormController
         if (!await IsAuthorized(modelHandler.TypeId, CrudOperations.Read))
             return Forbid();
 
-        var tableModel = await modelHandler.BuildTableModel();
+        var tableModel = await modelHandler.BuildTableModelAsync();
         var columnModel = tableModel.Columns.FirstOrDefault(c => c.DataName == column);
         if (columnModel == null)
             return BadRequest($"Column '{column}' not found.");
@@ -156,7 +156,7 @@ public partial class FormController
         }
 
         pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
-        await _tableProvider.FetchPage(tableModel, modelHandler.GetQueryable!(), tableState);
+        await _tableProvider.FetchPageAsync(tableModel, modelHandler.GetQueryable!(), tableState);
         return Ok(tableModel);
     }
 }

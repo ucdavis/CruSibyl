@@ -18,7 +18,7 @@ public abstract class ActionItemsBuilder<TBuilder, TSet, TConfig> : BuilderBase<
         {
             var actionModelBuilder = new ActionModelBuilder(ServiceProvider);
             configure(actionModelBuilder);
-            var actionModel = await actionModelBuilder.Build();
+            var actionModel = await actionModelBuilder.BuildAsync();
             _config.Items.Add(actionModel);
         });
         return (TBuilder)this;
@@ -48,7 +48,7 @@ public class ActionSetBuilder : ActionItemsBuilder<ActionSetBuilder, ActionSet, 
         {
             var actionGroupBuilder = new ActionGroupBuilder(ServiceProvider);
             configure(actionGroupBuilder);
-            var actionGroup = await actionGroupBuilder.Build();
+            var actionGroup = await actionGroupBuilder.BuildAsync();
             _config.Items.Add(actionGroup);
         });
         return this;

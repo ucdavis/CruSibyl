@@ -90,14 +90,14 @@ public class ModelHandler<T, TKey> : ModelHandler
     internal TableViewPaths Paths { get; set; } = null!;
     internal IServiceProvider ServiceProvider { get; set; } = null!;
 
-    public Task<TableModel<T, TKey>> BuildTableModel()
+    public Task<TableModel<T, TKey>> BuildTableModelAsync()
     {
         var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
-        return tableModelBuilder.Build();
+        return tableModelBuilder.BuildAsync();
     }
 
-    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPage(TableState? tableState = null)
+    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPageAsync(TableState? tableState = null)
     {
         // a null tableState means we are opening a new table with no previous state.
         if (tableState == null)
@@ -108,9 +108,9 @@ public class ModelHandler<T, TKey> : ModelHandler
 
         var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
-        var tableModel = await tableModelBuilder.Build();
+        var tableModel = await tableModelBuilder.BuildAsync();
         var query = GetQueryable?.Invoke() ?? throw new InvalidOperationException("GetQueryable is not set.");
-        await _tableProvider.FetchPage(tableModel, query, tableState);
+        await _tableProvider.FetchPageAsync(tableModel, query, tableState);
         return tableModel;
     }
 

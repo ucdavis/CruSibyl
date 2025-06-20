@@ -18,7 +18,7 @@ public interface ITableColumnModel
     string? CellPartialView { get; set; } // Custom rendering for cell
     string? FilterPartialView { get; set; } // Custom rendering for filter
     public string? CellEditPartialView { get; set; }
-    Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext);
+    Task<IEnumerable<ActionModel>> GetActionsAsync(ITableRowContext rowContext);
     object GetValue(ITableRowContext rowContext);  // Extracts value dynamically
     string GetSerializedValue(ITableRowContext rowContext);
     ITableModel Table { get; set; } // Reference to the parent table
@@ -120,7 +120,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         return await GetInputModel(typedRowContext);
     };
 
-    public async Task<IEnumerable<ActionModel>> GetActions(ITableRowContext rowContext)
+    public async Task<IEnumerable<ActionModel>> GetActionsAsync(ITableRowContext rowContext)
     {
         if (rowContext.Item is T typedItem)
         {

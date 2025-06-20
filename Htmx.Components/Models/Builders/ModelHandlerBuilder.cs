@@ -130,7 +130,7 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
         {
             var builder = new InputModelBuilder<T, TProp>(ServiceProvider, propertySelector);
             configure(builder);
-            var inputModel = await builder.Build();
+            var inputModel = await builder.BuildAsync();
             inputModel.ModelHandler = modelHandler;
             return inputModel;
         });

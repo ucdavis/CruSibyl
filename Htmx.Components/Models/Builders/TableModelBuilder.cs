@@ -68,7 +68,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, ServiceProvider);
             configure?.Invoke(builder);
-            var columnModel = await builder.Build();
+            var columnModel = await builder.BuildAsync();
             _config.Columns.Add(columnModel);
         });
         return this;
@@ -104,7 +104,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
             };
             var builder = new TableColumnModelBuilder<T, TKey>(config, ServiceProvider);
             configure?.Invoke(builder);
-            var columnModel = await builder.Build();
+            var columnModel = await builder.BuildAsync();
             _config.Columns.Add(columnModel);
         });
         return this;
@@ -124,7 +124,7 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
             {
                 var actionSetBuilder = new ActionSetBuilder(ServiceProvider);
                 actionsFactory.Invoke(tableModel, actionSetBuilder);
-                var actionSet = await actionSetBuilder.Build();
+                var actionSet = await actionSetBuilder.BuildAsync();
                 return actionSet.Items.Cast<ActionModel>();
             });
         });
