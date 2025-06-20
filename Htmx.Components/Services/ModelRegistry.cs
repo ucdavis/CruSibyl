@@ -23,14 +23,14 @@ public interface IModelRegistry
 public class ModelRegistry : IModelRegistry
 {
     private readonly Dictionary<string, Task<ModelHandler>> _modelHandlers = new();
-    private readonly TableViewPaths _tableViewPaths;
+    private readonly ViewPaths _viewPaths;
     private readonly IServiceProvider _serviceProvider;
     private readonly IResourceOperationRegistry _resourceOperationRegistry;
 
-    public ModelRegistry(TableViewPaths tableViewPaths, IServiceProvider serviceProvider,
+    public ModelRegistry(ViewPaths viewPaths, IServiceProvider serviceProvider,
         IResourceOperationRegistry resourceOperationRegistry)
     {
-        _tableViewPaths = tableViewPaths;
+        _viewPaths = viewPaths;
         _serviceProvider = serviceProvider;
         _resourceOperationRegistry = resourceOperationRegistry;
     }
@@ -38,7 +38,7 @@ public class ModelRegistry : IModelRegistry
     public void Register<T, TKey>(string typeId, Action<IServiceProvider, ModelHandlerBuilder<T, TKey>> config)
         where T : class, new()
     {
-        var builder = new ModelHandlerBuilder<T, TKey>(_serviceProvider, typeId, _tableViewPaths, _resourceOperationRegistry);
+        var builder = new ModelHandlerBuilder<T, TKey>(_serviceProvider, typeId, _viewPaths, _resourceOperationRegistry);
         config.Invoke(_serviceProvider, builder);
         var castTask = async () =>
         {

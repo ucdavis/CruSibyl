@@ -11,6 +11,13 @@ namespace Htmx.Components.Filters;
 
 public class TableOobRefreshFilter : OobResultFilterBase<TableRefreshActionAttribute>
 {
+    private readonly ViewPaths _viewPaths;
+
+    public TableOobRefreshFilter(ViewPaths viewPaths)
+    {
+        _viewPaths = viewPaths;
+    }
+
     protected override Task UpdateMultiSwapViewResultAsync(TableRefreshActionAttribute attribute, MultiSwapViewResult multiSwapViewResult, ResultExecutingContext context)
     {
         if (multiSwapViewResult.Model == null)
@@ -19,11 +26,11 @@ public class TableOobRefreshFilter : OobResultFilterBase<TableRefreshActionAttri
         }
         var tableModel = (ITableModel)multiSwapViewResult.Model;
         multiSwapViewResult
-            .WithOobContent(tableModel.TableViewPaths.TableActionList, tableModel)
-            .WithOobContent(tableModel.TableViewPaths.EditClassToggle, tableModel)
-            .WithOobContent(tableModel.TableViewPaths.Body, tableModel)
-            .WithOobContent(tableModel.TableViewPaths.Pagination, tableModel)
-            .WithOobContent(tableModel.TableViewPaths.Header, tableModel);
+            .WithOobContent(_viewPaths.Table.TableActionList, tableModel)
+            .WithOobContent(_viewPaths.Table.EditClassToggle, tableModel)
+            .WithOobContent(_viewPaths.Table.Body, tableModel)
+            .WithOobContent(_viewPaths.Table.Pagination, tableModel)
+            .WithOobContent(_viewPaths.Table.Header, tableModel);
         return Task.CompletedTask;
     }
 

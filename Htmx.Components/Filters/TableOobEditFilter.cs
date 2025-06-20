@@ -12,10 +12,12 @@ namespace Htmx.Components.Filters;
 public class TableOobEditFilter : OobResultFilterBase<TableEditActionAttribute>
 {
     private readonly ITableProvider _tableProvider;
+    private readonly ViewPaths _viewPaths;
 
-    public TableOobEditFilter(ITableProvider tableProvider)
+    public TableOobEditFilter(ITableProvider tableProvider, ViewPaths viewPaths)
     {
         _tableProvider = tableProvider;
+        _viewPaths = viewPaths;
     }
 
     protected override Task UpdateMultiSwapViewResultAsync(TableEditActionAttribute attribute, MultiSwapViewResult multiSwapViewResult, ResultExecutingContext context)
@@ -26,11 +28,11 @@ public class TableOobEditFilter : OobResultFilterBase<TableEditActionAttribute>
         }
         var tableModel = (ITableModel)multiSwapViewResult.Model;
         multiSwapViewResult
-            .WithOobContent(tableModel.TableViewPaths.EditClassToggle, tableModel)
-            .WithOobContent(tableModel.TableViewPaths.TableActionList, tableModel);
+            .WithOobContent(_viewPaths.Table.EditClassToggle, tableModel)
+            .WithOobContent(_viewPaths.Table.TableActionList, tableModel);
         foreach (var row in tableModel.Rows)
         {
-            multiSwapViewResult.WithOobContent(tableModel.TableViewPaths.Row, (tableModel, row),
+            multiSwapViewResult.WithOobContent(_viewPaths.Table.Row, (tableModel, row),
                 row.TargetDisposition ?? OobTargetDisposition.OuterHtml, row.TargetSelector);
         }
         return Task.CompletedTask;

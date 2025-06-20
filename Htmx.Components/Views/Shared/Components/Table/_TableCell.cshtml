@@ -1,5 +1,6 @@
 @using Htmx.Components.Models.Table
 @using System.Text.Encodings.Web
+@inject Htmx.Components.Models.ViewPaths ViewPaths
 
 @model TableCellPartialModel
 
@@ -11,7 +12,7 @@
 @if (isEditing)
 {
     var inputModel = await Model.Column.GetInputModel(Model.Row);
-    @await Html.PartialAsync("_Input", inputModel)
+    @await Html.PartialAsync(ViewPaths.Input, inputModel)
 }
 else
 {

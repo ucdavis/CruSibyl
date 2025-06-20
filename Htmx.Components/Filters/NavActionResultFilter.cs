@@ -1,4 +1,5 @@
 using Htmx.Components.Attributes;
+using Htmx.Components.Models;
 using Htmx.Components.NavBar;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -9,10 +10,12 @@ namespace Htmx.Components.Filters;
 public class NavActionResultFilter : OobResultFilterBase<NavActionAttribute>
 {
     private readonly INavProvider _navProvider;
+    private readonly ViewPaths _viewPaths;
 
-    public NavActionResultFilter(INavProvider navProvider)
+    public NavActionResultFilter(INavProvider navProvider, ViewPaths viewPaths)
     {
         _navProvider = navProvider;
+        _viewPaths = viewPaths;
     }
 
     protected override Task<string?> GetViewNameForNonHtmxRequest(NavActionAttribute attribute, ControllerActionDescriptor cad)
@@ -28,9 +31,9 @@ public class NavActionResultFilter : OobResultFilterBase<NavActionAttribute>
             throw new InvalidOperationException($"MultiSwapViewResult must have a model set when filtering via {nameof(NavActionAttribute)}.");
         }
         var navbar = await _navProvider.BuildAsync();
-        // TODO: Make default view and component names configurable
+
         multiSwapViewResult
-            .WithOobContent("NavBar", navbar)
-            .WithOobContent(attribute.ViewName ?? "MainContent", multiSwapViewResult.Model);
+            .WithOobContent(ComponentNames.NavBar, navbar)
+            .WithOobContent(attribute.ViewName ?? _viewPaths.DefaultNavContent, multiSwapViewResult.Model);
     }
 }

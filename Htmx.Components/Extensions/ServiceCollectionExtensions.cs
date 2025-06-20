@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Htmx.Components.Authorization;
 using Htmx.Components.AuthStatus;
 using Htmx.Components.Filters;
+using Htmx.Components.Models;
 using Htmx.Components.Models.Builders;
 using Htmx.Components.Models.Table;
 using Htmx.Components.NavBar;
@@ -99,7 +100,7 @@ public static class ServiceCollectionExtensions
 
     private static void RegisterCoreServices(IServiceCollection services, HtmxComponentOptions options)
     {
-        services.AddSingleton(options.TableViewPaths);
+        services.AddSingleton(options.ViewPaths);
         services.AddScoped<ITableProvider, TableProvider>();
         services.AddMemoryCache();
 
@@ -176,7 +177,7 @@ public static class ServiceCollectionExtensions
 public class HtmxComponentOptions
 {
     internal Func<IServiceProvider, BuilderBasedNavProvider>? NavProviderFactory { get; private set; }
-    internal TableViewPaths TableViewPaths { get; private set; } = new TableViewPaths();
+    internal ViewPaths ViewPaths { get; private set; } = new ViewPaths();
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
@@ -232,9 +233,9 @@ public class HtmxComponentOptions
         return this;
     }
 
-    public HtmxComponentOptions WithTableOverrides(Action<TableViewPaths> configure)
+    public HtmxComponentOptions WithViewOverrides(Action<ViewPaths> configure)
     {
-        configure(TableViewPaths);
+        configure(ViewPaths);
         return this;
     }
 
@@ -242,9 +243,9 @@ public class HtmxComponentOptions
     {
         ModelRegistryFactory = serviceProvider =>
         {
-            var tableViewPaths = serviceProvider.GetRequiredService<TableViewPaths>();
+            var viewPaths = serviceProvider.GetRequiredService<ViewPaths>();
             var resourceOperationRegistry = serviceProvider.GetRequiredService<IResourceOperationRegistry>();
-            var modelRegistry = new ModelRegistry(tableViewPaths, serviceProvider, resourceOperationRegistry);
+            var modelRegistry = new ModelRegistry(viewPaths, serviceProvider, resourceOperationRegistry);
             configure(modelRegistry, serviceProvider);
             return modelRegistry;
         };
