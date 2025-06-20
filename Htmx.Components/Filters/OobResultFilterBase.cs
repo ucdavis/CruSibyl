@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace Htmx.Components.Filters;
 
+
 /// <summary>
 /// Base class for OOB result filters that handle specific attributes. Does most of the work,
 /// so that derived classes only need to implement the view name retrieval and multi-swap update logic. 
@@ -83,3 +84,25 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
     protected abstract Task UpdateMultiSwapViewResultAsync(T attribute, MultiSwapViewResult multiSwapViewResult, ResultExecutingContext context);
 
 }
+
+//TODO: If the number of subclasses or special edge cases balloons, consider a more generic pluggable system
+// public interface IMultiSwapViewResultMutator
+// {
+//     Task MutateAsync(ResultExecutingContext context, MultiSwapViewResult result);
+// }
+//
+// public class HtmxPipelineResultFilter : IAsyncResultFilter
+// {
+//     private readonly IEnumerable<IMultiSwapViewResultMutator> _mutators;
+//     public HtmxPipelineResultFilter(IEnumerable<IMultiSwapViewResultMutator> mutators)
+//         => _mutators = mutators;
+//     public async Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
+//     {
+//         await next();
+//         if (context.Result is MultiSwapViewResult result)
+//         {
+//             foreach (var mutator in _mutators)
+//                 await mutator.MutateAsync(context, result);
+//         }
+//     }
+// }
