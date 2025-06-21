@@ -31,7 +31,15 @@ public enum ColumnType
     Display
 }
 
-public class TableCellPartialModel
+/// <summary>
+/// Internal model class used by the framework to represent table cell data in partial views.
+/// This class should not be instantiated directly in user code.
+/// </summary>
+/// <remarks>
+/// This class is used internally by table rendering logic to pass context data
+/// between table views and cell partial views.
+/// </remarks>
+internal class TableCellPartialModel
 {
     public required ITableModel Table { get; init; }
     public required ITableRowContext Row { get; init; }
@@ -40,7 +48,7 @@ public class TableCellPartialModel
 
 public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
 {
-    public TableColumnModel(TableColumnModelConfig<T, TKey> config)
+    internal TableColumnModel(TableColumnModelConfig<T, TKey> config)
     {
         Header = config.Display.Header;
         DataName = config.Display.DataName;
@@ -108,7 +116,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     /// </summary>
     public List<Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 
-    public Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; internal set; }
+    internal Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; set; }
 
     Func<ITableRowContext, Task<IInputModel>> ITableColumnModel.GetInputModel => async rowContext =>
     {
@@ -158,7 +166,7 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
     }
 }
 
-public class TableColumnModelConfig<T, TKey>
+internal class TableColumnModelConfig<T, TKey>
     where T : class
 {
     public TableColumnDisplayOptions Display { get; set; } = new();
@@ -169,7 +177,7 @@ public class TableColumnModelConfig<T, TKey>
     public TableColumnDataOptions<T, TKey> DataOptions { get; set; } = default!;
 }
 
-public class TableColumnDisplayOptions
+internal class TableColumnDisplayOptions
 {
     public string Header { get; set; } = "";
     public string DataName { get; set; } = "";
@@ -179,33 +187,33 @@ public class TableColumnDisplayOptions
     public ColumnType ColumnType { get; set; } = ColumnType.ValueSelector;
 }
 
-public class TableColumnBehaviorOptions
+internal class TableColumnBehaviorOptions
 {
     public bool Sortable { get; set; } = true;
     public bool Filterable { get; set; } = false;
     public bool IsEditable { get; set; } = false;
 }
 
-public class TableColumnFilterOptions<T>
+internal class TableColumnFilterOptions<T>
     where T : class
 {
     public Func<IQueryable<T>, string, IQueryable<T>>? Filter { get; set; }
     public Func<IQueryable<T>, string, string, IQueryable<T>>? RangeFilter { get; set; }
 }
 
-public class TableColumnActionOptions<T, TKey>
+internal class TableColumnActionOptions<T, TKey>
     where T : class
 {
     public List<Func<TableRowContext<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 }
 
-public class TableColumnInputOptions<T, TKey>
+internal class TableColumnInputOptions<T, TKey>
     where T : class
 {
     public Func<TableRowContext<T, TKey>, Task<IInputModel>>? GetInputModel { get; set; }
 }
 
-public class TableColumnDataOptions<T, TKey>
+internal class TableColumnDataOptions<T, TKey>
     where T : class
 {
     public Expression<Func<T, object>>? SelectorExpression { get; set; }

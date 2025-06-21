@@ -181,8 +181,14 @@ public class AttributeNavProvider : INavProvider
     }
 
     /// <summary>
-    /// Internal descriptor class for navigation action metadata.
+    /// Internal descriptor class used by the framework for navigation action metadata.
+    /// Contains metadata about navigation items including method info, attributes, and authorization data.
+    /// This class should not be used directly in user code.
     /// </summary>
+    /// <remarks>
+    /// This class is used internally by the navigation providers to store and transfer
+    /// navigation metadata between different parts of the framework during the action discovery process.
+    /// </remarks>
     private class NavActionDescriptor
     {
         public MethodInfo MethodInfo { get; set; } = default!;

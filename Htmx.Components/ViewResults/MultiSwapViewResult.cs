@@ -252,7 +252,7 @@ public class MultiSwapViewResult : IActionResult
 
 
 
-public class NullView : IView
+internal class NullView : IView
 {
     public static readonly NullView Instance = new();
     public string Path => "NullView";

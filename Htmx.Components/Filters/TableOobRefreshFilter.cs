@@ -9,7 +9,14 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Htmx.Components.Filters;
 
-public class TableOobRefreshFilter : OobResultFilterBase<TableRefreshActionAttribute>
+/// <summary>
+/// Internal filter that processes table refresh actions for out-of-band HTMX responses.
+/// </summary>
+/// <remarks>
+/// This filter is automatically registered by the framework and processes actions
+/// marked with <see cref="TableRefreshActionAttribute"/>.
+/// </remarks>
+internal class TableOobRefreshFilter : OobResultFilterBase<TableRefreshActionAttribute>
 {
     private readonly ViewPaths _viewPaths;
 

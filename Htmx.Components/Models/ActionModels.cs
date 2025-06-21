@@ -38,7 +38,7 @@ public class ActionSet : IActionSet
 {
     public List<IActionItem> Items { get; set; }
 
-    public ActionSet(ActionSetConfig config)
+    internal ActionSet(ActionSetConfig config)
     {
         Items = config.Items;
     }
@@ -53,7 +53,7 @@ public class ActionGroup : ActionItem, IActionSet
 {
     public List<IActionItem> Items { get; set; }
 
-    public ActionGroup(ActionGroupConfig config)
+    internal ActionGroup(ActionGroupConfig config)
     {
         Label = config.Label;
         Icon = config.Icon;
@@ -72,7 +72,7 @@ public class ActionModel : ActionItem
     public Dictionary<string, string> Attributes { get; init; } = new();
     public bool IsActive { get; set; } = false;
 
-    public ActionModel(ActionModelConfig config)
+    internal ActionModel(ActionModelConfig config)
     {
         Label = config.Label;
         Icon = config.Icon;
@@ -82,7 +82,7 @@ public class ActionModel : ActionItem
     }
 }
 
-public class ActionModelConfig
+internal class ActionModelConfig
 {
     public string Label { get; set; } = "";
     public string? Icon { get; set; }
@@ -91,11 +91,13 @@ public class ActionModelConfig
     public bool IsActive { get; set; }
 }
 
+// can't be marked as internal because it is used as a type constraint in ActionItemsBuilder
 public class ActionSetConfig
 {
     public List<IActionItem> Items { get; set; } = new();
 }
 
+// can't be marked as internal because base class is used as a type constraint in ActionItemsBuilder
 public class ActionGroupConfig : ActionSetConfig
 {
     public string Label { get; set; } = "";

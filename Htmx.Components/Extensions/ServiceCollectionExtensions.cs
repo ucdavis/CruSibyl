@@ -94,8 +94,13 @@ public static class ServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Marker class to ensure that AddHtmxComponentsApplicationPart() is called.
+    /// Internal marker class used by the framework to ensure that AddHtmxComponentsApplicationPart() is called
+    /// during service registration. This class should not be used directly in user code.
     /// </summary>
+    /// <remarks>
+    /// This marker class is registered as a singleton to detect whether the HTMX Components
+    /// application part has been properly added to the MVC pipeline.
+    /// </remarks>
     internal class HtmxComponentsApplicationPartMarker { }
 
     private static void RegisterCoreServices(IServiceCollection services, HtmxComponentOptions options)

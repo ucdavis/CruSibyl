@@ -30,7 +30,7 @@ public class ModelHandler<T, TKey> : ModelHandler
     private ITableProvider _tableProvider;
     private IPageState _pageState;
 
-    public ModelHandler(ModelHandlerOptions<T, TKey> options, ITableProvider tableProvider, IPageState pageState)
+    internal ModelHandler(ModelHandlerOptions<T, TKey> options, ITableProvider tableProvider, IPageState pageState)
     {
         _tableProvider = tableProvider;
         _pageState = pageState;
@@ -76,15 +76,15 @@ public class ModelHandler<T, TKey> : ModelHandler
         }
     }
 
-    public Func<IQueryable<T>>? GetQueryable { get; internal set; }
-    public Func<T, Task<Result<T>>>? CreateModel { get; internal set; }
-    public Func<T, Task<Result<T>>>? UpdateModel { get; internal set; }
-    public Func<TKey, Task<Result>>? DeleteModel { get; internal set; }
-    public Func<ActionModel>? GetCreateActionModel { get; internal set; }
-    public Func<ActionModel>? GetUpdateActionModel { get; internal set; }
-    public Func<ActionModel>? GetCancelActionModel { get; internal set; }
-    public Func<ActionModel>? GetDeleteActionModel { get; internal set; }
-    public Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
+    internal Func<IQueryable<T>>? GetQueryable { get; set; }
+    internal Func<T, Task<Result<T>>>? CreateModel { get; set; }
+    internal Func<T, Task<Result<T>>>? UpdateModel { get; set; }
+    internal Func<TKey, Task<Result>>? DeleteModel { get; set; }
+    internal Func<ActionModel>? GetCreateActionModel { get; set; }
+    internal Func<ActionModel>? GetUpdateActionModel { get; set; }
+    internal Func<ActionModel>? GetCancelActionModel { get; set; }
+    internal Func<ActionModel>? GetDeleteActionModel { get; set; }
+    internal Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
     internal Dictionary<string, Func<ModelHandler<T, TKey>, Task<IInputModel>>>? InputModelBuilders { get; set; }
     internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
     internal TableViewPaths Paths { get; set; } = null!;
@@ -187,7 +187,15 @@ public enum CrudFeatures
     Delete = 8
 }
 
-public class CrudOptions<T, TKey>
+/// <summary>
+/// Internal options class used by the framework to store CRUD operation configuration.
+/// This class should not be used directly in user code.
+/// </summary>
+/// <remarks>
+/// This class contains delegates and configuration for create, read, update, and delete operations
+/// that are configured through the model handler builder pattern.
+/// </remarks>
+internal class CrudOptions<T, TKey>
 {
     public Func<IQueryable<T>>? GetQueryable { get; set; }
     public Func<T, Task<Result<T>>>? CreateModel { get; set; }
@@ -200,20 +208,36 @@ public class CrudOptions<T, TKey>
     public Func<ActionModel>? GetDeleteActionModel { get; set; }
 }
 
-public class TableOptions<T, TKey>
+/// <summary>
+/// Internal options class used by the framework to store table-specific configuration.
+/// This class should not be used directly in user code.
+/// </summary>
+/// <remarks>
+/// This class contains table model building configuration and view path information
+/// used during table model construction.
+/// </remarks>
+internal class TableOptions<T, TKey>
     where T : class
 {
     public Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
     public TableViewPaths? Paths { get; set; }
 }
 
-public class InputOptions<T, TKey>
+/// <summary>
+/// Internal options class used by the framework to store input model configuration.
+/// This class should not be used directly in user code.
+/// </summary>
+/// <remarks>
+/// This class contains input model builders and related configuration used
+/// for form field generation and editing.
+/// </remarks>
+internal class InputOptions<T, TKey>
     where T : class
 {
     public Dictionary<string, Func<ModelHandler<T, TKey>, Task<IInputModel>>> InputModelBuilders { get; } = new();
 }
 
-public class ModelHandlerOptions<T, TKey>
+internal class ModelHandlerOptions<T, TKey>
     where T : class
 {
     public string? TypeId { get; set; }

@@ -22,7 +22,7 @@ public interface IInputModel
 
 public class InputModel<T, TProp> : IInputModel
 {
-    public InputModel(InputModelConfig<T, TProp> config)
+    internal InputModel(InputModelConfig<T, TProp> config)
     {
         PropName = config.PropName;
         Id = config.Id;
@@ -57,7 +57,7 @@ public class InputModel<T, TProp> : IInputModel
 /// </summary>
 public class InputSet
 {
-    public InputSet(InputSetConfig config)
+    internal InputSet(InputSetConfig config)
     {
         Label = config.Label;
         Inputs = config.Inputs;
@@ -81,8 +81,16 @@ public enum InputKind
     Lookup
 }
 
-
-public class InputModelConfig<T, TProp>
+/// <summary>
+/// Internal configuration class used by the framework to store input model settings.
+/// This class contains all the configuration options for building input models and 
+/// should not be used directly in user code.
+/// </summary>
+/// <remarks>
+/// This class is used internally by <see cref="InputModelBuilder{T, TProp}"/> to store
+/// configuration state during the building process.
+/// </remarks>
+internal class InputModelConfig<T, TProp>
 {
     public string PropName { get; set; } = "";
     public string Id { get; set; } = "";
@@ -97,7 +105,7 @@ public class InputModelConfig<T, TProp>
     public List<KeyValuePair<string, string>>? Options { get; set; }
 }
 
-public class InputSetConfig
+internal class InputSetConfig
 {
     public string? Label { get; set; }
     public List<IInputModel> Inputs { get; set; } = new();
