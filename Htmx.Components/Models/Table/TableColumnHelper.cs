@@ -5,13 +5,55 @@ using Serilog;
 
 namespace Htmx.Components.Models.Table;
 
+/// <summary>
+/// Provides utility methods for table column operations including filtering and value parsing.
+/// </summary>
+/// <remarks>
+/// This static class contains methods for applying dynamic filters to queryables based on
+/// string filter expressions. It supports various operators and data types commonly used
+/// in table filtering scenarios.
+/// </remarks>
 public static class TableColumnHelper
 {
     /// <summary>
-    /// Applies a filter string to the queryable, using column metadata from the TableModel.
-    /// Filter syntax: [Operator] [Operand1], [Operand2]
-    /// Operand can be a quoted string, an unquoted value, or a bracketed column header (e.g. [Other Column])
+    /// Applies a filter string to the queryable using column metadata from the table model.
     /// </summary>
+    /// <typeparam name="T">The entity type being filtered.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="query">The queryable to apply the filter to.</param>
+    /// <param name="filter">The filter expression string.</param>
+    /// <param name="column">The column model containing metadata for filtering.</param>
+    /// <returns>A filtered queryable with the specified filter applied.</returns>
+    /// <remarks>
+    /// <para>
+    /// Filter syntax: [Operator] [Operand1], [Operand2]
+    /// </para>
+    /// <para>
+    /// Supported operators:
+    /// - Comparison: =, ==, !=, &lt;, &gt;, &lt;=, &gt;=
+    /// - String operations: contains, startswith, endswith
+    /// - Null checks: isnull, isnotnull, isnullorempty, isnotnullorempty
+    /// - Range: between [value1], [value2]
+    /// </para>
+    /// <para>
+    /// Operands can be:
+    /// - Quoted strings: "some value"
+    /// - Unquoted values: 123, true, 2023-01-01
+    /// - Column references: [Other Column Name]
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Filter for names containing "John"
+    /// var filtered = TableColumnHelper.Filter(query, "contains John", nameColumn);
+    /// 
+    /// // Filter for ages between 18 and 65
+    /// var filtered = TableColumnHelper.Filter(query, "between 18, 65", ageColumn);
+    /// 
+    /// // Filter for dates after a specific date
+    /// var filtered = TableColumnHelper.Filter(query, "> 2023-01-01", dateColumn);
+    /// </code>
+    /// </example>
     public static IQueryable<T> Filter<T, TKey>(IQueryable<T> query, string filter, TableColumnModel<T, TKey> column)
         where T : class
     {
@@ -165,6 +207,45 @@ public static class TableColumnHelper
         }
     }
 
+    /// <summary>
+    /// Applies a filter string to the queryable using column metadata from the table model.
+    /// </summary>
+    /// <typeparam name="T">The entity type being filtered.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="query">The queryable to apply the filter to.</param>
+    /// <param name="filter">The filter expression string.</param>
+    /// <param name="column">The column model containing metadata for filtering.</param>
+    /// <returns>A filtered queryable with the specified filter applied.</returns>
+    /// <remarks>
+    /// <para>
+    /// Filter syntax: [Operator] [Operand1], [Operand2]
+    /// </para>
+    /// <para>
+    /// Supported operators:
+    /// - Comparison: =, ==, !=, &lt;, &gt;, &lt;=, &gt;=
+    /// - String operations: contains, startswith, endswith
+    /// - Null checks: isnull, isnotnull, isnullorempty, isnotnullorempty
+    /// - Range: between [value1], [value2]
+    /// </para>
+    /// <para>
+    /// Operands can be:
+    /// - Quoted strings: "some value"
+    /// - Unquoted values: 123, true, 2023-01-01
+    /// - Column references: [Other Column Name]
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// // Filter for names containing "John"
+    /// var filtered = TableColumnHelper.Filter(query, "contains John", nameColumn);
+    /// 
+    /// // Filter for ages between 18 and 65
+    /// var filtered = TableColumnHelper.Filter(query, "between 18, 65", ageColumn);
+    /// 
+    /// // Filter for dates after a specific date
+    /// var filtered = TableColumnHelper.Filter(query, "> 2023-01-01", dateColumn);
+    /// </code>
+    /// </example>
     private static string GetColName<T, TKey>(TableModel<T, TKey> tableModel, string operand) where T : class
     {
         var header = operand.Trim('[', ']');
@@ -175,6 +256,15 @@ public static class TableColumnHelper
         return otherColName;
     }
 
+    /// <summary>
+    /// Parses a filter string into operator and operands.
+    /// </summary>
+    /// <param name="filter">The filter string to parse.</param>
+    /// <returns>A tuple containing the operator and list of operands.</returns>
+    /// <remarks>
+    /// Handles quoted strings, bracketed column references, and comma-separated values.
+    /// Supports incomplete quotes and brackets for robustness.
+    /// </remarks>
     private static (string op, List<string> operands) ParseFilter(string filter)
     {
         // Split on first whitespace for operator, then parse operands (comma-separated, quoted, or bracketed)
@@ -232,8 +322,19 @@ public static class TableColumnHelper
         return (op, operands);
     }
 
+    /// <summary>
+    /// Determines if a string is surrounded by brackets, indicating a column reference.
+    /// </summary>
+    /// <param name="s">The string to check.</param>
+    /// <returns>true if the string starts with '[' and ends with ']'; otherwise, false.</returns>
     private static bool IsBracketed(string s) => s.StartsWith("[") && s.EndsWith("]");
 
+    /// <summary>
+    /// Determines if an operand refers to another column in the table.
+    /// </summary>
+    /// <param name="operand">The operand to check.</param>
+    /// <param name="tableModel">The table model to search for column references.</param>
+    /// <returns>true if the operand is a valid column reference; otherwise, false.</returns>
     private static bool IsColumnReference(string operand, ITableModel tableModel)
     {
         if (!IsBracketed(operand)) return false;
@@ -243,6 +344,12 @@ public static class TableColumnHelper
             string.Equals(c.DataName, header, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Determines if an operand refers to another column in the table.
+    /// </summary>
+    /// <param name="operand">The operand to check.</param>
+    /// <param name="tableModel">The table model to search for column references.</param>
+    /// <returns>true if the operand is a valid column reference; otherwise, false.</returns>
     private static object? ParseValue(string value, Type type)
     {
         if (type == typeof(string))

@@ -12,6 +12,14 @@ using Htmx.Components.Models.Table;
 
 namespace Htmx.Components.Table;
 
+/// <summary>
+/// Provides functionality for fetching and processing table data with Entity Framework Core support.
+/// </summary>
+/// <remarks>
+/// The table provider handles pagination, filtering, sorting, and data retrieval for table models.
+/// It works specifically with Entity Framework Core queryables and provides async operations
+/// for optimal performance.
+/// </remarks>
 public interface ITableProvider
 {
     /// <summary>
@@ -20,6 +28,19 @@ public interface ITableProvider
     /// PageCount can be calculated, and once with pagination applied. Places the results in the
     /// given <see cref="TableModel{T, TKey}"/>. The queryable is expected to be an EF Core queryable.
     /// </summary>
+    /// <typeparam name="T">The entity type being queried.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="tableModel">The table model to populate with data and metadata.</param>
+    /// <param name="query">The Entity Framework Core queryable to execute.</param>
+    /// <param name="tableState">The current state of the table including filters, sorting, and pagination.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// This method applies filtering, sorting, and pagination to the query in sequence,
+    /// then executes both a count query and a data query to populate the table model
+    /// with the appropriate page of data and total page count.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no sortable column is found for default sorting.</exception>
     Task FetchPageAsync<T, TKey>(
         TableModel<T, TKey> tableModel,
         IQueryable<T> query,
@@ -27,14 +48,26 @@ public interface ITableProvider
         where T : class;
 }
 
-
+/// <summary>
+/// Default implementation of <see cref="ITableProvider"/> that provides table data processing capabilities.
+/// </summary>
+/// <remarks>
+/// This implementation uses Entity Framework Core for data access and provides filtering,
+/// sorting, and pagination functionality. It integrates with the page state system to
+/// maintain table state across requests.
+/// </remarks>
 public class TableProvider : ITableProvider
 {
     private readonly IPageState _pageState;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TableProvider"/> class.
+    /// </summary>
+    /// <param name="pageState">The page state service for maintaining table state across requests.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="pageState"/> is null.</exception>
     public TableProvider(IPageState pageState)
     {
-        _pageState = pageState;
+        _pageState = pageState ?? throw new ArgumentNullException(nameof(pageState));
     }
 
     /// <summary>
@@ -43,12 +76,33 @@ public class TableProvider : ITableProvider
     /// PageCount can be calculated, and once with pagination applied. Places the results in the
     /// given <see cref="TableModel{T, TKey}"/>. The queryable is expected to be an EF Core queryable.
     /// </summary>
+    /// <typeparam name="T">The entity type being queried.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="tableModel">The table model to populate with data and metadata.</param>
+    /// <param name="query">The Entity Framework Core queryable to execute.</param>
+    /// <param name="tableState">The current state of the table including filters, sorting, and pagination.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// The method processes the query in the following order:
+    /// 1. Applies text-based filtering using column filter delegates
+    /// 2. Applies range-based filtering for date/numeric ranges
+    /// 3. Applies sorting based on the current sort column and direction
+    /// 4. Executes a count query to determine total records and page count
+    /// 5. Applies pagination and executes the data query
+    /// 6. Populates the table model with rows and metadata
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when no sortable column is found for default sorting.</exception>
     public async Task FetchPageAsync<T, TKey>(
         TableModel<T, TKey> tableModel,
         IQueryable<T> query,
         TableState tableState)
         where T : class
     {
+        if (tableModel == null) throw new ArgumentNullException(nameof(tableModel));
+        if (query == null) throw new ArgumentNullException(nameof(query));
+        if (tableState == null) throw new ArgumentNullException(nameof(tableState));
+
         query = ApplyFiltering(query, tableState, tableModel);
         query = ApplyRangeFiltering(query, tableState, tableModel);
         query = ApplySorting(query, tableState, tableModel);
@@ -80,6 +134,20 @@ public class TableProvider : ITableProvider
         }).ToList();        
     }
 
+    /// <summary>
+    /// Applies range-based filtering to the queryable using configured range filter delegates.
+    /// </summary>
+    /// <typeparam name="T">The entity type being queried.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="queryable">The queryable to apply filters to.</param>
+    /// <param name="tableState">The table state containing range filter values.</param>
+    /// <param name="tableModel">The table model containing column configurations.</param>
+    /// <returns>The filtered queryable.</returns>
+    /// <remarks>
+    /// Range filters are typically used for date ranges or numeric ranges where users
+    /// specify both minimum and maximum values. Only filters with both min and max
+    /// values specified are applied.
+    /// </remarks>
     private IQueryable<T> ApplyRangeFiltering<T, TKey>(IQueryable<T> queryable, TableState tableState, TableModel<T, TKey> tableModel)
         where T : class
     {
@@ -101,6 +169,19 @@ public class TableProvider : ITableProvider
         return queryable;
     }
 
+    /// <summary>
+    /// Applies text-based filtering to the queryable using configured filter delegates.
+    /// </summary>
+    /// <typeparam name="T">The entity type being queried.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="query">The queryable to apply filters to.</param>
+    /// <param name="tableState">The table state containing filter values.</param>
+    /// <param name="tableModel">The table model containing column configurations.</param>
+    /// <returns>The filtered queryable.</returns>
+    /// <remarks>
+    /// Text filters are applied to columns that have filter delegates configured.
+    /// Only non-empty filter values are processed.
+    /// </remarks>
     private IQueryable<T> ApplyFiltering<T, TKey>(IQueryable<T> query, TableState tableState, TableModel<T, TKey> tableModel)
         where T: class
     {
@@ -121,6 +202,21 @@ public class TableProvider : ITableProvider
         return query;
     }
 
+    /// <summary>
+    /// Applies sorting to the queryable based on the current sort configuration.
+    /// </summary>
+    /// <typeparam name="T">The entity type being queried.</typeparam>
+    /// <typeparam name="TKey">The key type for the entity.</typeparam>
+    /// <param name="query">The queryable to apply sorting to.</param>
+    /// <param name="tableState">The table state containing sort column and direction.</param>
+    /// <param name="tableModel">The table model containing column configurations.</param>
+    /// <returns>The sorted queryable.</returns>
+    /// <remarks>
+    /// Sorting is required for consistent pagination. If no sort column is specified,
+    /// the method defaults to sorting by the first column with a selector expression.
+    /// Both ascending and descending sort directions are supported.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">Thrown when no sortable column is found for default sorting.</exception>
     private IQueryable<T> ApplySorting<T, TKey>(IQueryable<T> query, TableState tableState, TableModel<T, TKey> tableModel)
         where T : class
     {
@@ -146,5 +242,4 @@ public class TableProvider : ITableProvider
 
         return query;
     }
-
 }

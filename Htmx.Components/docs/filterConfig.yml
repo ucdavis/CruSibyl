@@ -1,0 +1,52 @@
+# filterConfig.yml
+apiRules:
+- include:
+    uidRegex: ^Htmx\.Components
+    type: Namespace
+- include:
+    uidRegex: ^Htmx\.Components\.Models
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Services
+    type: Interface
+- include:
+    uidRegex: ^Htmx\.Components\.Components
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Attributes
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Authorization
+    type: Interface
+- include:
+    uidRegex: ^Htmx\.Components\.Extensions
+    type: Class
+- include:
+    hasAttribute:
+      uid: System.ComponentModel.EditorBrowsableAttribute
+      ctorArguments:
+      - System.ComponentModel.EditorBrowsableState.Never
+- exclude:
+    uidRegex: ^Microsoft\.AspNetCore.*
+    type: Namespace
+- exclude:
+    uidRegex: ^Microsoft\.Extensions.*
+    type: Namespace
+- exclude:
+    uidRegex: ^Htmx\.Components\.Utilities
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.Configuration
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.Controllers
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.Filters
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.State\.PageStateMiddleware
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.ViewResults
+    type: Class

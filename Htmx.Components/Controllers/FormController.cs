@@ -6,6 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Htmx.Components.Controllers;
 
+/// <summary>
+/// Provides CRUD operations for model types through HTMX-enabled endpoints.
+/// </summary>
+/// <remarks>
+/// This controller handles form-based operations including table editing, pagination,
+/// sorting, and filtering. It uses dependency injection to resolve model handlers
+/// and authorization services for secure operations.
+/// </remarks>
 [Route("Form")]
 public partial class FormController : Controller
 {
@@ -14,6 +22,13 @@ public partial class FormController : Controller
     private readonly IAuthorizationService _authorizationService;
     private readonly IPermissionRequirementFactory _permissionRequirementFactory;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FormController"/> class.
+    /// </summary>
+    /// <param name="tableProvider">The table provider for data operations.</param>
+    /// <param name="modelRegistry">The model registry for resolving model handlers.</param>
+    /// <param name="authorizationService">The authorization service for permission checks.</param>
+    /// <param name="permissionRequirementFactory">The factory for creating authorization requirements.</param>
     public FormController(ITableProvider tableProvider, IModelRegistry modelRegistry,
         IAuthorizationService authorizationService, IPermissionRequirementFactory permissionRequirementFactory)
     {
@@ -23,6 +38,12 @@ public partial class FormController : Controller
         _permissionRequirementFactory = permissionRequirementFactory;
     }
 
+    /// <summary>
+    /// Checks if the current user is authorized to perform the specified operation on the given model type.
+    /// </summary>
+    /// <param name="typeId">The model type identifier.</param>
+    /// <param name="operation">The operation being performed.</param>
+    /// <returns>A task that represents the asynchronous authorization check. The task result is true if authorized; otherwise, false.</returns>
     private async Task<bool> IsAuthorized(string typeId, string operation)
     {
         var requirement = _permissionRequirementFactory.ForOperation(typeId, operation);

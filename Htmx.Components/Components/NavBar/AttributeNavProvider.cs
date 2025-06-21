@@ -15,6 +15,29 @@ using System.ComponentModel;
 
 namespace Htmx.Components.NavBar;
 
+/// <summary>
+/// Navigation provider that discovers navigation actions through <see cref="NavActionAttribute"/> 
+/// and <see cref="NavActionGroupAttribute"/> attributes on controller actions.
+/// </summary>
+/// <remarks>
+/// This provider automatically scans all controller actions for navigation attributes and
+/// builds a navigation structure based on the discovered actions. Actions are filtered
+/// based on the current user's authorization permissions before being included in the navigation.
+/// </remarks>
+/// <example>
+/// To use attribute-based navigation, mark controller actions with navigation attributes:
+/// <code>
+/// [NavActionGroup(DisplayName = "User Management", Order = 10)]
+/// public class UserController : Controller
+/// {
+///     [NavAction(DisplayName = "Users", Icon = "fas fa-users", Order = 1)]
+///     public IActionResult Index() { ... }
+///     
+///     [NavAction(DisplayName = "Roles", Icon = "fas fa-shield", Order = 2)]
+///     public IActionResult Roles() { ... }
+/// }
+/// </code>
+/// </example>
 public class AttributeNavProvider : INavProvider
 {
     private readonly IActionDescriptorCollectionProvider _actions;
@@ -23,6 +46,15 @@ public class AttributeNavProvider : INavProvider
     private readonly IServiceProvider _serviceProvider;
     private readonly IAuthorizationMetadataService _authMetadataService;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AttributeNavProvider"/> class.
+    /// </summary>
+    /// <param name="actions">The action descriptor collection provider for discovering controller actions.</param>
+    /// <param name="authorizationService">The authorization service for checking user permissions.</param>
+    /// <param name="httpContextAccessor">The HTTP context accessor for accessing request context.</param>
+    /// <param name="serviceProvider">The service provider for dependency resolution.</param>
+    /// <param name="authMetadataService">The authorization metadata service for extracting authorization information.</param>
+    /// <exception cref="ArgumentNullException">Thrown when any parameter is null.</exception>
     public AttributeNavProvider(
         IActionDescriptorCollectionProvider actions,
         IAuthorizationService authorizationService,
@@ -30,13 +62,17 @@ public class AttributeNavProvider : INavProvider
         IServiceProvider serviceProvider,
         IAuthorizationMetadataService authMetadataService)
     {
-        _actions = actions;
-        _authorizationService = authorizationService;
-        _httpContextAccessor = httpContextAccessor;
-        _serviceProvider = serviceProvider;
-        _authMetadataService = authMetadataService;
+        _actions = actions ?? throw new ArgumentNullException(nameof(actions));
+        _authorizationService = authorizationService ?? throw new ArgumentNullException(nameof(authorizationService));
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        _authMetadataService = authMetadataService ?? throw new ArgumentNullException(nameof(authMetadataService));
     }
 
+    /// <summary>
+    /// Builds the navigation action set by discovering and filtering controller actions.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the navigation action set.</returns>
     public async Task<IActionSet> BuildAsync()
     {
         var user = _httpContextAccessor.HttpContext?.User;
@@ -144,6 +180,9 @@ public class AttributeNavProvider : INavProvider
         };
     }
 
+    /// <summary>
+    /// Internal descriptor class for navigation action metadata.
+    /// </summary>
     private class NavActionDescriptor
     {
         public MethodInfo MethodInfo { get; set; } = default!;

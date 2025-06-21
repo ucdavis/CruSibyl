@@ -1,0 +1,30 @@
+# toc.yml
+- name: Getting Started
+  href: articles/getting-started.md
+- name: User Guide
+  href: articles/user-guide/
+  items:
+  - name: Basic Usage
+    href: articles/user-guide/basic-usage.md
+  - name: Navigation
+    href: articles/user-guide/navigation.md
+  - name: Tables
+    href: articles/user-guide/tables.md
+  - name: Authentication
+    href: articles/user-guide/authentication.md
+  - name: Authorization
+    href: articles/user-guide/authorization.md
+- name: Developer Guide
+  href: articles/developer-guide/
+  items:
+  - name: Architecture
+    href: articles/developer-guide/architecture.md
+  - name: Extending Components
+    href: articles/developer-guide/extending.md
+  - name: Custom Providers
+    href: articles/developer-guide/custom-providers.md
+  - name: Contributing
+    href: articles/developer-guide/contributing.md
+- name: API Reference
+  href: api/
+  homepage: api/index.md
