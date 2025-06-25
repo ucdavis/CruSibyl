@@ -270,3 +270,6 @@ Thumbs.db
 # DocFX generated files
 /docs/_site/
 /docs/api/
+
+# Generated CSS classes file
+content/extracted-css-classes.txt

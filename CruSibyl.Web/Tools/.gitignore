@@ -1,5 +1,0 @@
-# tailwind-generated css
-site.css
-
-# extra css extracted from cs files by extract-classes.js to pass into tailwind
-tailwind.extra-classes.txt

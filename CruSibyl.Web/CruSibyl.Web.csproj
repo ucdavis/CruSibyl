@@ -18,35 +18,37 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Tailwind.MSBuild" Version="*" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CruSibyl.Core\CruSibyl.Core.csproj" />
-    <ProjectReference Include="..\Htmx.Components\Htmx.Components.csproj" />
+    <ProjectReference Include="../CruSibyl.Core/CruSibyl.Core.csproj" />
+    <ProjectReference Include="../Htmx.Components/Htmx.Components.csproj" />
   </ItemGroup>
 
-  <!-- Only run build:css when cshtml files have been edited -->
+  <!-- Tailwind MSBuild Configuration -->
   <PropertyGroup>
+    <TailwindInputFile>Styles/input.css</TailwindInputFile>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
-    <!-- Use project reference if Table project exists -->
-    <HtmxProjectDir>../Htmx.Components</HtmxProjectDir>
-    <HtmxViews Condition="Exists('$(HtmxProjectDir)/Views')">$(HtmxProjectDir)/Views</HtmxViews>
+    <TailwindConfigFile>tailwind.config.js</TailwindConfigFile>
+    <TailwindMinify>true</TailwindMinify>
   </PropertyGroup>
-  <ItemGroup>
-    <TailwindSources Include="Views/**/*.cshtml" />
-    <TailwindSources Include="$(HtmxViews)/**/*.cshtml" Condition="Exists('$(HtmxViews)')" />
-  </ItemGroup>
-  <Target Name="BuildTailwind" BeforeTargets="Build" Inputs="@(TailwindSources)" Outputs="$(TailwindOutputFile)">
-    <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
-  </Target>
 
-  <!-- Only run npm install when package.json has been modified or .install-stamp doesn't exist -->
-  <PropertyGroup>
-    <NpmInstallStampFile>Tools/node_modules/.install-stamp</NpmInstallStampFile>
-  </PropertyGroup>
-  <Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json" Outputs="$(NpmInstallStampFile)">
-    <Exec Command="npm install" WorkingDirectory="Tools" />
-    <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
+  <!-- Include source paths for Tailwind -->
+  <ItemGroup>
+    <TailwindContent Include="Views/**/*.cshtml" />
+    <TailwindContent Include="wwwroot/**/*.html" />
+    <TailwindContent Include="../Htmx.Components/Views/**/*.cshtml" />
+  </ItemGroup>
+
+  <!-- Ensure Tailwind rebuild when extracted classes change -->
+  <ItemGroup>
+    <TailwindWatchFiles Include="../Htmx.Components/content/extracted-css-classes.txt" />
+  </ItemGroup>
+
+  <!-- Custom target to ensure Htmx.Components CSS extraction runs before Tailwind -->
+  <Target Name="EnsureExtractedCssClasses" BeforeTargets="TailwindBuild">
+    <MSBuild Projects="../Htmx.Components/Htmx.Components.csproj" Targets="Build" />
   </Target>
 
 </Project>

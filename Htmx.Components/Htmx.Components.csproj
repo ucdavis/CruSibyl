@@ -24,11 +24,48 @@
   </ItemGroup>
 
   <ItemGroup>
-    <RazorCompile Include="TagHelpers\*.cs" />
+    <RazorCompile Include="TagHelpers/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="**\*.cshtml" />
+    <EmbeddedResource Include="**/*.cshtml" />
   </ItemGroup>
+
+
+  <!-- This msbuild task will extract css classes to make them available for processing by tailwind in consuming apps -->
+  <ItemGroup>
+    <!-- <PackageReference Include="CssExtractor.MSBuild" Version="1.0.0" /> -->
+    <ProjectReference Include="../CssExtractor.MSBuild\CssExtractor.MSBuild.csproj"
+      ReferenceOutputAssembly="false"
+      OutputItemType="Analyzer"
+      Private="false" />
+  </ItemGroup>
+  <Import Project="..\CssExtractor.MSBuild\targets\CssExtractor.MSBuild.targets" />
+  <PropertyGroup>
+    <!-- Extract css classes from .WithClass(...) and .WithIcon(...) expressions -->
+    <CssExtractorPatterns>
+      $(CssExtractorPatterns);
+      \.WithClass\s*\(\s*"([^"]+)";
+      \.WithIcon\s*\(\s*"([^"]+)";
+    </CssExtractorPatterns>
+    <CssExtractorOutputFile>$(MSBuildProjectDirectory)/content/extracted-css-classes.txt</CssExtractorOutputFile>
+  </PropertyGroup>
+  
+  <!-- Include the extracted CSS file as content for NuGet package and project references -->
+  <ItemGroup>
+    <Content Include="content/extracted-css-classes.txt">
+      <Pack>true</Pack>
+      <PackagePath>content/extracted-css-classes.txt</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <!-- Don't scan files under docs folder -->
+    <CssExtractorExcludeFiles Include="**/docs/**" />
+    <!-- Include cs files in scans -->
+    <CssExtractorIncludeFiles Include="**/*.cs" />
+  </ItemGroup>
+
 
 </Project>

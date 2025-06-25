@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Htmx.Components", "Htmx.Com
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CruSibyl.Jobs.PackageVersionSync", "CruSibyl.Jobs.PackageVersionSync\CruSibyl.Jobs.PackageVersionSync.csproj", "{F4D9C4EA-762D-4066-985B-1659162102EF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CssExtractor.MSBuild", "CssExtractor.MSBuild\CssExtractor.MSBuild.csproj", "{B96EFB01-7859-4CB3-9B4A-4C7D21C3D14C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B96EFB01-7859-4CB3-9B4A-4C7D21C3D14C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B96EFB01-7859-4CB3-9B4A-4C7D21C3D14C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B96EFB01-7859-4CB3-9B4A-4C7D21C3D14C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B96EFB01-7859-4CB3-9B4A-4C7D21C3D14C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
