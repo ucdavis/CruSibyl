@@ -37,6 +37,14 @@ namespace CssExtractor.MSBuild
                 if (CssExtractorIncludeFiles != null)
                     filesToProcess.AddRange(CssExtractorIncludeFiles.Select(f => f.ItemSpec));
 
+                Log.LogMessage(MessageImportance.High, $"Processing {filesToProcess.Count} files with {extractionPatterns.Length} patterns");
+                Log.LogMessage(MessageImportance.High, $"Patterns: {string.Join("; ", extractionPatterns)}");
+                
+                foreach (var file in filesToProcess.Take(5)) // Log first 5 files as sample
+                {
+                    Log.LogMessage(MessageImportance.High, $"File: {file}");
+                }
+
                 var cssClasses = CssExtractor.ExtractCssClasses(filesToProcess.Distinct(), extractionPatterns);
                 CssExtractor.WriteToFile(cssClasses, CssExtractorOutputFile.Trim());
 

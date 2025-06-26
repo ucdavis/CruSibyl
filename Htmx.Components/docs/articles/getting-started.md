@@ -136,6 +136,8 @@ public class User
 }
 
 // Controllers/UsersController.cs
+using Htmx.Components.NavBar;
+
 [NavActionGroup(DisplayName = "User Management")]
 public class UsersController : Controller
 {
@@ -180,7 +182,7 @@ public class UsersController : Controller
 Create the corresponding view (`Views/Users/Index.cshtml`):
 
 ```html
-@using Htmx.Components.Models.Table
+@using Htmx.Components.Table.Models
 @model ITableModel
 
 <div class="container">

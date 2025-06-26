@@ -8,7 +8,11 @@
       class\s*=\s*'([^'@]+)';
       class\s*:\s*"([^"@]+)";
       class\s*:\s*'([^'@]+)';
-      className\s*[=:]\s*["']([^"@]+)["']
+      className\s*[=:]\s*["']([^"@]+)["'];
+      class\s*=\s*"([^"]*?)"\s*(?:[^>]*>|$);
+      class\s*=\s*'([^']*?)'\s*(?:[^>]*>|$);
+      "([a-zA-Z][\w-]*(?:\s+[a-zA-Z][\w-]*)*)"(?=\s*[+@}]);
+      '([a-zA-Z][\w-]*(?:\s+[a-zA-Z][\w-]*)*)'(?=\s*[+@}])
     </CssExtractorPatterns>
   </PropertyGroup>
 
@@ -27,7 +31,9 @@
     <CssExtractorIncludeFiles Include="**/*.html" />
   </ItemGroup>
 
-  <Target Name="ExtractCssClasses" BeforeTargets="Build">
+  <Target Name="ExtractCssClasses" BeforeTargets="AssignTargetPaths" 
+          Inputs="@(CssExtractorIncludeFiles)" 
+          Outputs="$(CssExtractorOutputFile)">
     <CssExtractorTask
       CssExtractorOutputFile="$(CssExtractorOutputFile)"
       CssExtractorExcludeFiles="@(CssExtractorExcludeFiles)"

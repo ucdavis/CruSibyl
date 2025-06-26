@@ -18,6 +18,8 @@ The simplest way to create navigation is using attributes on your controllers an
 Mark controller actions that should appear in navigation:
 
 ```csharp
+using Htmx.Components.NavBar;
+
 [NavAction(DisplayName = "Dashboard", Icon = "fas fa-dashboard", Order = 1)]
 public IActionResult Index()
 {

@@ -42,7 +42,7 @@ public async Task<IActionResult> Index()
 Render the table using the Table component:
 
 ```html
-@using Htmx.Components.Models.Table
+@using Htmx.Components.Table.Models
 @model ITableModel
 
 <div class="container">
@@ -338,7 +338,7 @@ table.AddSelectorColumn(p => p.Status, col => col
 Create `Views/Shared/_StatusCell.cshtml`:
 
 ```html
-@using Htmx.Components.Models.Table
+@using Htmx.Components.Table.Models
 @model TableCellPartialModel
 
 @{

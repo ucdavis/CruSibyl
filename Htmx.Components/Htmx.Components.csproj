@@ -45,8 +45,8 @@
     <!-- Extract css classes from .WithClass(...) and .WithIcon(...) expressions -->
     <CssExtractorPatterns>
       $(CssExtractorPatterns);
-      \.WithClass\s*\(\s*"([^"]+)";
-      \.WithIcon\s*\(\s*"([^"]+)";
+      \.WithClass\s*\(\s*"([^"]+)"\s*\);
+      \.WithIcon\s*\(\s*"([^"]+)"\s*\);
     </CssExtractorPatterns>
     <CssExtractorOutputFile>$(MSBuildProjectDirectory)/content/extracted-css-classes.txt</CssExtractorOutputFile>
   </PropertyGroup>

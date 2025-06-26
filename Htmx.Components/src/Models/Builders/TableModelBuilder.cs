@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Extensions;
 using Htmx.Components.Models;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Htmx.Components.Services;
 using Humanizer;
 using Microsoft.AspNetCore.Mvc;

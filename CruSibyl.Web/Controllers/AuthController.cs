@@ -1,4 +1,4 @@
-using Htmx.Components.Attributes;
+using Htmx.Components.AuthStatus;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;

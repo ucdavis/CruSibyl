@@ -16,6 +16,15 @@ apiRules:
     uidRegex: ^Htmx\.Components\.Attributes
     type: Class
 - include:
+    uidRegex: ^Htmx\.Components\.AuthStatus
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.NavBar
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Table
+    type: Class
+- include:
     uidRegex: ^Htmx\.Components\.Authorization
     type: Interface
 - include:
@@ -32,6 +41,9 @@ apiRules:
 - exclude:
     uidRegex: ^Microsoft\.Extensions.*
     type: Namespace
+- exclude:
+    uidRegex: ^Htmx\.Components\..*\.Internal
+    type: Class
 - exclude:
     uidRegex: ^Htmx\.Components\.Utilities
     type: Class

@@ -265,6 +265,8 @@ public class AuthController : Controller
 Use filters to automatically update authentication status:
 
 ```csharp
+using Htmx.Components.AuthStatus;
+
 [AuthStatusUpdate]
 [HttpPost]
 public async Task<IActionResult> Login(LoginModel model)

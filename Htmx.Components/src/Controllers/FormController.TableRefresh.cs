@@ -1,6 +1,6 @@
-using Htmx.Components.Attributes;
+using Htmx.Components.Table;
 using Htmx.Components.Models;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Htmx.Components.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using static Htmx.Components.Authorization.AuthConstants;

@@ -1,5 +1,5 @@
 using Htmx.Components.Models;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Htmx.Components.Table;

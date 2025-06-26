@@ -8,7 +8,7 @@ using Htmx.Components.State;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 
 namespace Htmx.Components.Table;
 

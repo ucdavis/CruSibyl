@@ -348,6 +348,8 @@ public async Task<IActionResult> SpecialReport()
 Navigation items are automatically filtered based on authorization:
 
 ```csharp
+using Htmx.Components.NavBar;
+
 [Authorize(Policy = "CanManageUsers")]
 [NavAction(DisplayName = "User Management")]
 public IActionResult Users() => View();

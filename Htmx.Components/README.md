@@ -169,52 +169,64 @@ public async Task<IActionResult> CreateUser(CreateUserModel model)
 
 ## Architecture
 
-### Model Handlers
-Model handlers provide the bridge between your domain models and UI components:
+The Htmx.Components library follows a **self-contained component architecture** where each ViewComponent is organized with all its related code in a single folder structure:
 
-```csharp
-[ModelHandler<User>]
-public class UserModelHandler : ModelHandler<User, int>
-{
-    protected override void ConfigureTable(TableBuilder<User> builder)
-    {
-        builder.Column(u => u.Name).Sortable().Filterable();
-        builder.Column(u => u.Email).Filterable();
-        builder.Column(u => u.CreatedAt).Sortable();
-    }
-}
+```
+Components/
+├── AuthStatus/
+│   ├── Models/
+│   │   └── AuthStatusViewModel.cs
+│   ├── Internal/
+│   │   └── AuthStatusUpdateFilter.cs
+│   ├── Views/
+│   ├── AuthStatusViewComponent.cs
+│   ├── AuthStatusUpdateAttribute.cs
+│   └── IAuthStatusProvider.cs
+├── NavBar/
+│   ├── Internal/
+│   │   └── NavActionResultFilter.cs
+│   ├── Views/
+│   ├── NavBarViewComponent.cs
+│   ├── NavActionAttribute.cs
+│   └── AttributeNavProvider.cs
+└── Table/
+    ├── Models/
+    │   ├── TableModel.cs
+    │   ├── TableColumnModel.cs
+    │   ├── TableState.cs
+    │   └── ...
+    ├── Internal/
+    │   ├── TableOobEditFilter.cs
+    │   └── TableOobRefreshFilter.cs
+    ├── Views/
+    ├── TableViewComponent.cs
+    ├── TableActionAttributes.cs
+    └── TableProvider.cs
 ```
 
-### View Customization
-Override default view paths to customize component rendering:
+### Self-Contained Components
 
-```csharp
-options.WithViewOverrides(views =>
-{
-    views.Table.Row = "_CustomTableRow";
-    views.NavBar = "CustomNavBar";
-    views.AuthStatus = "CustomAuthStatus";
-});
-```
+Each component folder contains:
 
-### Builder Pattern Navigation
+- **Models/**: ViewComponent-specific models and view models
+- **Internal/**: Infrastructure code like filters and internal services
+- **Views/**: Razor views specific to the component  
+- **Attributes**: Component-specific attributes
+- **Services**: Component providers and services
 
-```csharp
-options.WithNavBuilder(nav =>
-{
-    nav.WithAction(a => a
-        .WithLabel("Dashboard")
-        .WithIcon("fas fa-dashboard")
-        .WithHxGet("/dashboard")
-        .WithHxTarget("#main-content"));
-        
-    nav.WithGroup(g => g
-        .WithLabel("Reports")
-        .WithIcon("fas fa-chart-bar")
-        .WithAction(a => a.WithLabel("Sales").WithHxGet("/reports/sales"))
-        .WithAction(a => a.WithLabel("Users").WithHxGet("/reports/users")));
-});
-```
+### Shared Infrastructure
+
+General-purpose models that are used across multiple components remain in the main `Models/` namespace:
+
+- `ActionModel`, `ActionSet`, `ActionGroup` - Used by NavBar, Table, and other components
+- `BuilderBase`, `ActionBuilders` - Shared builder infrastructure
+- `Result`, `ModelHandler` - Cross-cutting concerns
+
+This architecture promotes:
+- **High Cohesion**: Related code is co-located
+- **Clear Boundaries**: Each component is self-contained
+- **Reusable Infrastructure**: Shared models remain accessible
+- **Maintainability**: Easy to understand and modify components
 
 ## Dependencies
 

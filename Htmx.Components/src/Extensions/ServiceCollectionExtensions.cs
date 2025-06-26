@@ -1,14 +1,18 @@
 using System.Security.Claims;
 using Htmx.Components.Authorization;
 using Htmx.Components.AuthStatus;
+using Htmx.Components.AuthStatus.Internal;
+using Htmx.Components.Configuration;
 using Htmx.Components.Filters;
 using Htmx.Components.Models;
 using Htmx.Components.Models.Builders;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Htmx.Components.NavBar;
+using Htmx.Components.NavBar.Internal;
 using Htmx.Components.Services;
 using Htmx.Components.State;
 using Htmx.Components.Table;
+using Htmx.Components.Table.Internal;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,11 +40,14 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.Configure<RazorViewEngineOptions>(options =>
         {
+            // Add self-contained ViewComponent view location expander
+            // This handles both ViewComponent views and partial views automatically
+            options.ViewLocationExpanders.Add(new ComponentViewLocationExpander());
+            
+            // Keep existing view location formats for backwards compatibility
             options.ViewLocationFormats.Insert(0, "/src/Views/Shared/Components/Table/{0}.cshtml");
-            // Add src/Views as a root location for views
             options.ViewLocationFormats.Insert(1, "/src/Views/{1}/{0}.cshtml");
             options.ViewLocationFormats.Insert(2, "/src/Views/Shared/{0}.cshtml");
-            // Optionally, add component-specific paths if needed
             options.ViewLocationFormats.Insert(3, "/src/Views/Shared/Components/{1}/{0}.cshtml");
         });
 

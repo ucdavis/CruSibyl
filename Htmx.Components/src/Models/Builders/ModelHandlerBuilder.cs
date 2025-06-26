@@ -1,7 +1,8 @@
 using System.Linq.Expressions;
 using Htmx.Components.Authorization;
 using Htmx.Components.Extensions;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Models;
+using Htmx.Components.Table.Models;
 using Htmx.Components.State;
 using Htmx.Components.Table;
 using Microsoft.Extensions.DependencyInjection;

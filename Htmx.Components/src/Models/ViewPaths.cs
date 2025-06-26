@@ -1,4 +1,4 @@
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 
 namespace Htmx.Components.Models;
 

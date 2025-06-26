@@ -1,5 +1,5 @@
 ﻿using Htmx;
-using Htmx.Components.Attributes;
+using Htmx.Components.NavBar;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CruSibyl.Web.Controllers;

@@ -125,7 +125,7 @@ public static class TableColumnExtensions
 Create `Views/Shared/Components/Table/_ImageCell.cshtml`:
 
 ```html
-@using Htmx.Components.Models.Table
+@using Htmx.Components.Table.Models
 @model TableCellPartialModel
 
 @{

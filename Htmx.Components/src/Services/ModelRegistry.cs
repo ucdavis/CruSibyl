@@ -4,7 +4,7 @@ using Htmx.Components.Extensions;
 using Htmx.Components.Input;
 using Htmx.Components.Models;
 using Htmx.Components.Models.Builders;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Htmx.Components.Table;
 using Microsoft.Extensions.DependencyInjection;
 

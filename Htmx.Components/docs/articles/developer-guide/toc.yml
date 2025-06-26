@@ -2,6 +2,8 @@
   href: architecture.md
 - name: Architecture Overview
   href: architecture.md
+- name: Component Architecture
+  href: component-architecture.md
 - name: Extending the Framework
   href: extending.md
 - name: Custom Providers

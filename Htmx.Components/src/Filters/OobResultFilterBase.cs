@@ -1,4 +1,3 @@
-using Htmx.Components.Attributes;
 using Htmx.Components.NavBar;
 using Htmx.Components.ViewResults;
 using Microsoft.AspNetCore.Mvc;

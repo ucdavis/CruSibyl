@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
 using FastExpressionCompiler;
 using Htmx.Components.Table;
-using Htmx.Components.Models.Table;
+using Htmx.Components.Table.Models;
 using Htmx.Components.Models.Builders;
 using Htmx.Components.State;
 using static Htmx.Components.State.PageStateConstants;
@@ -97,7 +97,7 @@ public class ModelHandler<T, TKey> : ModelHandler
         return tableModelBuilder.BuildAsync();
     }
 
-    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPageAsync(TableState? tableState = null)
+    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPageAsync(Htmx.Components.Table.Models.TableState? tableState = null)
     {
         // a null tableState means we are opening a new table with no previous state.
         if (tableState == null)

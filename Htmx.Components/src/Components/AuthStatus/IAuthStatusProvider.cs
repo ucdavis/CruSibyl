@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Htmx.Components.AuthStatus.Models;
 
 namespace Htmx.Components.AuthStatus;
 
