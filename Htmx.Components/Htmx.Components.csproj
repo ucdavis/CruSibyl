@@ -24,11 +24,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <RazorCompile Include="TagHelpers/*.cs" />
+    <RazorCompile Include="src/TagHelpers/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="**/*.cshtml" />
+    <EmbeddedResource Include="src/**/*.cshtml" />
   </ItemGroup>
 
 
@@ -64,7 +64,7 @@
     <!-- Don't scan files under docs folder -->
     <CssExtractorExcludeFiles Include="**/docs/**" />
     <!-- Include cs files in scans -->
-    <CssExtractorIncludeFiles Include="**/*.cs" />
+    <CssExtractorIncludeFiles Include="src/**/*.cs" />
   </ItemGroup>
 
 

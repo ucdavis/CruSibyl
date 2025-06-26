@@ -36,7 +36,12 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.Configure<RazorViewEngineOptions>(options =>
         {
-            options.ViewLocationFormats.Add("/Views/Shared/Components/Table/{0}.cshtml");
+            options.ViewLocationFormats.Insert(0, "/src/Views/Shared/Components/Table/{0}.cshtml");
+            // Add src/Views as a root location for views
+            options.ViewLocationFormats.Insert(1, "/src/Views/{1}/{0}.cshtml");
+            options.ViewLocationFormats.Insert(2, "/src/Views/Shared/{0}.cshtml");
+            // Optionally, add component-specific paths if needed
+            options.ViewLocationFormats.Insert(3, "/src/Views/Shared/Components/{1}/{0}.cshtml");
         });
 
         var options = new HtmxComponentOptions();
