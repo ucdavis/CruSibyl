@@ -30,6 +30,19 @@ apiRules:
 - include:
     uidRegex: ^Htmx\.Components\.Extensions
     type: Class
+# Include internal types that are relevant for developers
+- include:
+    uidRegex: ^Htmx\.Components\..*\.Internal\..*Filter
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\..*ActionAttribute
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Models\..*Config
+    type: Class
+- include:
+    uidRegex: ^Htmx\.Components\.Models\..*Options
+    type: Class
 - include:
     hasAttribute:
       uid: System.ComponentModel.EditorBrowsableAttribute
@@ -41,9 +54,7 @@ apiRules:
 - exclude:
     uidRegex: ^Microsoft\.Extensions.*
     type: Namespace
-- exclude:
-    uidRegex: ^Htmx\.Components\..*\.Internal
-    type: Class
+# Exclude specific utility classes that aren't relevant for documentation
 - exclude:
     uidRegex: ^Htmx\.Components\.Utilities
     type: Class
@@ -54,11 +65,15 @@ apiRules:
     uidRegex: ^Htmx\.Components\.Controllers
     type: Class
 - exclude:
-    uidRegex: ^Htmx\.Components\.Filters
-    type: Class
-- exclude:
     uidRegex: ^Htmx\.Components\.State\.PageStateMiddleware
     type: Class
 - exclude:
     uidRegex: ^Htmx\.Components\.ViewResults
+    type: Class
+# Exclude some internal utility classes that aren't relevant for developers
+- exclude:
+    uidRegex: ^Htmx\.Components\..*\.HtmxComponentsApplicationPartMarker
+    type: Class
+- exclude:
+    uidRegex: ^Htmx\.Components\.ViewResults\.NullView
     type: Class

@@ -11,16 +11,16 @@ discover_types() {
     
     echo "Discovering types from source code in: $src_dir"
     
-    # Find all C# files and extract public types with their namespaces
+    # Find all C# files and extract public and internal types with their namespaces
     find "$src_dir" -name "*.cs" -type f | while read -r file; do
         # Get namespace from file
         namespace=$(grep "^namespace " "$file" | head -1 | sed 's/namespace //' | sed 's/[;{].*//')
         
         if [[ -n "$namespace" ]]; then
-            # Find public types in this file
-            grep -E "^[[:space:]]*public (class|interface|enum|struct) " "$file" | while read -r line; do
+            # Find public and internal types in this file
+            grep -E "^[[:space:]]*(public|internal) (class|interface|enum|struct) " "$file" | while read -r line; do
                 # Extract type name
-                type_name=$(echo "$line" | sed -E 's/.*public (class|interface|enum|struct) ([A-Za-z_][A-Za-z0-9_]*).*/\2/')
+                type_name=$(echo "$line" | sed -E 's/.*(public|internal) (class|interface|enum|struct) ([A-Za-z_][A-Za-z0-9_]*).*/\3/')
                 
                 if [[ -n "$type_name" && "$type_name" != "$line" ]]; then
                     echo "${type_name}:${namespace}"

@@ -115,8 +115,8 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
 ```
 
 #### Specialized Filters
-- `TableOobRefreshFilter`: Updates table components
-- `TableOobEditFilter`: Handles inline editing
+- [`TableOobRefreshFilter`](../../api/Htmx.Components.Table.Internal.TableOobRefreshFilter.html): Updates table components
+- [`TableOobEditFilter`](../../api/Htmx.Components.Table.Internal.TableOobEditFilter.html): Handles inline editing
 - [`NavActionResultFilter`](../../api/Htmx.Components.NavBar.Internal.NavActionResultFilter.html): Updates navigation state
 - [`AuthStatusUpdateFilter`](../../api/Htmx.Components.AuthStatus.Internal.AuthStatusUpdateFilter.html): Refreshes authentication status
 - [`PageStateOobInjectorFilter`](../../api/Htmx.Components.Filters.PageStateOobInjectorFilter.html): Manages state synchronization
