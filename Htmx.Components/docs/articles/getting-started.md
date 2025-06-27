@@ -209,4 +209,4 @@ Create the corresponding view (`Views/Users/Index.cshtml`):
 
 3. **Table not working**: Verify that your model handler is properly configured and the Table component is invoked with the correct model.
 
-4. **Authorization errors**: Check that you've implemented `IPermissionRequirementFactory` and `IResourceOperationRegistry`.
+4. **Authorization errors**: Check that you've implemented [`IPermissionRequirementFactory`](../../api/Htmx.Components.Authorization.IPermissionRequirementFactory.html) and [`IResourceOperationRegistry`](../../api/Htmx.Components.Authorization.IResourceOperationRegistry.html).

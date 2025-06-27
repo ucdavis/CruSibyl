@@ -123,7 +123,7 @@ Only navigation items the user is authorized to access will be displayed.
 
 ## Custom Navigation Provider
 
-Create your own navigation provider by implementing `INavProvider`:
+Create your own navigation provider by implementing [`INavProvider`](../../api/Htmx.Components.NavBar.INavProvider.html):
 
 ```csharp
 public class DatabaseNavProvider : INavProvider

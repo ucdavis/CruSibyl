@@ -14,7 +14,7 @@ The authorization system is built around three key concepts:
 
 ### Basic Implementation
 
-Implement `IPermissionRequirementFactory` to create authorization requirements:
+Implement [`IPermissionRequirementFactory`](../../api/Htmx.Components.Authorization.IPermissionRequirementFactory.html) to create authorization requirements:
 
 ```csharp
 public class SimplePermissionRequirementFactory : IPermissionRequirementFactory
@@ -83,7 +83,7 @@ public class OrderAccessRequirement : IAuthorizationRequirement
 
 ### Basic Registry
 
-Implement `IResourceOperationRegistry` to track available resource-operations:
+Implement [`IResourceOperationRegistry`](../../api/Htmx.Components.Authorization.IResourceOperationRegistry.html) to track available resource-operations:
 
 ```csharp
 public class InMemoryResourceOperationRegistry : IResourceOperationRegistry
@@ -243,7 +243,7 @@ public class OrderAccessHandler : AuthorizationHandler<OrderAccessRequirement, O
 
 ### Role Service
 
-Implement `IRoleService` for role-based authorization:
+Implement [`IRoleService`](../../api/Htmx.Components.Services.IRoleService.html) for role-based authorization:
 
 ```csharp
 public class DatabaseRoleService : IRoleService

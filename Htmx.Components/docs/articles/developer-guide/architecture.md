@@ -4,7 +4,7 @@ Htmx.Components is built around a modular architecture that leverages ASP.NET Co
 
 ## Core Components
 
-### 1. Model Handlers (`ModelHandler<T, TKey>`)
+### 1. Model Handlers ([`ModelHandler<T, TKey>`](../../api/Htmx.Components.Models.ModelHandler-2.html))
 
 Model handlers are the central abstraction that define how data models are processed, displayed, and manipulated:
 
@@ -30,17 +30,17 @@ public class ModelHandler<T, TKey> : ModelHandler
 
 The table system provides a comprehensive data grid solution:
 
-#### TableModel (`TableModel<T, TKey>`)
+#### TableModel ([`TableModel<T, TKey>`](../../api/Htmx.Components.Table.Models.TableModel-2.html))
 - Represents the complete table structure
 - Contains columns, rows, pagination state
 - Supports sorting, filtering, and CRUD operations
 
-#### TableColumnModel (`TableColumnModel<T, TKey>`)
+#### TableColumnModel ([`TableColumnModel<T, TKey>`](../../api/Htmx.Components.Table.Models.TableColumnModel-2.html))
 - Defines individual column behavior
 - Supports custom rendering, filtering, and actions
 - Type-safe property binding via expressions
 
-#### TableProvider (`ITableProvider`)
+#### TableProvider ([`ITableProvider`](../../api/Htmx.Components.Table.ITableProvider.html))
 - Handles data fetching and query building
 - Applies filtering, sorting, and pagination
 - Works with Entity Framework Core queryables
@@ -50,7 +50,7 @@ The table system provides a comprehensive data grid solution:
 #### INavProvider
 The navigation system supports two approaches:
 
-**Attribute-Based Navigation (`AttributeNavProvider`):**
+**Attribute-Based Navigation ([`AttributeNavProvider`](../../api/Htmx.Components.NavBar.AttributeNavProvider.html)):**
 ```csharp
 [NavActionGroup(Order = 1, DisplayName = "Admin", Icon = "fas fa-cog")]
 public class AdminController : Controller
@@ -60,7 +60,7 @@ public class AdminController : Controller
 }
 ```
 
-**Builder-Based Navigation (`BuilderBasedNavProvider`):**
+**Builder-Based Navigation ([`BuilderBasedNavProvider`](../../api/Htmx.Components.NavBar.BuilderBasedNavProvider.html)):**
 ```csharp
 services.AddHtmxComponents(options =>
 {
@@ -76,7 +76,7 @@ services.AddHtmxComponents(options =>
 
 ### 4. State Management
 
-#### PageState (`IPageState`)
+#### PageState ([`IPageState`](../../api/Htmx.Components.State.IPageState.html))
 Provides encrypted, client-side state management:
 
 ```csharp
@@ -117,9 +117,9 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
 #### Specialized Filters
 - `TableOobRefreshFilter`: Updates table components
 - `TableOobEditFilter`: Handles inline editing
-- `NavActionResultFilter`: Updates navigation state
-- `AuthStatusUpdateFilter`: Refreshes authentication status
-- `PageStateOobInjectorFilter`: Manages state synchronization
+- [`NavActionResultFilter`](../../api/Htmx.Components.NavBar.Internal.NavActionResultFilter.html): Updates navigation state
+- [`AuthStatusUpdateFilter`](../../api/Htmx.Components.AuthStatus.Internal.AuthStatusUpdateFilter.html): Refreshes authentication status
+- [`PageStateOobInjectorFilter`](../../api/Htmx.Components.Filters.PageStateOobInjectorFilter.html): Manages state synchronization
 
 ### 6. Authorization Integration
 
@@ -189,7 +189,7 @@ Client State → HTTP Header → PageStateMiddleware → IPageState → Result F
 ```
 
 1. Client sends encrypted state in headers
-2. Middleware deserializes state into `IPageState`
+2. Middleware deserializes state into [`IPageState`](../../api/Htmx.Components.State.IPageState.html)
 3. Controllers modify state during processing
 4. Result filters detect state changes
 5. OOB updates sync client-side state
