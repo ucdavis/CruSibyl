@@ -97,7 +97,7 @@ public class ModelHandler<T, TKey> : ModelHandler
         return tableModelBuilder.BuildAsync();
     }
 
-    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPageAsync(Htmx.Components.Table.Models.TableState? tableState = null)
+    public async Task<TableModel<T, TKey>> BuildTableModelAndFetchPageAsync(TableState? tableState = null)
     {
         // a null tableState means we are opening a new table with no previous state.
         if (tableState == null)

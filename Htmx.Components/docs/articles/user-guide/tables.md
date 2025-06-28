@@ -172,16 +172,6 @@ Enabled by default for selector columns:
 table.AddSelectorColumn(p => p.Name); // Automatically sortable
 ```
 
-### Custom Sorting
-
-Define custom sort logic:
-
-```csharp
-table.AddSelectorColumn(p => p.Name, col => col
-    .WithHeader("Product Name")
-    .WithSortable(true)); // Explicitly enable/disable
-```
-
 ## Pagination
 
 Pagination is automatically handled by the table provider. Configure page size:
@@ -449,7 +439,10 @@ private async Task<TableModel<Product, int>> GetProductsPage(int page, int pageS
         .Take(pageSize)
         .ToListAsync();
         
-    return BuildTableModel(products);
+    // Use the async builder for consistency
+    var handler = await _modelRegistry.GetModelHandler<Product, int>("products", ModelUI.Table);
+    var tableModel = await handler.BuildTableModelAsync();
+    return tableModel;
 }
 ```
 

@@ -72,7 +72,7 @@ public class UsersController : Controller
     [NavAction(DisplayName = "Users", Icon = "fas fa-users")]
     public async Task<IActionResult> Index()
     {
-        var tableModel = await _modelHandler.BuildTableModel();
+        var tableModel = await _modelHandler.BuildTableModelAsync();
         return View(tableModel);
     }
 }

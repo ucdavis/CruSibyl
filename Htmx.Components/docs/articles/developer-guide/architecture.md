@@ -279,7 +279,7 @@ Focus on isolated component testing:
 
 ```csharp
 [Test]
-public async Task ModelHandler_BuildTableModel_ReturnsConfiguredColumns()
+public async Task ModelHandler_BuildTableModelAsync_ReturnsConfiguredColumns()
 {
     // Arrange
     var handler = new ModelHandler<User, int>(options, tableProvider, pageState);
