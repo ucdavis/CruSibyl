@@ -5,6 +5,7 @@ using Htmx.Components.Models;
 using Htmx.Components.Table.Models;
 using Htmx.Components.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Htmx.Components.Models.Builders;
 
@@ -13,11 +14,13 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
     where T : class
 {
     private readonly TableColumnModelConfig<T, TKey> _config;
+    private readonly ViewPaths _viewPaths;
 
     internal TableColumnModelBuilder(TableColumnModelConfig<T, TKey> config, IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
         _config = config;
+        _viewPaths = serviceProvider.GetRequiredService<ViewPaths>();
     }
 
     public TableColumnModelBuilder<T, TKey> WithHeader(string header)
@@ -72,7 +75,7 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         _config.Behavior.Filterable = true;
         if (string.IsNullOrWhiteSpace(_config.Display.FilterPartialView))
         {
-            _config.Display.FilterPartialView = _config.DataOptions.Paths.FilterDateRange;
+            _config.Display.FilterPartialView = _viewPaths.Table.FilterDateRange;
         }
         return this;
     }
@@ -88,7 +91,7 @@ public class TableColumnModelBuilder<T, TKey> : BuilderBase<TableColumnModelBuil
         });
         if (string.IsNullOrWhiteSpace(_config.Display.CellPartialView))
         {
-            _config.Display.CellPartialView = _config.DataOptions.Paths.CellActionList;
+            _config.Display.CellPartialView = _viewPaths.Table.CellActionList;
         }
         return this;
     }

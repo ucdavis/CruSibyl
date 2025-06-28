@@ -1,5 +1,6 @@
 @using Htmx.Components.Table.Models
 @model (ITableModel table, ITableRowContext row)
+@inject Htmx.Components.Models.ViewPaths ViewPaths
 
 @{
   var isEditing = Model.row.IsEditing;
@@ -9,7 +10,7 @@
   @foreach (var column in Model.table.Columns)
   {
     var cellPartialView = string.IsNullOrEmpty(column.CellPartialView)
-    ? Model.table.TableViewPaths.Cell
+    ? ViewPaths.Table.Cell
     : column.CellPartialView;
     var cellModel = new TableCellPartialModel { Table = Model.table, Row = Model.row, Column = column };
     <td>

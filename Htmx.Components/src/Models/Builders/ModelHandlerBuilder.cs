@@ -18,13 +18,12 @@ public class ModelHandlerBuilder<T, TKey> : BuilderBase<ModelHandlerBuilder<T, T
     private readonly ITableProvider _tableProvider;
     private readonly IPageState _pageState;
 
-    internal ModelHandlerBuilder(IServiceProvider serviceProvider, string typeId, ViewPaths viewPaths, IResourceOperationRegistry resourceOperationRegistry)
+    internal ModelHandlerBuilder(IServiceProvider serviceProvider, string typeId, IResourceOperationRegistry resourceOperationRegistry)
         : base(serviceProvider)
     {
         _resourceOperationRegistry = resourceOperationRegistry;
         _options.TypeId = typeId;
         _options.ModelUI = ModelUI.Table;
-        _options.Table.Paths = viewPaths.Table;
         _options.ServiceProvider = serviceProvider;
         _tableProvider = serviceProvider.GetRequiredService<ITableProvider>();
         _pageState = serviceProvider.GetRequiredService<IPageState>();

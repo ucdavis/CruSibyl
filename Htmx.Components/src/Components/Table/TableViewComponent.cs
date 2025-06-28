@@ -48,7 +48,6 @@ public class TableViewComponent : ViewComponent
     {
         if (model == null) throw new ArgumentNullException(nameof(model));
         
-        model.TableViewPaths = _viewPaths.Table;
         return View(_viewPaths.Table.Table, model);
     }
 }

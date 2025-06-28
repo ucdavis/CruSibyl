@@ -20,13 +20,12 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
 {
     private readonly TableModelConfig<T, TKey> _config = new();
 
-    internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, TableViewPaths paths, ModelHandler<T, TKey> modelHandler, IServiceProvider serviceProvider)
+    internal TableModelBuilder(Expression<Func<T, TKey>> keySelector, ModelHandler<T, TKey> modelHandler, IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
         _config.KeySelector = keySelector;
         _config.ModelHandler = modelHandler;
         _config.TypeId = modelHandler.TypeId;
-        _config.TableViewPaths = paths;
     }
 
 
@@ -55,7 +54,6 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                 DataOptions = new TableColumnDataOptions<T, TKey>
                 {
                     SelectorExpression = selector,
-                    Paths = _config.TableViewPaths!,
                     ModelHandler = _config.ModelHandler!,
                 },
                 Behavior = new TableColumnBehaviorOptions
@@ -98,7 +96,6 @@ public class TableModelBuilder<T, TKey> : BuilderBase<TableModelBuilder<T, TKey>
                 },
                 DataOptions = new TableColumnDataOptions<T, TKey>
                 {
-                    Paths = _config.TableViewPaths!,
                     ModelHandler = _config.ModelHandler!
                 }
             };

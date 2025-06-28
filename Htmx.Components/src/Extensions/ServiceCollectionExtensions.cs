@@ -260,9 +260,8 @@ public class HtmxComponentOptions
     {
         ModelRegistryFactory = serviceProvider =>
         {
-            var viewPaths = serviceProvider.GetRequiredService<ViewPaths>();
             var resourceOperationRegistry = serviceProvider.GetRequiredService<IResourceOperationRegistry>();
-            var modelRegistry = new ModelRegistry(viewPaths, serviceProvider, resourceOperationRegistry);
+            var modelRegistry = new ModelRegistry(serviceProvider, resourceOperationRegistry);
             configure(modelRegistry, serviceProvider);
             return modelRegistry;
         };

@@ -66,11 +66,9 @@ public class TableColumnModel<T, TKey> : ITableColumnModel where T : class
         GetInputModel = config.InputOptions.GetInputModel;
         SelectorExpression = config.DataOptions.SelectorExpression ?? (x => x!);
         SelectorFunc = config.DataOptions.SelectorFunc ?? SelectorExpression.CompileFast();
-        Paths = config.DataOptions.Paths!;
         ModelHandler = config.DataOptions.ModelHandler!;
     }
 
-    public TableViewPaths Paths { get; set; } = default!;
     public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
 
     private Expression<Func<T, object>> _selectorExpression = x => x!;
@@ -219,6 +217,5 @@ internal class TableColumnDataOptions<T, TKey>
 {
     public Expression<Func<T, object>>? SelectorExpression { get; set; }
     public Func<T, object>? SelectorFunc { get; set; }
-    public required TableViewPaths Paths { get; set; }
     public ModelHandler<T, TKey>? ModelHandler { get; set; }
 }

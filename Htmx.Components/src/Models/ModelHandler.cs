@@ -35,14 +35,12 @@ public class ModelHandler<T, TKey> : ModelHandler
         _tableProvider = tableProvider;
         _pageState = pageState;
         if (options.TypeId == null) throw new ArgumentNullException(nameof(options.TypeId));
-        if (options.Table.Paths == null) throw new ArgumentNullException(nameof(options.Table.Paths));
         if (options.ServiceProvider == null) throw new ArgumentNullException(nameof(options.ServiceProvider));
 
         TypeId = options.TypeId;
         ModelType = typeof(T);
         KeyType = typeof(TKey);
         ModelUI = options.ModelUI;
-        Paths = options.Table.Paths;
         ServiceProvider = options.ServiceProvider;
 
         if (options.KeySelector != null)
@@ -87,12 +85,11 @@ public class ModelHandler<T, TKey> : ModelHandler
     internal Func<T, TKey> KeySelectorFunc => _keySelectorFunc;
     internal Dictionary<string, Func<ModelHandler<T, TKey>, Task<IInputModel>>>? InputModelBuilders { get; set; }
     internal Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
-    internal TableViewPaths Paths { get; set; } = null!;
     internal IServiceProvider ServiceProvider { get; set; } = null!;
 
     public Task<TableModel<T, TKey>> BuildTableModelAsync()
     {
-        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
         return tableModelBuilder.BuildAsync();
     }
@@ -106,7 +103,7 @@ public class ModelHandler<T, TKey> : ModelHandler
             _pageState.Set(TableStateKeys.Partition, TableStateKeys.TableState, tableState);
         }
 
-        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, Paths, this, ServiceProvider);
+        var tableModelBuilder = new TableModelBuilder<T, TKey>(_keySelectorExpression, this, ServiceProvider);
         ConfigureTableModel?.Invoke(tableModelBuilder);
         var tableModel = await tableModelBuilder.BuildAsync();
         var query = GetQueryable?.Invoke() ?? throw new InvalidOperationException("GetQueryable is not set.");
@@ -220,7 +217,6 @@ internal class TableOptions<T, TKey>
     where T : class
 {
     public Action<TableModelBuilder<T, TKey>>? ConfigureTableModel { get; set; }
-    public TableViewPaths? Paths { get; set; }
 }
 
 /// <summary>

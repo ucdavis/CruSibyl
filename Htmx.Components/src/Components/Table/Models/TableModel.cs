@@ -11,7 +11,6 @@ public interface ITableModel
     public List<ITableColumnModel> Columns { get; set; }
     public int PageCount { get; set; }
     public TableState State { get; set; }
-    public TableViewPaths TableViewPaths { get; set; }
     public ModelHandler ModelHandler { get; set; }
     public Task<IEnumerable<ActionModel>> GetActionsAsync();
 }
@@ -25,7 +24,6 @@ public class TableModel<T, TKey> : ITableModel
     public List<TableColumnModel<T, TKey>> Columns { get; set; } = new();
     public int PageCount { get; set; } = 1;
     public TableState State { get; set; } = new();
-    public TableViewPaths TableViewPaths { get; set; } = new();
     public ModelHandler<T, TKey> ModelHandler { get; set; } = default!;
     public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
     internal Expression<Func<T, TKey>>? KeySelector { get; set; } = default!;
@@ -34,7 +32,6 @@ public class TableModel<T, TKey> : ITableModel
     {
         TypeId = config.TypeId ?? typeof(T).Name;
         Columns = config.Columns;
-        TableViewPaths = config.TableViewPaths ?? new TableViewPaths();
         ModelHandler = config.ModelHandler ?? throw new ArgumentNullException(nameof(config.ModelHandler));
         ActionsFactories = config.ActionsFactories;
         if (config.KeySelector != null)
@@ -79,7 +76,6 @@ public class TableModelConfig<T, TKey>
     public string? TypeId { get; set; }
     public Expression<Func<T, TKey>>? KeySelector { get; set; }
     public ModelHandler<T, TKey>? ModelHandler { get; set; }
-    public TableViewPaths TableViewPaths { get; set; } = new();
     public List<TableColumnModel<T, TKey>> Columns { get; } = new();
     public List<Func<TableModel<T, TKey>, Task<IEnumerable<ActionModel>>>> ActionsFactories { get; set; } = [];
 }
