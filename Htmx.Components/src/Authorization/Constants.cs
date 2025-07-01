@@ -10,7 +10,7 @@ public static class AuthConstants
     /// Defines standard CRUD operation names for authorization requirements.
     /// </summary>
     /// <remarks>
-    /// These constants are used with <see cref="IPermissionRequirementFactory.ForOperation"/>
+    /// These constants are used with <see cref="IAuthorizationRequirementFactory.ForOperation"/>
     /// to create authorization requirements for data access operations.
     /// </remarks>
     public static class CrudOperations

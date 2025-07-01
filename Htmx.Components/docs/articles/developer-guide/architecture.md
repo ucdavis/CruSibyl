@@ -123,11 +123,11 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
 
 ### 6. Authorization Integration
 
-#### IPermissionRequirementFactory
+#### IAuthorizationRequirementFactory
 Creates authorization requirements:
 
 ```csharp
-public interface IPermissionRequirementFactory
+public interface IAuthorizationRequirementFactory
 {
     IAuthorizationRequirement ForOperation(string resource, string operation);
     IAuthorizationRequirement ForRoles(params string[] roles);
@@ -242,7 +242,7 @@ public class CustomWidgetViewComponent : ViewComponent
 Implement domain-specific authorization:
 
 ```csharp
-public class ProjectBasedAuthRequirementFactory : IPermissionRequirementFactory
+public class ProjectBasedAuthRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {

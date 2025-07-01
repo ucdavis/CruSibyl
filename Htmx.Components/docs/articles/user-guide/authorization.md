@@ -14,10 +14,10 @@ The authorization system is built around three key concepts:
 
 ### Basic Implementation
 
-Implement [`IPermissionRequirementFactory`](../../api/Htmx.Components.Authorization.IPermissionRequirementFactory.html) to create authorization requirements:
+Implement [`IAuthorizationRequirementFactory`](../../api/Htmx.Components.Authorization.IAuthorizationRequirementFactory.html) to create authorization requirements:
 
 ```csharp
-public class SimplePermissionRequirementFactory : IPermissionRequirementFactory
+public class SimpleAuthorizationRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {
@@ -36,7 +36,7 @@ public class SimplePermissionRequirementFactory : IPermissionRequirementFactory
 // Register the factory
 builder.Services.AddHtmxComponents(options =>
 {
-    options.WithPermissionRequirementFactory<SimplePermissionRequirementFactory>();
+    options.WithAuthorizationRequirementFactory<SimpleAuthorizationRequirementFactory>();
 });
 ```
 
@@ -45,7 +45,7 @@ builder.Services.AddHtmxComponents(options =>
 Create more sophisticated authorization logic:
 
 ```csharp
-public class AdvancedPermissionRequirementFactory : IPermissionRequirementFactory
+public class AdvancedAuthorizationRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {
@@ -456,7 +456,7 @@ public class DepartmentAccessHandler : AuthorizationHandler<DepartmentAccessRequ
 Implement authorization that considers tenant context:
 
 ```csharp
-public class TenantAwarePermissionFactory : IPermissionRequirementFactory
+public class TenantAwarePermissionFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {

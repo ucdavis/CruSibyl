@@ -17,7 +17,7 @@ A powerful .NET library that provides server-side components for building dynami
 // Program.cs
 builder.Services.AddHtmxComponents(options =>
 {
-    options.WithPermissionRequirementFactory<MyPermissionFactory>();
+    options.WithAuthorizationRequirementFactory<MyPermissionFactory>();
     options.WithResourceOperationRegistry<MyResourceRegistry>();
 });
 

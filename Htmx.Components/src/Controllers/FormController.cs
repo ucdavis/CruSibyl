@@ -20,7 +20,7 @@ public partial class FormController : Controller
     private readonly ITableProvider _tableProvider;
     private readonly IModelRegistry _modelRegistry;
     private readonly IAuthorizationService _authorizationService;
-    private readonly IPermissionRequirementFactory _permissionRequirementFactory;
+    private readonly IAuthorizationRequirementFactory _AuthorizationRequirementFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FormController"/> class.
@@ -28,14 +28,14 @@ public partial class FormController : Controller
     /// <param name="tableProvider">The table provider for data operations.</param>
     /// <param name="modelRegistry">The model registry for resolving model handlers.</param>
     /// <param name="authorizationService">The authorization service for permission checks.</param>
-    /// <param name="permissionRequirementFactory">The factory for creating authorization requirements.</param>
+    /// <param name="AuthorizationRequirementFactory">The factory for creating authorization requirements.</param>
     public FormController(ITableProvider tableProvider, IModelRegistry modelRegistry,
-        IAuthorizationService authorizationService, IPermissionRequirementFactory permissionRequirementFactory)
+        IAuthorizationService authorizationService, IAuthorizationRequirementFactory AuthorizationRequirementFactory)
     {
         _tableProvider = tableProvider;
         _modelRegistry = modelRegistry;
         _authorizationService = authorizationService;
-        _permissionRequirementFactory = permissionRequirementFactory;
+        _AuthorizationRequirementFactory = AuthorizationRequirementFactory;
     }
 
     /// <summary>
@@ -46,7 +46,7 @@ public partial class FormController : Controller
     /// <returns>A task that represents the asynchronous authorization check. The task result is true if authorized; otherwise, false.</returns>
     private async Task<bool> IsAuthorized(string typeId, string operation)
     {
-        var requirement = _permissionRequirementFactory.ForOperation(typeId, operation);
+        var requirement = _AuthorizationRequirementFactory.ForOperation(typeId, operation);
         var result = await _authorizationService.AuthorizeAsync(User, null, requirement);
         return result.Succeeded;
     }

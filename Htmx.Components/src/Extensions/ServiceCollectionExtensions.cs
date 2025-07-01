@@ -167,13 +167,13 @@ public static class ServiceCollectionExtensions
         });
         services.AddScoped<IAuthorizationMetadataService, AuthorizationMetadataService>();
 
-        if (options.RegisterPermissionRequirementFactory == null
-            && !services.Any(sd => sd.ServiceType == typeof(IPermissionRequirementFactory)))
+        if (options.RegisterAuthorizationRequirementFactory == null
+            && !services.Any(sd => sd.ServiceType == typeof(IAuthorizationRequirementFactory)))
         {
             throw new InvalidOperationException(
-                $"{nameof(HtmxComponentOptions)}.{nameof(HtmxComponentOptions.WithPermissionRequirementFactory)}() must be called to register a permission requirement factory.");
+                $"{nameof(HtmxComponentOptions)}.{nameof(HtmxComponentOptions.WithAuthorizationRequirementFactory)}() must be called to register a permission requirement factory.");
         }
-        options.RegisterPermissionRequirementFactory!(services);
+        options.RegisterAuthorizationRequirementFactory!(services);
 
         if (options.RegisterResourceOperationRegistry == null
             && !services.Any(sd => sd.ServiceType == typeof(IResourceOperationRegistry)))
@@ -196,7 +196,7 @@ public class HtmxComponentOptions
     internal Func<IServiceProvider, BuilderBasedNavProvider>? NavProviderFactory { get; private set; }
     internal ViewPaths ViewPaths { get; private set; } = new ViewPaths();
     internal Func<IServiceProvider, ModelRegistry>? ModelRegistryFactory { get; private set; }
-    internal Action<IServiceCollection>? RegisterPermissionRequirementFactory { get; private set; }
+    internal Action<IServiceCollection>? RegisterAuthorizationRequirementFactory { get; private set; }
     internal Action<IServiceCollection>? RegisterResourceOperationRegistry { get; private set; }
     internal Action<IServiceCollection>? RegisterRoleService { get; set; }
     internal string UserIdClaimType { get; set; } = ClaimTypes.NameIdentifier;
@@ -268,12 +268,12 @@ public class HtmxComponentOptions
         return this;
     }
 
-    public void WithPermissionRequirementFactory<T>()
-        where T : class, IPermissionRequirementFactory
+    public void WithAuthorizationRequirementFactory<T>()
+        where T : class, IAuthorizationRequirementFactory
     {
-        RegisterPermissionRequirementFactory = services =>
+        RegisterAuthorizationRequirementFactory = services =>
         {
-            services.AddSingleton<IPermissionRequirementFactory, T>();
+            services.AddSingleton<IAuthorizationRequirementFactory, T>();
         };
     }
 

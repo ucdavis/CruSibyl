@@ -440,7 +440,7 @@ Custom authorization providers enable sophisticated permission systems.
 ### Permission-Based Authorization
 
 ```csharp
-public class PermissionRequirementFactory : IPermissionRequirementFactory
+public class AuthorizationRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {

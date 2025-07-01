@@ -28,7 +28,7 @@ public class PermissionRequirement : IAuthorizationRequirement
 /// <summary>
 /// Factory for creating permission requirements, needed by Htmx.Components
 /// </summary>
-public class PermissionRequirementFactory : IPermissionRequirementFactory
+public class PermissionRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
         => PermissionRequirement.ForOperation(resource, operation);

@@ -46,7 +46,7 @@ builder.Services.AddHtmxComponents(options =>
         ModelHandlerAttributeRegistrar.RegisterAll(registry);
     });
     
-    options.WithPermissionRequirementFactory<YourPermissionFactory>();
+    options.WithAuthorizationRequirementFactory<YourPermissionFactory>();
     options.WithResourceOperationRegistry<YourResourceRegistry>();
     options.WithUserIdClaimType("your-claim-type");
 });
@@ -125,7 +125,7 @@ public IActionResult UpdateData()
 ### Custom Authorization
 
 ```csharp
-public class CustomPermissionFactory : IPermissionRequirementFactory
+public class CustomPermissionFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string operation, Type resourceType)
     {

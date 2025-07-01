@@ -12,7 +12,7 @@ namespace Htmx.Components.Authorization;
 /// </remarks>
 /// <example>
 /// <code>
-/// public class CustomPermissionRequirementFactory : IPermissionRequirementFactory
+/// public class CustomAuthorizationRequirementFactory : IAuthorizationRequirementFactory
 /// {
 ///     public IAuthorizationRequirement ForOperation(string resource, string operation)
 ///     {
@@ -26,7 +26,7 @@ namespace Htmx.Components.Authorization;
 /// }
 /// </code>
 /// </example>
-public interface IPermissionRequirementFactory
+public interface IAuthorizationRequirementFactory
 {
     /// <summary>
     /// Creates an authorization requirement for a specific resource and operation combination.

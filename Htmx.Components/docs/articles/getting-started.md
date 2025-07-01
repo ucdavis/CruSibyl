@@ -31,7 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHtmxComponents(options =>
 {
     // Required: Configure authorization
-    options.WithPermissionRequirementFactory<SimplePermissionFactory>();
+    options.WithAuthorizationRequirementFactory<SimplePermissionFactory>();
     options.WithResourceOperationRegistry<InMemoryResourceRegistry>();
     
     // Optional: Configure navigation
@@ -65,7 +65,7 @@ You need to implement the authorization interfaces:
 
 ```csharp
 // Simple permission factory for getting started
-public class SimplePermissionFactory : IPermissionRequirementFactory
+public class SimplePermissionFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {
@@ -209,4 +209,4 @@ Create the corresponding view (`Views/Users/Index.cshtml`):
 
 3. **Table not working**: Verify that your model handler is properly configured and the Table component is invoked with the correct model.
 
-4. **Authorization errors**: Check that you've implemented [`IPermissionRequirementFactory`](../../api/Htmx.Components.Authorization.IPermissionRequirementFactory.html) and [`IResourceOperationRegistry`](../../api/Htmx.Components.Authorization.IResourceOperationRegistry.html).
+4. **Authorization errors**: Check that you've implemented [`IAuthorizationRequirementFactory`](../../api/Htmx.Components.Authorization.IAuthorizationRequirementFactory.html) and [`IResourceOperationRegistry`](../../api/Htmx.Components.Authorization.IResourceOperationRegistry.html).

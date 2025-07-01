@@ -75,7 +75,7 @@ try
                 ModelHandlerAttributeRegistrar.RegisterAll(registry);
             }
         );
-        htmxOptions.WithPermissionRequirementFactory<PermissionRequirementFactory>();
+        htmxOptions.WithAuthorizationRequirementFactory<PermissionRequirementFactory>();
         htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
         htmxOptions.WithUserIdClaimType(UserService.IamIdClaimType);
     });
