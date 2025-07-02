@@ -57,10 +57,9 @@ private void ConfigureUserModel(ModelHandlerBuilder<User, int> builder)
 ```
 
 **Rationale**:
-- **Consistency**: Provides a uniform way to configure HTHMX components and make them aware of app data models
+- **Consistency**: Provides a uniform way to configure HTMX components and make them aware of app data models
 - **Declarative Configuration**: Uses builder pattern for readable, fluent configuration
-- **Authorization Integration**: Automatically integrates with the permission system
-- **HTMX Optimization**: Builds table models optimized for HTMX partial updates
+- **Authorization Integration**: Automatically integrates with the authorization system
 
 **Trade-offs**:
 - Additional abstraction layer over direct Entity Framework usage
@@ -72,7 +71,7 @@ private void ConfigureUserModel(ModelHandlerBuilder<User, int> builder)
 
 ## Multi-Swap View Results
 
-**Decision**: Implement `MultiSwapViewResult` to return multiple HTMX view updates in a single response.
+**Decision**: Implement [`MultiSwapViewResult`](../../api/Htmx.Components.ViewResults.MultiSwapViewResult.html) to return multiple HTMX view updates in a single response.
 
 ```csharp
 return new MultiSwapViewResult()
@@ -120,10 +119,10 @@ public interface IPageState
 - Encryption/decryption overhead on each request
 
 **Alternatives Considered**: 
-- Component-specific Hidden form fields (complexity and duplication concerns)
-- Server-side session storage (scalability concerns)
-- Unencrypted client state (security concerns)
-- Database state storage (performance overhead)
+- **Component-specific hidden form fields**: Complexity and duplication concerns across multiple components
+- **Server-side session storage**: Scalability concerns in distributed environments
+- **Unencrypted client state**: Security concerns with client-side tampering
+- **Database state storage**: Performance overhead and complexity for temporary state
 
 [↑ Back to outline](#outline)
 
@@ -148,7 +147,7 @@ public async Task<IActionResult> UpdateUser(int id) { }
 - Magic behavior that may not be immediately obvious to developers
 - Possible debugging complexity when multiple filters are involved
 
-**Alternative Considered**: Manually specify every oob view in each action method, which would be more verbose and error-prone.
+**Alternative Considered**: Manually specify every OOB view in each action method, which would be more verbose and error-prone.
 
 [↑ Back to outline](#outline)
 
@@ -156,8 +155,7 @@ public async Task<IActionResult> UpdateUser(int id) { }
 
 ## Dual Navigation Provider Architecture
 
-**Decision**: Support both attribute-based and builder-based navigation configuration. Have the
-attribute-based configuration use the builder-based configuration internally.
+**Decision**: Support both attribute-based and builder-based navigation configuration, with the attribute-based approach using the builder-based configuration internally for consistency.
 
 **Attribute-Based**:
 ```csharp
@@ -178,9 +176,11 @@ options.WithNavBuilder(nav => nav.AddAction(a => a.WithLabel("Dashboard")));
 - **Flexibility**: Supports different developer preferences and use cases
 - **Co-location**: Attributes keep navigation logic close to controller actions
 - **Centralization**: Builders allow centralized navigation configuration
+- **Unified Implementation**: Attribute-based navigation internally uses the builder pattern, ensuring consistency
 
 **Trade-offs**:
 - Increased complexity with two configuration methods
+- Potential for inconsistent navigation patterns within a project
 
 
 [↑ Back to outline](#outline)
@@ -214,7 +214,7 @@ options.WithNavBuilder(nav => nav.AddAction(a => a.WithLabel("Dashboard")));
 
 ## Authorization Integration Strategy
 
-**Decision**: Integrate with AspNetCore's authorization system by providing a customizable authorization requirement factory and resource operation registry.
+**Decision**: Integrate with ASP.NET Core's authorization system by providing a customizable authorization requirement factory and resource operation registry.
 
 ```csharp
 options.WithAuthorizationRequirementFactory<AuthorizationRequirementFactory>();
@@ -228,6 +228,7 @@ options.WithResourceOperationRegistry<ResourceOperationRegistry>();
 
 **Trade-offs**:
 - Additional abstraction layer over standard ASP.NET Core authorization
+- Learning curve for understanding the factory and registry patterns
 
 [↑ Back to outline](#outline)
 
@@ -235,20 +236,37 @@ options.WithResourceOperationRegistry<ResourceOperationRegistry>();
 
 ## ViewComponent-Centric Design
 
-**Decision**: Use ViewComponents as the primary UI rendering mechanism in order to mitigate the complexity
-of managing the selection of partial views that go into a given HTMX response.
+**Decision**: Use ViewComponents as the primary UI rendering mechanism to mitigate the complexity of managing the selection of partial views that go into a given HTMX response.
 
 ```csharp
 @await Component.InvokeAsync("Table", tableModel)
 ```
 
 **Rationale**:
-- The partial views that may be used in an HTMX response are highly dynamic and context-specific.
+- **Dynamic View Selection**: The partial views that may be used in an HTMX response are highly dynamic and context-specific
 - **Server-Side Logic**: ViewComponents can contain complex server-side logic
 - **Dependency Injection**: Full access to DI container for services and configuration
 - **Testability**: ViewComponents can be unit tested independently
 - **ASP.NET Core Integration**: Leverages built-in ViewComponent infrastructure, particularly result filters for HTMX integration
 
+**Trade-offs**:
+- More heavyweight than simple partial views
+- Requires understanding of ViewComponent lifecycle and conventions
+
+**Alternative Considered**: Using tag helpers or direct partial view rendering, which would be simpler but more error prone for context-specific HTMX responses.
+
+
+[↑ Back to outline](#outline)
+
+---
+
+## Questions for Consideration
+
+The following design decisions would benefit from additional context for a complete understanding:
+
+1. **State Management Header Size**: Have there been practical limitations encountered with HTTP header size for state objects? What strategies are recommended for handling large state?
+
+2. **Filter Pipeline Debugging**: What tooling or practices are recommended for debugging complex scenarios where multiple result filters are involved?
 
 [↑ Back to outline](#outline)
 

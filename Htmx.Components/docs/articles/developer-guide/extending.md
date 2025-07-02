@@ -648,4 +648,10 @@ public class SignalRNotificationFilter : IAsyncResultFilter
 }
 ```
 
+## Related Documentation
+
+- **[Design Choices](design-choices.md)**: Understand the architectural decisions that enable extensibility
+- **[Architecture Overview](architecture.md)**: Complete framework architecture and extension points
+- **[Component Architecture](component-architecture.md)**: Self-contained component pattern for custom components
+
 This comprehensive extension system allows you to adapt Htmx.Components to virtually any use case while maintaining the framework's core principles and patterns.

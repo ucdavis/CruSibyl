@@ -44,10 +44,12 @@ Comprehensive guides for using all the library features:
 
 ### [Developer Guide](articles/developer-guide/architecture.md)
 Deep dive into the library architecture and extension points:
-- System architecture
-- Creating custom components
-- Building custom providers
-- Contributing guidelines
+- [Architecture overview](articles/developer-guide/architecture.md)
+- [Component architecture](articles/developer-guide/component-architecture.md)
+- [Design choices and rationale](articles/developer-guide/design-choices.md)
+- [Creating custom components](articles/developer-guide/extending.md)
+- [Building custom providers](articles/developer-guide/custom-providers.md)
+- [Contributing guidelines](articles/developer-guide/contributing.md)
 
 ## Community
 

@@ -316,4 +316,10 @@ public async Task NavProvider_ExcludesUnauthorizedActions()
 }
 ```
 
+## Related Documentation
+
+- **[Design Choices](design-choices.md)**: Deep dive into the architectural decisions and rationale behind key design patterns
+- **[Component Architecture](component-architecture.md)**: Detailed exploration of the self-contained component structure
+- **[Extending the Framework](extending.md)**: Guide for creating custom components and extensions
+
 This architecture provides a solid foundation for building complex HTMX applications while maintaining separation of concerns and extensibility.

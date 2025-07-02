@@ -153,3 +153,9 @@ When creating new components, follow the self-contained pattern:
 5. Use the component's namespace for attributes
 
 This pattern ensures your components are well-organized and easy to maintain.
+
+## Related Documentation
+
+- **[Design Choices](design-choices.md)**: Understand the rationale behind the self-contained component architecture
+- **[Architecture Overview](architecture.md)**: Complete architectural overview including component integration
+- **[Extending the Framework](extending.md)**: Guide for creating custom components using this pattern
