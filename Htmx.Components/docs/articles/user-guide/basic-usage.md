@@ -63,7 +63,7 @@ private void ConfigureProductModel(ModelHandlerBuilder<Product, int> builder)
 }
 ```
 
-### Key Components
+### Key Elements
 
 - **Key Selector**: Defines the primary key for the model
 - **Queryable**: Provides the data source (usually Entity Framework)

@@ -48,7 +48,7 @@ The table system provides a comprehensive data grid solution:
 ### 3. Navigation System
 
 #### INavProvider
-The navigation system supports two approaches:
+The navigation system provides authorization and context-aware navigation and supports two approaches to defining navigation actions:
 
 **Attribute-Based Navigation ([`AttributeNavProvider`](../../api/Htmx.Components.NavBar.AttributeNavProvider.html)):**
 ```csharp
@@ -77,7 +77,7 @@ services.AddHtmxComponents(options =>
 ### 4. State Management
 
 #### PageState ([`IPageState`](../../api/Htmx.Components.State.IPageState.html))
-Provides encrypted, client-side state management:
+Provides encrypted, client-side state management that enables stateful interactions while maintaining RESTful principles:
 
 ```csharp
 public interface IPageState
@@ -90,9 +90,17 @@ public interface IPageState
 }
 ```
 
+The PageState system bridges the gap between stateless HTTP and stateful user interfaces by providing server-side state that travels with HTMX requests. This approach aligns with HATEOAS (Hypermedia as the Engine of Application State) principles, where the server provides both data and the possible actions/transitions available to the client based on the current state of the client.
+
+Unlike traditional session-based state management, PageState is:
+- **Client-carried**: State travels in HTTP headers, eliminating server-side session storage
+- **Encrypted**: All state data is encrypted before being sent to the client
+- **Tamper-proof**: Clients cannot modify state without server knowledge
+- **Request-scoped**: State is available throughout the entire request pipeline
+
 **Features:**
-- Partitioned state organization
-- Automatic encryption/decryption
+- Partitioned state organization for logical grouping
+- Automatic encryption/decryption using secure algorithms
 - Change tracking
 - HTTP header-based transport
 
@@ -124,7 +132,7 @@ public abstract class OobResultFilterBase<T> : IAsyncResultFilter
 ### 6. Authorization Integration
 
 #### IAuthorizationRequirementFactory
-Creates authorization requirements:
+Creates authorization requirements that integrate with ASP.NET Core's authorization system:
 
 ```csharp
 public interface IAuthorizationRequirementFactory
@@ -133,6 +141,60 @@ public interface IAuthorizationRequirementFactory
     IAuthorizationRequirement ForRoles(params string[] roles);
 }
 ```
+
+**Integration with ASP.NET Core Authorization:**
+
+The factory creates `IAuthorizationRequirement` instances that are consumed by ASP.NET Core's `IAuthorizationService`. This allows Htmx.Components to leverage the full power of the built-in authorization system:
+
+```csharp
+// Example implementation that creates operation-based requirements
+public class OperationAuthorizationRequirementFactory : IAuthorizationRequirementFactory
+{
+    public IAuthorizationRequirement ForOperation(string resource, string operation)
+    {
+        return new OperationAuthorizationRequirement 
+        { 
+            Name = $"{resource}.{operation}" 
+        };
+    }
+
+    public IAuthorizationRequirement ForRoles(params string[] roles)
+    {
+        return new RolesAuthorizationRequirement(roles);
+    }
+}
+```
+
+**Authorization Flow:**
+1. Model handlers register resource-operation pairs during configuration
+2. The factory creates appropriate `IAuthorizationRequirement` instances
+3. ASP.NET Core's `IAuthorizationService.AuthorizeAsync()` evaluates requirements
+4. Authorization handlers (registered in DI) process the requirements
+5. Results are cached by `AuthorizationMetadataService` for performance
+
+**Custom Authorization Handlers:**
+You can register custom authorization handlers that work with the requirements:
+
+```csharp
+services.AddScoped<IAuthorizationHandler, ProjectOperationHandler>();
+
+public class ProjectOperationHandler : AuthorizationHandler<OperationAuthorizationRequirement>
+{
+    protected override Task HandleRequirementAsync(
+        AuthorizationHandlerContext context,
+        OperationAuthorizationRequirement requirement)
+    {
+        // Custom authorization logic
+        if (UserCanPerformOperation(context.User, requirement.Name))
+        {
+            context.Succeed(requirement);
+        }
+        return Task.CompletedTask;
+    }
+}
+```
+
+This approach allows the framework to integrate seamlessly with existing ASP.NET Core authorization policies, handlers, and middleware while providing the abstractions needed for dynamic resource-operation authorization.
 
 #### IResourceOperationRegistry
 Registers resource-operation pairs with the authorization system:
@@ -145,7 +207,7 @@ public interface IResourceOperationRegistry
 ```
 
 #### AuthorizationMetadataService
-Provides caching and evaluation of authorization metadata:
+Provides caching and evaluation of authorization metadata by bridging controller attributes with ASP.NET Core's authorization system:
 
 ```csharp
 public class AuthorizationMetadataService : IAuthorizationMetadataService
@@ -155,6 +217,39 @@ public class AuthorizationMetadataService : IAuthorizationMetadataService
         ClaimsPrincipal user);
 }
 ```
+
+**How it integrates with ASP.NET Core Authorization:**
+
+The service extracts authorization metadata from controller actions and evaluates them using the standard ASP.NET Core authorization pipeline:
+
+```csharp
+// Extracts metadata from controller attributes
+[Authorize(Policy = "CanEditUsers")]
+[Authorize(Roles = "Admin,Manager")]
+public class UserController : Controller
+{
+    public IActionResult Edit(int id) => View();
+}
+
+// The service processes these attributes and calls:
+// 1. IAuthorizationService.AuthorizeAsync() for policies
+// 2. IRoleService.UserHasAnyRoleAsync() for role checks
+// 3. Caches results for performance
+```
+
+**Authorization Evaluation Process:**
+1. **Metadata Extraction**: Parses `[Authorize]` and `[AllowAnonymous]` attributes from controllers and actions
+2. **Policy Evaluation**: Uses `IAuthorizationService.AuthorizeAsync()` to evaluate each policy requirement
+3. **Role Checking**: Delegates role validation to the configured `IRoleService` implementation
+4. **Result Caching**: Caches authorization decisions per user/policy combination to improve performance
+5. **Composition Logic**: Combines policy results (AND semantics) with role results (OR semantics)
+
+**Caching Strategy:**
+- **Metadata Cache**: Controller action metadata cached for 10 minutes (attribute parsing is expensive)
+- **Authorization Cache**: User-specific authorization results cached for 2 minutes
+- **Cache Keys**: Uses user ID claim and policy/role identifiers for precise cache invalidation
+
+This approach ensures that all authorization decisions flow through ASP.NET Core's standard authorization system while providing the performance optimizations needed for high-frequency operations like navigation building and table filtering.
 
 ## Data Flow Architecture
 
@@ -166,9 +261,11 @@ HTTP Request → Middleware → Controller → ModelHandler → View Components 
 
 1. **PageStateMiddleware** extracts encrypted state from headers
 2. **Controller actions** process requests using ModelHandlers
-3. **Result filters** transform responses for HTMX
-4. **View components** render UI fragments
-5. **MultiSwapViewResult** coordinates multiple content updates
+3. **Result filters** transform responses for HTMX requests
+4. **View rendering** follows different paths:
+   - **Non-HTMX requests**: Standard MVC rendering with ViewComponents
+   - **HTMX requests**: Result filters determine which partial views are rendered; ViewComponents only render if explicitly called by those partials
+5. **MultiSwapViewResult** coordinates multiple content updates for HTMX
 
 ### 2. Table Data Flow
 
@@ -188,10 +285,10 @@ Query → TableProvider → EF Core → Filtering/Sorting → Pagination → Tab
 Client State → HTTP Header → PageStateMiddleware → IPageState → Result Filters → OOB Updates
 ```
 
-1. Client sends encrypted state in headers
+1. Client sends encrypted state (from hidden input) in headers
 2. Middleware deserializes state into [`IPageState`](../../api/Htmx.Components.State.IPageState.html)
 3. Controllers modify state during processing
-4. Result filters detect state changes
+4. Result filter detects state changes
 5. OOB updates sync client-side state
 
 ## Extension Points
@@ -225,7 +322,7 @@ public class ImageColumnBuilder<T, TKey> : TableColumnModelBuilder<T, TKey>
 
 ### 3. Custom View Components
 
-Create reusable UI components:
+Create reusable UI components that integrate with HTMX:
 
 ```csharp
 public class CustomWidgetViewComponent : ViewComponent
@@ -235,6 +332,55 @@ public class CustomWidgetViewComponent : ViewComponent
         return View(model);
     }
 }
+```
+
+**Important**: ViewComponents alone don't automatically handle HTMX responses. For HTMX integration, you need one of these approaches:
+
+**Option 1: Custom Result Filter**
+```csharp
+public class CustomWidgetOobFilter : OobResultFilterBase<CustomWidgetRefreshAttribute>
+{
+    protected override async Task UpdateMultiSwapViewResultAsync(
+        CustomWidgetRefreshAttribute attribute,
+        MultiSwapViewResult multiSwapViewResult,
+        ResultExecutingContext context)
+    {
+        var model = // ... build your model
+        multiSwapViewResult.WithOobContent("CustomWidget", model); // ViewComponent name
+    }
+}
+```
+
+**Option 2: Controller-Level HTMX Detection**
+```csharp
+public class CustomWidgetController : Controller
+{
+    public async Task<IActionResult> Refresh()
+    {
+        var model = // ... build your model
+        var navModel = // ... build your navigation model
+        var sidebarModel = // ... build your sidebar model
+        
+        if (Request.IsHtmx())
+        {
+            return new MultiSwapViewResult()
+                .WithOobContent("CustomWidget", model)
+                .WithOobContent("NavBar", navModel)
+                .WithOobContent("Sidebar", sidebarModel);
+        }
+        
+        return View(model); // Full page for non-HTMX
+    }
+}
+```
+
+> **⚠️ Scalability Warning**: This approach is only viable for simple applications. As your app grows and more UI concerns need to be addressed by a single response (navigation updates, notifications, state synchronization, etc.), controller actions can become unwieldy and difficult to maintain. For production applications, **Option 1 (Custom Result Filters)** is strongly recommended as it provides better separation of concerns and allows each filter to handle its specific responsibility independently.
+
+**Option 3: Partial View Integration**
+ViewComponents can be called from partial views that are rendered by existing result filters:
+```html
+<!-- In a partial view rendered by TableOobRefreshFilter -->
+@await Component.InvokeAsync("CustomWidget", model)
 ```
 
 ### 4. Custom Authorization
@@ -268,53 +414,11 @@ public class ProjectBasedAuthRequirementFactory : IAuthorizationRequirementFacto
 ### 3. State Management
 
 - Encrypted state prevents tampering
-- Partitioned organization reduces serialization overhead
 - Change tracking minimizes unnecessary updates
 
 ## Testing Strategies
 
-### 1. Unit Testing
-
-Focus on isolated component testing:
-
-```csharp
-[Test]
-public async Task ModelHandler_BuildTableModelAsync_ReturnsConfiguredColumns()
-{
-    // Arrange
-    var handler = new ModelHandler<User, int>(options, tableProvider, pageState);
-    
-    // Act
-    var tableModel = await handler.BuildTableModelAsync();
-    
-    // Assert
-    Assert.That(tableModel.Columns, Has.Count.EqualTo(3));
-}
-```
-
-### 2. Integration Testing
-
-Test complete request flows:
-
-```csharp
-[Test]
-public async Task TableRefresh_WithFiltering_ReturnsFilteredResults()
-{
-    // Test full HTMX request/response cycle
-}
-```
-
-### 3. Authorization Testing
-
-Verify security constraints:
-
-```csharp
-[Test]
-public async Task NavProvider_ExcludesUnauthorizedActions()
-{
-    // Test that unauthorized actions are filtered
-}
-```
+> **TODO**: This section will be expanded once comprehensive test suites are established for the framework. Testing patterns and examples will be added to cover unit testing of components, integration testing of HTMX flows, and authorization testing strategies.
 
 ## Related Documentation
 

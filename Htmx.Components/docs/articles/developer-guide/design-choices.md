@@ -139,7 +139,7 @@ public async Task<IActionResult> UpdateUser(int id) { }
 
 **Rationale**:
 - **Declarative**: Attributes clearly indicate HTMX behavior without cluttering action logic
-- **Automatic**: Out-of-band updates happen automatically based on attributes
+- **Automatic**: Out-of-band updates happen automatically based on attributes and action context
 - **Composable**: Multiple filters can be applied to a single action
 - **Framework Integration**: Leverages ASP.NET Core's built-in filter pipeline
 
@@ -200,7 +200,6 @@ options.WithNavBuilder(nav => nav.AddAction(a => a.WithLabel("Dashboard")));
 
 **Rationale**:
 - **Tailwind Integration**: Ensures dynamically referenced CSS classes are included in Tailwind builds
-- **Build-Time Processing**: Extracts classes during compilation rather than runtime
 - **Pattern Flexibility**: Regular expressions allow extraction from various code patterns
 - **NuGet Distribution**: Extracted classes are packaged and distributed with the library
 
@@ -236,7 +235,7 @@ options.WithResourceOperationRegistry<ResourceOperationRegistry>();
 
 ## ViewComponent-Centric Design
 
-**Decision**: Use ViewComponents as the primary UI rendering mechanism to mitigate the complexity of managing the selection of partial views that go into a given HTMX response.
+**Decision**: Use ViewComponents as the primary UI rendering mechanism, integrated with result filters to handle HTMX responses and mitigate the complexity of managing the selection of partial views.
 
 ```csharp
 @await Component.InvokeAsync("Table", tableModel)
@@ -247,13 +246,20 @@ options.WithResourceOperationRegistry<ResourceOperationRegistry>();
 - **Server-Side Logic**: ViewComponents can contain complex server-side logic
 - **Dependency Injection**: Full access to DI container for services and configuration
 - **Testability**: ViewComponents can be unit tested independently
-- **ASP.NET Core Integration**: Leverages built-in ViewComponent infrastructure, particularly result filters for HTMX integration
+- **ASP.NET Core Integration**: Leverages built-in ViewComponent infrastructure
+
+**HTMX Integration**:
+ViewComponents alone don't automatically handle HTMX responses. The framework integrates them through:
+- **Result Filters**: Automatically render ViewComponents for OOB updates based on attributes
+- **MultiSwapViewResult**: Can render ViewComponents by name when given to `WithOobContent()`
+- **Controller Detection**: Controllers can manually detect HTMX requests and use `MultiSwapViewResult`
 
 **Trade-offs**:
 - More heavyweight than simple partial views
 - Requires understanding of ViewComponent lifecycle and conventions
+- HTMX integration requires additional infrastructure (result filters or manual controller logic)
 
-**Alternative Considered**: Using tag helpers or direct partial view rendering, which would be simpler but more error prone for context-specific HTMX responses.
+**Alternative Considered**: Using tag helpers or direct partial view rendering, which would be simpler but more error prone for context-specific HTMX responses and would require more manual HTMX integration work.
 
 
 [↑ Back to outline](#outline)

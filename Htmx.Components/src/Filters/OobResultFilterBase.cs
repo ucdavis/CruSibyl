@@ -14,9 +14,34 @@ namespace Htmx.Components.Filters;
 /// </summary>
 /// <typeparam name="T">The attribute type that triggers the OOB behavior.</typeparam>
 /// <remarks>
+/// <para>
 /// Derived classes only need to implement view name retrieval and multi-swap update logic.
 /// The base class handles the detection of HTMX requests, attribute processing, and result transformation.
 /// For non-HTMX requests, it can optionally render a full page view if implemented by the derived class.
+/// </para>
+/// <para><strong>Creating Custom OOB Filters:</strong></para>
+/// <para>
+/// This base class is designed to be extended for custom components that need coordinated updates.
+/// Common scenarios include:
+/// </para>
+/// <list type="bullet">
+/// <item>
+/// <description>Authentication-related components that need to refresh together</description>
+/// </item>
+/// <item>
+/// <description>Navigation and breadcrumb components that depend on current context</description>
+/// </item>
+/// <item>
+/// <description>Dashboard widgets that need to reflect data changes</description>
+/// </item>
+/// <item>
+/// <description>Shopping cart and inventory displays that must stay synchronized</description>
+/// </item>
+/// </list>
+/// <para>
+/// To create a custom filter, inherit from this class with your custom attribute type and implement
+/// the abstract methods to define your specific OOB update behavior.
+/// </para>
 /// </remarks>
 public abstract class OobResultFilterBase<T> : IAsyncResultFilter
     where T : Attribute

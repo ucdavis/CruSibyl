@@ -118,30 +118,6 @@ Component-specific internal types (filters, utilities, etc.) are organized in `I
 - **Purpose**: Framework infrastructure not intended for direct consumer use
 - **Examples**: Result filters, internal attributes, component-specific utilities
 
-These internal types are:
-- Excluded from API documentation
-- Not intended for direct consumption by library users
-- Co-located with their components for better organization
-- Automatically registered by the framework
-
-## Migration Guide
-
-If you're updating existing code that uses the old `Htmx.Components.Attributes` namespace:
-
-1. **Update using statements** for component-specific attributes:
-   ```csharp
-   // OLD
-   using Htmx.Components.Attributes;
-   
-   // NEW
-   using Htmx.Components.AuthStatus;     // for AuthStatusUpdate
-   using Htmx.Components.NavBar;         // for NavAction, NavActionGroup
-   using Htmx.Components.Attributes;     // for ModelConfig (still needed)
-   ```
-
-2. **No code changes needed** - only the using statements change
-3. **Views are automatically discovered** in both old and new locations
-
 ## Creating New Components
 
 When creating new components, follow the self-contained pattern:

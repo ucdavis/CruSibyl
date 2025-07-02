@@ -205,6 +205,8 @@ public static class FilterExtensions
 
 Create reusable UI components that integrate with the HTMX workflow.
 
+**Important**: ViewComponents alone don't automatically handle HTMX responses. For HTMX integration, you need to either use result filters or explicitly handle HTMX detection in controllers.
+
 ### Dashboard Widget Component
 
 ```csharp
@@ -234,38 +236,59 @@ public class DashboardWidgetViewComponent : ViewComponent
 }
 ```
 
-### Real-time Updates Component
+### HTMX Integration with Result Filter
 
 ```csharp
-[Route("api/[controller]")]
-public class LiveUpdatesController : Controller
+[AttributeUsage(AttributeTargets.Method)]
+public class RefreshDashboardWidgetAttribute : Attribute
 {
-    [HttpGet("status/{componentId}")]
-    public async Task<IActionResult> GetStatus(string componentId)
+    public string WidgetType { get; set; }
+    
+    public RefreshDashboardWidgetAttribute(string widgetType)
     {
-        var status = await GetCurrentStatusAsync(componentId);
-        
-        return ViewComponent("LiveStatus", new { 
-            ComponentId = componentId, 
-            Status = status 
+        WidgetType = widgetType;
+    }
+}
+
+public class DashboardWidgetFilter : OobResultFilterBase<RefreshDashboardWidgetAttribute>
+{
+    protected override async Task UpdateMultiSwapViewResultAsync(
+        RefreshDashboardWidgetAttribute attribute,
+        MultiSwapViewResult multiSwapViewResult,
+        ResultExecutingContext context)
+    {
+        // The ViewComponent name and parameters
+        multiSwapViewResult.WithOobContent("DashboardWidget", new 
+        { 
+            widgetType = attribute.WidgetType,
+            parameters = context.Result // or extract from controller context
         });
     }
 }
+```
 
-public class LiveStatusViewComponent : ViewComponent
+### Alternative: Controller-Level HTMX Detection
+
+```csharp
+[Route("api/[controller]")]
+public class DashboardController : Controller
 {
-    public IViewComponentResult Invoke(string componentId, object status)
+    [HttpGet("widget/{widgetType}")]
+    public async Task<IActionResult> GetWidget(string widgetType)
     {
-        var model = new LiveStatusModel 
-        { 
-            ComponentId = componentId, 
-            Status = status,
-            LastUpdated = DateTime.UtcNow
-        };
+        if (Request.IsHtmx())
+        {
+            return new MultiSwapViewResult()
+                .WithOobContent("DashboardWidget", new { widgetType });
+        }
         
-        return View(model);
+        // For non-HTMX requests, return full page or redirect
+        return RedirectToAction("Index");
     }
 }
+```
+
+> **⚠️ Scalability Warning**: This approach is only viable for simple applications. As your app grows and more UI concerns need to be addressed by a single response (navigation updates, notifications, state synchronization, etc.), controller actions can become unwieldy and difficult to maintain. For production applications, **result filters** are strongly recommended as they provide better separation of concerns and allow each filter to handle its specific responsibility independently.
 ```
 
 Create the view `Views/Shared/Components/LiveStatus/Default.cshtml`:
