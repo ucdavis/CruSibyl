@@ -47,7 +47,7 @@ Deep dive into the library architecture and extension points:
 - [Architecture overview](articles/developer-guide/architecture.md)
 - [Component architecture](articles/developer-guide/component-architecture.md)
 - [Design choices and rationale](articles/developer-guide/design-choices.md)
-- [Creating custom components](articles/developer-guide/extending.md)
+- [Future directions and extensibility](articles/developer-guide/future-directions.md)
 - [Building custom providers](articles/developer-guide/custom-providers.md)
 - [Contributing guidelines](articles/developer-guide/contributing.md)
 

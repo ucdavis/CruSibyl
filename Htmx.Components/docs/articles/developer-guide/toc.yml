@@ -6,8 +6,8 @@
   href: component-architecture.md
 - name: Design Choices
   href: design-choices.md
-- name: Extending the Framework
-  href: extending.md
+- name: Future Directions
+  href: future-directions.md
 - name: Custom Providers
   href: custom-providers.md
 - name: Contributing

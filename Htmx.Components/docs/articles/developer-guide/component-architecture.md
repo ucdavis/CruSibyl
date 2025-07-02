@@ -134,4 +134,4 @@ This pattern ensures your components are well-organized and easy to maintain.
 
 - **[Design Choices](design-choices.md)**: Understand the rationale behind the self-contained component architecture
 - **[Architecture Overview](architecture.md)**: Complete architectural overview including component integration
-- **[Extending the Framework](extending.md)**: Guide for creating custom components using this pattern
+- **[Future Directions](future-directions.md)**: Potential enhancements and extension patterns

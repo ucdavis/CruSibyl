@@ -281,4 +281,4 @@ The following design decisions would benefit from additional context for a compl
 For additional technical details, see:
 - [Architecture Overview](architecture.md)
 - [Component Architecture](component-architecture.md)
-- [Extending the Framework](extending.md)
+- [Future Directions](future-directions.md)
