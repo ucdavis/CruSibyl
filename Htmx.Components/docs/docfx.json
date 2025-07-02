@@ -14,7 +14,7 @@
                 }
             ],
             "dest": "api",
-            "includePrivateMembers": true,
+            "includePrivateMembers": false,
             "disableGitFeatures": false,
             "disableDefaultFilter": false,
             "noRestore": false,

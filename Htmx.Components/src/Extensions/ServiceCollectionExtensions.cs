@@ -189,7 +189,9 @@ public static class ServiceCollectionExtensions
 }
 
 /// <summary>
-/// Options for configuring Htmx Components.
+/// Configuration options for the HTMX Components library.
+/// This class provides a fluent API for configuring various aspects of the component system
+/// including navigation providers, authorization, view paths, and model handlers.
 /// </summary>
 public class HtmxComponentOptions
 {
@@ -203,13 +205,22 @@ public class HtmxComponentOptions
     internal Func<IServiceProvider, IAuthStatusProvider> AuthStatusProviderFactory { get; set; } = sp =>
         new DefaultAuthStatusProvider();
     
-
+    /// <summary>
+    /// Configures a custom authentication status provider for the application.
+    /// </summary>
+    /// <param name="factory">A factory function that creates the authentication status provider.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithAuthStatusProvider(Func<IServiceProvider, IAuthStatusProvider> factory)
     {
         AuthStatusProviderFactory = factory;
         return this;
     }
 
+    /// <summary>
+    /// Registers a role service implementation for role-based authorization.
+    /// </summary>
+    /// <typeparam name="T">The type of the role service implementation.</typeparam>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithRoleService<T>()
             where T : class, IRoleService
     {
@@ -220,12 +231,22 @@ public class HtmxComponentOptions
         return this;
     }
 
+    /// <summary>
+    /// Configures the claim type used to identify users in authorization caching.
+    /// </summary>
+    /// <param name="claimType">The claim type to use for user identification. Defaults to NameIdentifier.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithUserIdClaimType(string claimType)
     {
         UserIdClaimType = claimType;
         return this;
     }
 
+    /// <summary>
+    /// Configures navigation using an asynchronous builder pattern.
+    /// </summary>
+    /// <param name="builderFactory">A function that configures the navigation structure asynchronously.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithNavBuilder(Func<ActionSetBuilder, Task> builderFactory)
     {
         NavProviderFactory = serviceProvider =>
@@ -236,6 +257,11 @@ public class HtmxComponentOptions
         return this;
     }
 
+    /// <summary>
+    /// Configures navigation using a synchronous builder pattern.
+    /// </summary>
+    /// <param name="builderFactory">An action that configures the navigation structure synchronously.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithNavBuilder(Action<ActionSetBuilder> builderFactory)
     {
         NavProviderFactory = serviceProvider =>
@@ -250,12 +276,22 @@ public class HtmxComponentOptions
         return this;
     }
 
+    /// <summary>
+    /// Configures custom view paths for component views.
+    /// </summary>
+    /// <param name="configure">An action that configures the view paths.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithViewOverrides(Action<ViewPaths> configure)
     {
         configure(ViewPaths);
         return this;
     }
 
+    /// <summary>
+    /// Configures the model handler registry with custom model configurations.
+    /// </summary>
+    /// <param name="configure">An action that configures the model registry with custom handlers.</param>
+    /// <returns>The current options instance for method chaining.</returns>
     public HtmxComponentOptions WithModelHandlerRegistry(Action<IModelRegistry, IServiceProvider> configure)
     {
         ModelRegistryFactory = serviceProvider =>
@@ -268,6 +304,11 @@ public class HtmxComponentOptions
         return this;
     }
 
+    /// <summary>
+    /// Registers an authorization requirement factory implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the authorization requirement factory implementation.</typeparam>
+    /// <remarks>This method is required and must be called to register authorization support.</remarks>
     public void WithAuthorizationRequirementFactory<T>()
         where T : class, IAuthorizationRequirementFactory
     {
@@ -277,6 +318,11 @@ public class HtmxComponentOptions
         };
     }
 
+    /// <summary>
+    /// Registers a resource operation registry implementation.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource operation registry implementation.</typeparam>
+    /// <remarks>This method is required and must be called to register authorization support.</remarks>
     public void WithResourceOperationRegistry<T>()
         where T : class, IResourceOperationRegistry
     {
