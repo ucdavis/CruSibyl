@@ -1,216 +1,280 @@
-# Basic Usage
+# Quick Start Guide
 
-This guide covers the fundamental patterns for using HTMX Components in your application.
+This guide will get you up and running with Htmx.Components in your ASP.NET Core application quickly.
 
-## Core Concepts
+## Installation
 
-HTMX Components is built around several key concepts:
+Add the Htmx.Components package to your ASP.NET Core project:
 
-- **View Components**: Server-side rendered components that handle their own state
-- **Model Handlers**: Configuration objects that define how data models are displayed and manipulated
-- **Page State**: Server-side state management that persists across HTMX requests
-- **Out-of-Band Updates**: Efficient partial page updates without full page reloads
-
-## View Components
-
-HTMX Components provides several built-in view components:
-
-### Table Component
-
-Renders interactive data tables with sorting, filtering, and pagination:
-
-```html
-@await Component.InvokeAsync("Table", tableModel)
+```bash
+dotnet add package Htmx.Components
 ```
 
-### NavBar Component
+## 1. Configure Services in Program.cs
 
-Renders navigation menus based on controller attributes or programmatic configuration:
-
-```html
-@await Component.InvokeAsync("NavBar")
-```
-
-### AuthStatus Component
-
-Shows current authentication status and user information:
-
-```html
-@await Component.InvokeAsync("AuthStatus")
-```
-
-## Model Handlers
-
-Model handlers define how your data models are presented and manipulated. They're configured using the fluent builder pattern:
+Register the Htmx.Components services and configure your application:
 
 ```csharp
-[ModelConfig("products")]
-private void ConfigureProductModel(ModelHandlerBuilder<Product, int> builder)
+using Htmx.Components;
+using Htmx.Components.Configuration;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Htmx.Components services
+builder.Services.AddHtmxComponents(htmxOptions =>
 {
-    builder.WithKeySelector(p => p.Id)
-           .WithQueryable(() => _context.Products)
-           .WithCreate(CreateProduct)
-           .WithUpdate(UpdateProduct)
-           .WithDelete(DeleteProduct)
-           .WithTable(table =>
-           {
-               table.AddSelectorColumn(p => p.Name)
-                    .WithEditable();
-               table.AddSelectorColumn(p => p.Price)
-                    .WithFilter(FilterByPrice);
-               table.AddCrudDisplayColumn();
-           });
-}
-```
-
-### Key Elements
-
-- **Key Selector**: Defines the primary key for the model
-- **Queryable**: Provides the data source (usually Entity Framework)
-- **CRUD Operations**: Define create, update, and delete operations
-- **Table Configuration**: Specifies how the model appears in tables
-
-## Page State Management
-
-Page state allows you to maintain server-side state across HTMX requests:
-
-```csharp
-public IActionResult MyAction()
-{
-    var pageState = this.GetPageState();
-    
-    // Get or create state
-    var userPreferences = pageState.GetOrCreate<UserPreferences>(
-        "user", "preferences", () => new UserPreferences());
-    
-    // Update state
-    pageState.Set("user", "preferences", userPreferences);
-    
-    return Ok();
-}
-```
-
-### Page State Features
-
-- **Encrypted**: State is encrypted and sent to the client
-- **Partitioned**: State is organized into logical partitions
-- **Automatic**: State is automatically included in HTMX responses
-
-## Working with Forms
-
-HTMX Components provides seamless form handling with automatic state management:
-
-### Input Models
-
-Define how form fields are rendered:
-
-```csharp
-builder.WithInput(p => p.Name, input => input
-    .WithLabel("Product Name")
-    .WithPlaceholder("Enter product name")
-    .WithKind(InputKind.Text));
-
-builder.WithInput(p => p.Category, input => input
-    .WithLabel("Category")
-    .WithKind(InputKind.Select)
-    .WithOptions(GetCategoryOptions()));
-```
-
-### Form Processing
-
-Forms are automatically processed using the built-in FormController:
-
-```html
-<!-- This form will automatically save to the configured model handler -->
-<form hx-post="/Form/products/Table/Save">
-    @await Html.PartialAsync("_Input", nameInputModel)
-    @await Html.PartialAsync("_Input", categoryInputModel)
-    <button type="submit">Save</button>
-</form>
-```
-
-## Error Handling
-
-HTMX Components uses a `Result<T>` pattern for error handling:
-
-```csharp
-private async Task<Result<Product>> CreateProduct(Product product)
-{
-    try
+    // Register model handlers from attributes
+    htmxOptions.WithModelHandlerRegistry((registry, serviceProvider) =>
     {
-        if (string.IsNullOrEmpty(product.Name))
-            return Result.Error("Product name is required");
-        
-        _context.Products.Add(product);
-        await _context.SaveChangesAsync();
-        return Result.Value(product);
-    }
-    catch (Exception ex)
-    {
-        return Result.Error("Failed to create product: {Error}", ex.Message);
-    }
-}
+        ModelHandlerAttributeRegistrar.RegisterAll(registry);
+    });
+    
+    // Optional: Configure authorization and user claims
+    // htmxOptions.WithAuthorizationRequirementFactory<YourRequirementFactory>();
+    // htmxOptions.WithUserIdClaimType("your-claim-type");
+});
+
+// Add controllers with views and include Htmx.Components views
+builder.Services.AddControllersWithViews()
+    .AddHtmxComponentsApplicationPart();
+
+var app = builder.Build();
+
+// Add Htmx.Components middleware
+app.UseHtmxPageState();
+app.UseRouting();
+
+// Your other middleware...
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller}/{action}/{id?}",
+    defaults: new { controller = "Home", action = "Index" });
+
+app.Run();
 ```
 
-## Filtering and Sorting
+## 2. Set Up Your Layout (_Layout.cshtml)
 
-Tables support advanced filtering and sorting capabilities:
+Configure your layout file to include HTMX and Htmx.Components assets:
 
-### Custom Filters
-
-```csharp
-table.AddSelectorColumn(p => p.Price)
-     .WithFilter((query, filterValue) =>
-     {
-         if (decimal.TryParse(filterValue, out var price))
-             return query.Where(p => p.Price <= price);
-         return query;
-     });
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- HTMX configuration -->
+    <meta name="htmx-config" historyCacheSize="20" indicatorClass="htmx-indicator" includeAspNetAntiforgeryToken="true" />
+    <title>Your App</title>
+    
+    <!-- Your CSS -->
+    <link rel="stylesheet" href="./css/site.css">
+    <!-- Htmx.Components CSS -->
+    <link rel="stylesheet" href="~/_content/Htmx.Components/css/table-overrides.css">
+    
+    <!-- HTMX library -->
+    <script src="./js/htmx.min.js"></script>
+    <!-- Htmx.Components JavaScript -->
+    <script src="~/_content/Htmx.Components/js/table-behavior.js" defer></script>
+    <script src="~/_content/Htmx.Components/js/page-state-behavior.js"></script>
+    <script src="~/_content/Htmx.Components/js/htmx-auth-retry.js" defer></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <!-- Navigation bar component -->
+            @await Component.InvokeAsync("NavBar")
+            <!-- Authentication status component -->
+            @await Component.InvokeAsync("AuthStatus")
+        </nav>
+    </header>
+    
+    <main id="tab-content">
+        @RenderBody()
+    </main>
+    
+    <!-- Required for antiforgery token support -->
+    @Html.HtmxAntiforgeryScript()
+    <!-- Page state management -->
+    <htmx-page-state></htmx-page-state>
+</body>
+</html>
 ```
 
-### Range Filters
+## 3. Set Up Tailwind CSS (Recommended)
 
-```csharp
-table.AddSelectorColumn(p => p.CreatedDate)
-     .WithRangeFilter((query, fromDate, toDate) =>
-     {
-         var from = DateTime.Parse(fromDate);
-         var to = DateTime.Parse(toDate);
-         return query.Where(p => p.CreatedDate >= from && p.CreatedDate <= to);
-     });
-```
+Htmx.Components is designed to work with Tailwind CSS for optimal styling. Here's how to set it up using the modern CSS directives approach:
 
-## Validation
+### Create Tools Directory Structure
 
-Implement validation in your model handlers:
+Create a `Tools` directory in your project root with the following files:
 
-```csharp
-private async Task<Result<Product>> ValidateAndCreateProduct(Product product)
+**Tools/package.json:**
+```json
 {
-    var validator = new ProductValidator();
-    var validationResult = await validator.ValidateAsync(product);
-    
-    if (!validationResult.IsValid)
-    {
-        var errors = string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage));
-        return Result.Error("Validation failed: {Errors}", errors);
-    }
-    
-    return await CreateProduct(product);
+    "name": "build",
+    "version": "1.0.0",
+    "main": "index.js",
+    "scripts": {
+        "build:css": "npx tailwindcss -i input.css -o ../wwwroot/css/site.css --minify",
+        "watch:css": "npx tailwindcss -i input.css -o ../wwwroot/css/site.css --watch"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "@tailwindcss/cli": "^4.0.15",
+        "daisyui": "^5.0.9",
+        "tailwindcss": "^4.0.15"
+    },
+    "dependencies": {}
 }
 ```
 
-## Best Practices
+**Tools/input.css:**
+```css
+@import "tailwindcss" source(none);
+@source "../Views/**/*.{html,cshtml}";
+@source "../wwwroot/**/*.{html,cshtml}";
+@source "../../Htmx.Components/content/extracted-css-classes.txt";
+@plugin "daisyui";
+```
 
-1. **Keep Controllers Thin**: Use model handlers for business logic
-2. **Use Page State Sparingly**: Only store what's necessary between requests
-3. **Implement Proper Error Handling**: Always return meaningful error messages
-4. **Leverage Authorization**: Use the built-in authorization system for security
-5. **Optimize Queries**: Use Entity Framework efficiently in your queryables
+### Configure MSBuild Integration
+
+Add the following to your `.csproj` file to automatically build Tailwind CSS during compilation:
+
+```xml
+<!-- Tailwind CSS Build Configuration -->
+<PropertyGroup>
+  <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
+  <!-- Use project reference if Htmx.Components project exists -->
+  <HtmxProjectDir>../Htmx.Components</HtmxProjectDir>
+  <HtmxViews Condition="Exists('$(HtmxProjectDir)')">$(HtmxProjectDir)</HtmxViews>
+  <ExtractedCssClassesFile>$(HtmxProjectDir)/content/extracted-css-classes.txt</ExtractedCssClassesFile>
+</PropertyGroup>
+
+<ItemGroup>
+  <TailwindSources Include="Views/**/*.cshtml" />
+  <TailwindSources Include="$(HtmxViews)/**/*.cshtml" Condition="Exists('$(HtmxViews)')" />
+  <TailwindInputs Include="@(TailwindSources)" />
+  <TailwindInputs Include="$(ExtractedCssClassesFile)" Condition="Exists('$(ExtractedCssClassesFile)')" />
+</ItemGroup>
+
+<Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="@(TailwindInputs)" Outputs="$(TailwindOutputFile)">
+  <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
+  <!-- Force timestamp update so that MSBuild change detection prevents this task from running unnecessarily -->
+  <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />
+</Target>
+
+<!-- Only run npm install when package.json has been modified or .install-stamp doesn't exist -->
+<PropertyGroup>
+  <NpmInstallStampFile>Tools/node_modules/.install-stamp</NpmInstallStampFile>
+</PropertyGroup>
+<Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json" Outputs="$(NpmInstallStampFile)">
+  <Exec Command="npm install" WorkingDirectory="Tools" />
+  <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
+</Target>
+```
+
+### Manual Build Commands
+
+You can also run Tailwind CSS manually:
+
+```bash
+# Navigate to Tools directory
+cd Tools
+
+# Install dependencies (first time only)
+npm install
+
+# Build CSS once
+npm run build:css
+
+# Watch for changes and rebuild automatically
+npm run watch:css
+```
+
+## 4. Create Your First Controller
+
+Create a controller with navigation attributes:
+
+```csharp
+using Htmx.Components.NavBar;
+using Microsoft.AspNetCore.Mvc;
+
+public class HomeController : Controller
+{
+    [NavAction(DisplayName = "Home", Icon = "fas fa-home", Order = 0, PushUrl = true, ViewName = "_Content")]
+    public IActionResult Index()
+    {
+        return Ok(new { message = "Welcome to your app!" });
+    }
+}
+
+[Route("Admin")]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 1)]
+public class AdminController : Controller
+{
+    [HttpGet("Users")]
+    [NavAction(DisplayName = "Users", Icon = "fas fa-users", Order = 0, PushUrl = true, ViewName = "_Users")]
+    public IActionResult Users()
+    {
+        // Your logic here
+        return Ok(new { });
+    }
+}
+```
+
+## 5. Create Views
+
+Create corresponding view files:
+
+**Views/Home/_Content.cshtml:**
+```html
+<div id="main-content">
+    <h1>Welcome to Your App</h1>
+    <p>This content is loaded via HTMX!</p>
+</div>
+```
+
+**Views/Admin/_Users.cshtml:**
+```html
+<div id="admin-users">
+    <h2>User Management</h2>
+    <!-- Your user management UI here -->
+</div>
+```
+
+## What You Get
+
+With this setup, you automatically get:
+
+- **Dynamic Navigation**: The `NavBar` component automatically discovers your `[NavAction]` and `[NavActionGroup]` decorated controller actions
+- **HTMX Integration**: Navigation uses HTMX for smooth page transitions without full reloads
+- **Authentication Support**: The `AuthStatus` component handles login/logout states
+- **Page State Management**: Browser history and URL updates work seamlessly
+- **Table Components**: Ready-to-use data table functionality (see advanced guides)
 
 ## Next Steps
 
-- [Learn about navigation setup](navigation.md)
-- [Explore advanced table features](tables.md)
-- [Implement authentication](authentication.md)
-- [Configure authorization](authorization.md)
+- **[Navigation](navigation.md)**: Learn about setting up navigation with NavAction attributes
+- **[Tables](tables.md)**: Implement data tables with sorting, filtering, and pagination  
+- **[Authentication](authentication.md)**: Configure authentication and the AuthStatus component
+- **[Authorization](authorization.md)**: Set up authorization policies and permissions
+- **[Architecture Guide](../developer-guide/architecture.md)**: Understand the component architecture and patterns
+
+## Key Features
+
+### Automatic Navigation Registration
+Controller actions marked with `[NavAction]` are automatically registered in the navigation system. Group related actions using `[NavActionGroup]`.
+
+### ViewComponent Integration
+Components like `NavBar` and `AuthStatus` integrate seamlessly with ASP.NET Core's ViewComponent system.
+
+### HTMX Enhancement
+The library provides out-of-the-box HTMX integration for dynamic content updates, form handling, and navigation.

@@ -1,23 +1,124 @@
 # Authorization
 
-HTMX Components provides a comprehensive authorization system that integrates seamlessly with ASP.NET Core's authorization framework while adding resource-operation based permissions.
+Htmx.Components integrates with ASP.NET Core's authorization framework and provides additional features for resource-based permissions.
 
-## Core Concepts
+## Basic Authorization Setup
 
-The authorization system is built around three key concepts:
+Htmx.Components works with standard ASP.NET Core authorization. Here's how to set up policies and configure authorization:
 
-1. **Resources**: The entities or data types being protected (e.g., "users", "orders", "reports")
-2. **Operations**: The actions being performed (e.g., "read", "create", "update", "delete")
-3. **Requirements**: The authorization logic that determines if a user can perform an operation on a resource
+### Service Registration
 
-## Permission Requirement Factory
-
-### Basic Implementation
-
-Implement [`IAuthorizationRequirementFactory`](../../api/Htmx.Components.Authorization.IAuthorizationRequirementFactory.html) to create authorization requirements:
+Configure authorization in Program.cs:
 
 ```csharp
-public class SimpleAuthorizationRequirementFactory : IAuthorizationRequirementFactory
+builder.Services.AddAuthorization(options =>
+{
+    // Define access policies directly
+    options.AddPolicy("SystemAccess", policy => 
+        policy.RequireRole("System"));
+    
+    options.AddPolicy("AdminAccess", policy => 
+        policy.RequireRole("System", "Admin"));
+    
+    options.AddPolicy("UserAccess", policy => 
+        policy.RequireAuthenticatedUser());
+});
+
+// Register authorization handler if using custom requirements
+builder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+
+// Configure Htmx.Components authorization
+builder.Services.AddHtmxComponents(htmxOptions =>
+{
+    htmxOptions.WithAuthorizationRequirementFactory<PermissionRequirementFactory>();
+    htmxOptions.WithResourceOperationRegistry<ResourceOperationRegistry>();
+});
+```
+
+## Using Authorization in Controllers
+
+### NavAction Authorization
+
+Navigation items are automatically filtered based on authorization:
+
+```csharp
+[Route("Admin")]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 2)]
+public class AdminController : Controller
+{
+    [HttpGet("AdminUsers")]
+    [Authorize(Policy = "SystemAccess")]  // Only System role can access
+    [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 1)]
+    public async Task<IActionResult> AdminUsers()
+    {
+        var modelHandler = await _modelHandlerFactory.Get<AdminUserModel, int>(nameof(AdminUserModel), ModelUI.Table);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        return Ok(tableModel);
+    }
+
+    [HttpGet("Repos")]
+    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0)]
+    public async Task<IActionResult> Repos()
+    {
+        // No authorization - visible to all authenticated users
+        var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        return Ok(tableModel);
+    }
+}
+```
+
+### Standard Authorization Attributes
+
+Use standard ASP.NET Core authorization attributes:
+
+```csharp
+[Authorize]  // Requires authentication
+public class DashboardController : Controller
+{
+    [NavAction(DisplayName = "Dashboard", Icon = "fas fa-tachometer-alt")]
+    public IActionResult Index()
+    {
+        return Ok(new { });
+    }
+}
+
+[Authorize(Policy = "AdminAccess")]  // Requires specific policy
+public class ReportsController : Controller
+{
+    [NavAction(DisplayName = "Financial Reports")]
+    public IActionResult FinancialReports()
+    {
+        return Ok();
+    }
+}
+
+[Authorize(Roles = "Admin,Manager")]  // Requires specific roles
+public class UserManagementController : Controller
+{
+    [NavAction(DisplayName = "Manage Users")]
+    public IActionResult Index()
+    {
+        return Ok();
+    }
+}
+```
+
+## How Authorization Works with Navigation
+
+1. **Automatic Filtering**: The `NavBar` component automatically discovers controller actions with `[NavAction]` attributes
+2. **Authorization Check**: Each navigation item is checked against the user's permissions
+3. **Filtered Display**: Only items the user is authorized to access are displayed
+4. **Real-time Updates**: When authentication status changes, navigation updates automatically
+
+## Resource-Based Authorization (Advanced)
+
+For more complex scenarios, Htmx.Components supports resource-operation based authorization:
+
+### Authorization Requirement Factory
+
+```csharp
+public class PermissionRequirementFactory : IAuthorizationRequirementFactory
 {
     public IAuthorizationRequirement ForOperation(string resource, string operation)
     {
@@ -32,68 +133,18 @@ public class SimpleAuthorizationRequirementFactory : IAuthorizationRequirementFa
         return new RolesAuthorizationRequirement(roles);
     }
 }
-
-// Register the factory
-builder.Services.AddHtmxComponents(options =>
-{
-    options.WithAuthorizationRequirementFactory<SimpleAuthorizationRequirementFactory>();
-});
 ```
 
-### Advanced Implementation
-
-Create more sophisticated authorization logic:
+### Resource Operation Registry
 
 ```csharp
-public class AdvancedAuthorizationRequirementFactory : IAuthorizationRequirementFactory
-{
-    public IAuthorizationRequirement ForOperation(string resource, string operation)
-    {
-        // Create resource-specific requirements
-        return resource switch
-        {
-            "users" => new UserManagementRequirement(operation),
-            "orders" => new OrderAccessRequirement(operation),
-            "reports" => new ReportsRequirement(operation),
-            _ => new GenericResourceRequirement(resource, operation)
-        };
-    }
-
-    public IAuthorizationRequirement ForRoles(params string[] roles)
-    {
-        return new RolesAuthorizationRequirement(roles);
-    }
-}
-
-// Custom authorization requirements
-public class UserManagementRequirement : IAuthorizationRequirement
-{
-    public string Operation { get; }
-    public UserManagementRequirement(string operation) => Operation = operation;
-}
-
-public class OrderAccessRequirement : IAuthorizationRequirement
-{
-    public string Operation { get; }
-    public OrderAccessRequirement(string operation) => Operation = operation;
-}
-```
-
-## Resource Operation Registry
-
-### Basic Registry
-
-Implement [`IResourceOperationRegistry`](../../api/Htmx.Components.Authorization.IResourceOperationRegistry.html) to track available resource-operations:
-
-```csharp
-public class InMemoryResourceOperationRegistry : IResourceOperationRegistry
+public class ResourceOperationRegistry : IResourceOperationRegistry
 {
     private readonly HashSet<string> _registeredOperations = new();
 
     public Task Register(string resource, string operation)
     {
         _registeredOperations.Add($"{resource}:{operation}");
-        Console.WriteLine($"Registered operation: {resource}:{operation}");
         return Task.CompletedTask;
     }
 
@@ -101,47 +152,69 @@ public class InMemoryResourceOperationRegistry : IResourceOperationRegistry
 }
 ```
 
-### Database-Backed Registry
+## Table Authorization
 
-Store resource-operations in a database:
+Tables automatically respect authorization rules when CRUD operations are enabled:
 
 ```csharp
-public class DatabaseResourceOperationRegistry : IResourceOperationRegistry
+[ModelConfig(nameof(AdminUserModel))]
+private void ConfigureAdminUser(ModelHandlerBuilder<AdminUserModel, int> builder)
 {
-    private readonly ApplicationDbContext _context;
-
-    public DatabaseResourceOperationRegistry(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
-    public async Task Register(string resource, string operation)
-    {
-        var exists = await _context.ResourceOperations
-            .AnyAsync(ro => ro.Resource == resource && ro.Operation == operation);
-            
-        if (!exists)
-        {
-            _context.ResourceOperations.Add(new ResourceOperation
-            {
-                Resource = resource,
-                Operation = operation,
-                CreatedAt = DateTime.UtcNow
-            });
-            
-            await _context.SaveChangesAsync();
-        }
-    }
+    builder
+        .WithKeySelector(u => u.Id)
+        .WithQueryable(() => _dbContext.Users.Where(/* authorized users only */))
+        .WithTable(table => table
+            .WithCrudActions()  // CRUD actions respect controller authorization
+            .AddSelectorColumn(x => x.Name)
+            .AddSelectorColumn(x => x.Email, config => config.WithEditable())
+            .AddCrudDisplayColumn());
 }
+```
 
-// Entity model
-public class ResourceOperation
+## Best Practices
+
+1. **Use Policy-Based Authorization**: Define clear policies rather than role-based authorization directly
+2. **Secure Controllers First**: Apply authorization attributes to controllers and actions
+3. **Test Authorization**: Verify that navigation and functionality respect authorization rules
+4. **Principle of Least Privilege**: Grant users only the minimum permissions needed
+5. **Audit Access**: Regularly review who has access to what resources
+
+## Common Patterns
+
+### Role Hierarchy
+
+```csharp
+builder.Services.AddAuthorization(options =>
 {
-    public int Id { get; set; }
-    public string Resource { get; set; } = "";
-    public string Operation { get; set; } = "";
-    public DateTime CreatedAt { get; set; }
-}
+    // Role hierarchy: System > Admin > User
+    options.AddPolicy("ReadAccess", policy => 
+        policy.RequireRole("User", "Admin", "System"));
+    
+    options.AddPolicy("WriteAccess", policy => 
+        policy.RequireRole("Admin", "System"));
+    
+    options.AddPolicy("AdminAccess", policy => 
+        policy.RequireRole("System"));
+});
+```
+
+### Feature-Based Authorization
+
+```csharp
+[Authorize(Policy = "CanViewReports")]
+[NavAction(DisplayName = "Reports")]
+public IActionResult Reports() => Ok();
+
+[Authorize(Policy = "CanManageUsers")]
+[NavAction(DisplayName = "User Management")]
+public IActionResult UserManagement() => Ok();
+```
+
+## Next Steps
+
+- **[Authentication](authentication.md)**: Learn about setting up authentication that works with authorization
+- **[Navigation](navigation.md)**: Understand how navigation integrates with authorization
+- **[Tables](tables.md)**: See how tables respect authorization in CRUD operations
 ```
 
 ## Authorization Handlers

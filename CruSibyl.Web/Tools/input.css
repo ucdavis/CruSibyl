@@ -1,6 +1,5 @@
 @import "tailwindcss" source(none);
 @source "../Views/**/*.{html,cshtml}";
 @source "../wwwroot/**/*.{html,cshtml}";
-@source "../../Htmx.Components/Views/**/*.{html,cshtml}";
 @source "../../Htmx.Components/content/extracted-css-classes.txt";
 @plugin "daisyui";

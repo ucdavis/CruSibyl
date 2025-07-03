@@ -1,119 +1,194 @@
 # Tables
 
-HTMX Components provides powerful table functionality with sorting, filtering, pagination, and inline editing capabilities.
+Htmx.Components provides powerful table functionality with sorting, filtering, pagination, and inline editing capabilities.
 
 ## Basic Table Setup
 
-### Model Configuration
+Tables in Htmx.Components are configured using model handlers with the `[ModelConfig]` attribute. Here's a real example from CruSibyl.Web:
 
-Start by configuring your model handler with table settings:
+### Controller with Model Configuration
 
 ```csharp
-[ModelConfig("products")]
-private void ConfigureProductModel(ModelHandlerBuilder<Product, int> builder)
+[Route("Admin")]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 2)]
+public class AdminController : Controller
 {
-    builder.WithKeySelector(p => p.Id)
-           .WithQueryable(() => _context.Products)
-           .WithTable(table =>
-           {
-               table.AddSelectorColumn(p => p.Name);
-               table.AddSelectorColumn(p => p.Price);
-               table.AddSelectorColumn(p => p.Category);
-               table.AddSelectorColumn(p => p.CreatedDate);
-           });
+    private readonly AppDbContext _dbContext;
+    private readonly IModelHandlerFactoryGeneric _modelHandlerFactory;
+
+    public AdminController(AppDbContext dbContext, IModelHandlerFactoryGeneric modelHandlerFactory)
+    {
+        _dbContext = dbContext;
+        _modelHandlerFactory = modelHandlerFactory;
+    }
+
+    [HttpGet("Repos")]
+    [NavAction(DisplayName = "Repos", Icon = "fas fa-database", Order = 0, PushUrl = true, ViewName = "_Repos")]
+    public async Task<IActionResult> Repos()
+    {
+        var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        return Ok(tableModel);
+    }
+
+    [ModelConfig(nameof(Repo))]
+    private void ConfigureRepo(ModelHandlerBuilder<Repo, int> builder)
+    {
+        builder
+            .WithKeySelector(r => r.Id)
+            .WithQueryable(() => _dbContext.Repos)
+            .WithCreate(async repo =>
+            {
+                _dbContext.Repos.Add(repo);
+                await _dbContext.SaveChangesAsync();
+                return Result.Value(repo);
+            })
+            .WithUpdate(async repo =>
+            {
+                _dbContext.Repos.Update(repo);
+                await _dbContext.SaveChangesAsync();
+                return Result.Value(repo);
+            })
+            .WithDelete(async id =>
+            {
+                var repo = await _dbContext.Repos.FindAsync(id);
+                if (repo != null)
+                {
+                    _dbContext.Repos.Remove(repo);
+                    await _dbContext.SaveChangesAsync();
+                }
+                return Result.Success();
+            })
+            .WithTable(table => table
+                .WithCrudActions()
+                .AddSelectorColumn(x => x.Name, config => config.WithEditable())
+                .AddSelectorColumn(x => x.Description!, config => config.WithEditable())
+                .AddCrudDisplayColumn());
+    }
 }
 ```
 
-### Controller Action
+### View File
 
-Create a controller action that builds and returns a table model:
-
-```csharp
-public async Task<IActionResult> Index()
-{
-    var modelHandler = await _modelRegistry.GetModelHandler<Product, int>("products", ModelUI.Table);
-    var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
-    return View(tableModel);
-}
-```
-
-### View
-
-Render the table using the Table component:
+Create a view file to render the table (e.g., `Views/Admin/_Repos.cshtml`):
 
 ```html
 @using Htmx.Components.Table.Models
 @model ITableModel
 
-<div class="container">
-    <h1>Products</h1>
+<div id="admin-repos">
+    <h2>Repository Management</h2>
     @await Component.InvokeAsync("Table", Model)
 </div>
 ```
 
-## Column Types
+## Table Configuration Options
 
-### Selector Columns
+### Basic Column Types
 
+#### Selector Columns
 Display data from model properties:
 
 ```csharp
-table.AddSelectorColumn(p => p.Name, col => col
-    .WithHeader("Product Name")
-    .WithEditable()
-    .WithFilter(FilterByName));
-
-table.AddSelectorColumn(p => p.Price, col => col
-    .WithHeader("Price ($)")
-    .WithFilter(FilterByPriceRange));
+.AddSelectorColumn(x => x.Name, config => config.WithEditable())
+.AddSelectorColumn(x => x.Description, config => config.WithEditable())
+.AddSelectorColumn(x => x.CreatedDate)  // Read-only column
 ```
 
-### Display Columns
-
-Show custom content or actions:
+#### CRUD Display Column
+Adds edit/delete action buttons:
 
 ```csharp
-table.AddDisplayColumn("Actions", col => col
-    .WithActions((row, actions) =>
-    {
-        actions.AddAction(action => action
-            .WithLabel("Edit")
-            .WithIcon("fas fa-edit")
-            .WithHxPost($"/Products/Edit/{row.Key}"));
-            
-        actions.AddAction(action => action
-            .WithLabel("Delete")
-            .WithIcon("fas fa-trash")
-            .WithClass("text-red-600")
-            .WithHxPost($"/Products/Delete/{row.Key}"));
-    }));
+.AddCrudDisplayColumn()
 ```
 
-## Filtering
+### CRUD Operations
 
-### Basic Text Filters
-
-Automatically enabled for selector columns:
+Enable create, update, and delete operations:
 
 ```csharp
-table.AddSelectorColumn(p => p.Name)
-     .WithFilter((query, value) =>
-         query.Where(p => p.Name.Contains(value)));
+.WithTable(table => table
+    .WithCrudActions()  // Enables CRUD functionality
+    .AddSelectorColumn(x => x.Name, config => config.WithEditable())
+    .AddCrudDisplayColumn())  // Adds action buttons
 ```
 
-### Advanced Filter Syntax
+## Real-World Example: Admin Users
 
-The table supports advanced filtering with operators:
+Here's another example from CruSibyl.Web showing a more complex table with custom model:
 
+```csharp
+[ModelConfig(nameof(AdminUserModel))]
+private void ConfigureAdminUser(ModelHandlerBuilder<AdminUserModel, int> builder)
+{
+    builder
+        .WithKeySelector(u => u.Id)
+        .WithQueryable(() => _dbContext.Users
+            .Where(u => u.Permissions.Any(p => p.Role.Name == Role.Codes.Admin || p.Role.Name == Role.Codes.System))
+            .Select(u => new AdminUserModel
+            {
+                Id = u.Id,
+                Name = u.FirstName + " " + u.LastName,
+                Email = u.Email,
+                Kerberos = u.Kerberos,
+                IsSystemAdmin = u.Permissions.Any(p => p.Role.Name == Role.Codes.System)
+            }))
+        .WithInput(u => u.Email, config => config
+            .WithLabel("Email")
+            .WithPlaceholder("Email to look up")
+            .WithCssClass("form-control"))
+        .WithInput(u => u.Kerberos, config => config
+            .WithLabel("Kerberos")
+            .WithPlaceholder("Kerberos to look up")
+            .WithCssClass("form-control"))
+        .WithInput(u => u.IsSystemAdmin, config => config
+            .WithLabel("System Admin")
+            .WithCssClass("form-check"))
+        .WithTable(table => table
+            .WithCrudActions()
+            .AddSelectorColumn(x => x.Name)
+            .AddSelectorColumn(x => x.Email, config => config.WithEditable())
+            .AddSelectorColumn(x => x.Kerberos, config => config.WithEditable())
+            .AddSelectorColumn(x => x.IsSystemAdmin, config => config.WithEditable())
+            .AddCrudDisplayColumn());
+}
 ```
-# Exact match
-= "John Doe"
 
-# Contains (default)
-John
+## Key Features
 
-# Comparison operators
-> 100
+### Automatic Table Rendering
+The `Table` ViewComponent automatically renders:
+- Column headers
+- Data rows
+- Sorting controls
+- Pagination controls
+- Filter inputs (when enabled)
+- CRUD action buttons (when enabled)
+
+### Built-in Functionality
+- **Sorting**: Click column headers to sort
+- **Filtering**: Built-in text filters for columns
+- **Pagination**: Automatic pagination for large datasets
+- **Inline Editing**: Edit data directly in the table
+- **CRUD Operations**: Create, update, delete records
+
+### Integration with Entity Framework
+Tables work seamlessly with Entity Framework Core through the `WithQueryable()` method, providing efficient database queries with proper pagination and filtering.
+
+## Best Practices
+
+1. **Use Model Handlers**: Always configure tables through model handlers for consistency
+2. **Enable CRUD Carefully**: Only enable CRUD operations on tables where users should be able to modify data
+3. **Optimize Queries**: Use efficient LINQ queries in `WithQueryable()` to avoid performance issues
+4. **Provide Clear Labels**: Use descriptive column headers and input labels
+5. **Handle Errors**: Implement proper error handling in CRUD operations
+
+## Next Steps
+
+- **[Navigation](navigation.md)**: Learn about NavAction attributes and navigation setup
+- **[Authentication](authentication.md)**: Configure authentication and AuthStatus components  
+- **[Authorization](authorization.md)**: Set up authorization policies
+- **[Architecture Guide](../developer-guide/architecture.md)**: Understand the underlying patterns and design
 <= 50
 != "Active"
 

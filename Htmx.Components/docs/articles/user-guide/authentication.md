@@ -1,12 +1,171 @@
 # Authentication
 
-HTMX Components provides seamless integration with ASP.NET Core authentication and includes special handling for HTMX requests.
+Htmx.Components provides seamless integration with ASP.NET Core authentication and includes special handling for HTMX requests.
 
 ## Basic Authentication Setup
 
-### Standard ASP.NET Core Authentication
+Htmx.Components works with any ASP.NET Core authentication scheme. Here's a real example from CruSibyl.Web using OpenID Connect:
 
-HTMX Components works with any ASP.NET Core authentication scheme:
+```csharp
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+})
+.AddCookie()
+.AddOpenIdConnect(oidc =>
+{
+    oidc.ClientId = builder.Configuration["Authentication:ClientId"];
+    oidc.ClientSecret = builder.Configuration["Authentication:ClientSecret"];
+    oidc.Authority = builder.Configuration["Authentication:Authority"];
+    oidc.ResponseType = OpenIdConnectResponseType.Code;
+    oidc.Scope.Add("openid");
+    oidc.Scope.Add("profile");
+    oidc.Scope.Add("email");
+    oidc.Scope.Add("eduPerson");
+    oidc.TokenValidationParameters = new TokenValidationParameters
+    {
+        NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+    };
+    
+    // Configure HTMX-specific authentication handling
+    oidc.ConfigureHtmxAuthPopup("/auth/popup-login");
+    oidc.AddIamFallback();
+});
+
+// Configure Htmx.Components with authentication
+builder.Services.AddHtmxComponents(htmxOptions =>
+{
+    htmxOptions.WithUserIdClaimType("your-user-id-claim-type");
+    // ... other options
+});
+
+// Configure middleware
+app.UseHtmxPageState();  // Important: Before authentication
+app.UseAuthentication();
+app.UseAuthorization();
+```
+
+## HTMX Authentication Popup
+
+Htmx.Components includes special handling for authentication in HTMX requests. When an unauthenticated HTMX request is made, instead of redirecting the entire page, it can show a popup for authentication.
+
+### Popup Login Controller
+
+```csharp
+[Authorize]
+public class AuthController : Controller
+{
+    [Authorize]
+    [AuthStatusUpdate]  // This attribute updates the AuthStatus component after login
+    [HttpGet("/auth/login")]
+    public IActionResult Login()
+    {
+        // If this executes, the user is already authenticated
+        return Ok();
+    }
+
+    [Authorize]
+    [HttpGet("/auth/popup-login")]
+    public IActionResult PopupLogin()
+    {
+        // Return a view that posts a message to the parent window and closes itself
+        return View();
+    }
+}
+```
+
+### Popup Login View
+
+Create `Views/Auth/PopupLogin.cshtml`:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Success</title>
+</head>
+<body>
+    <script>
+        // Notify the opener window and close the popup
+        window.opener?.postMessage('login-success', '*');
+        window.close();
+    </script>
+</body>
+</html>
+```
+
+## AuthStatus Component
+
+The `AuthStatus` component displays the current user's authentication status and provides login/logout functionality.
+
+### Basic Usage
+
+Include the component in your layout:
+
+```html
+<div class="navbar-end">
+    @await Component.InvokeAsync("NavBar")
+    @await Component.InvokeAsync("AuthStatus")
+</div>
+```
+
+### AuthStatusUpdate Attribute
+
+Use the `[AuthStatusUpdate]` attribute on actions that change authentication state to automatically refresh the AuthStatus component:
+
+```csharp
+[Authorize]
+[AuthStatusUpdate]
+[HttpGet("/auth/login")]
+public IActionResult Login()
+{
+    return Ok();
+}
+
+[AuthStatusUpdate]
+[HttpPost("/auth/logout")]
+public IActionResult Logout()
+{
+    return SignOut(CookieAuthenticationDefaults.AuthenticationScheme, 
+                   OpenIdConnectDefaults.AuthenticationScheme);
+}
+```
+
+## Authorization with Navigation
+
+Navigation items are automatically filtered based on user permissions:
+
+```csharp
+[Route("Admin")]
+[NavActionGroup(DisplayName = "Admin", Icon = "fas fa-cogs", Order = 2)]
+public class AdminController : Controller
+{
+    [HttpGet("AdminUsers")]
+    [Authorize(Policy = "SystemAccess")]
+    [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 1)]
+    public async Task<IActionResult> AdminUsers()
+    {
+        // Only users with SystemAccess policy can see and access this
+        return Ok(tableModel);
+    }
+}
+```
+
+## User Claims Configuration
+
+Configure which claim type contains the user ID:
+
+```csharp
+builder.Services.AddHtmxComponents(htmxOptions =>
+{
+    htmxOptions.WithUserIdClaimType("sub");  // or whatever your user ID claim is
+});
+```
+
+## Cookie Authentication Example
+
+For simpler scenarios, you can use cookie authentication:
 
 ```csharp
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -16,291 +175,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/Auth/Logout";
         options.AccessDeniedPath = "/Auth/AccessDenied";
     });
-
-// Add HTMX Components after authentication
-builder.Services.AddHtmxComponents(options =>
-{
-    // Configure authentication status provider
-    options.WithAuthStatusProvider(sp => new CustomAuthStatusProvider(sp));
-});
-
-// Important: Add page state middleware before authentication
-app.UseHtmxPageState();
-app.UseAuthentication();
-app.UseAuthorization();
 ```
 
-### OIDC/OAuth Integration
+## How It Works
 
-For OpenID Connect or OAuth providers:
+1. **Automatic Detection**: Htmx.Components automatically detects when HTMX requests need authentication
+2. **Popup Authentication**: Instead of redirecting the entire page, authentication can happen in a popup
+3. **Status Updates**: The `AuthStatus` component automatically updates when authentication state changes
+4. **Navigation Filtering**: Navigation items are filtered based on user authorization
+5. **Seamless Integration**: Works with any ASP.NET Core authentication provider
 
-```csharp
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-})
-.AddCookie()
-.AddOpenIdConnect(options =>
-{
-    options.Authority = "https://your-identity-provider.com";
-    options.ClientId = "your-client-id";
-    options.ClientSecret = "your-client-secret";
-    options.ResponseType = "code";
-    
-    // Configure for HTMX compatibility
-    options.ConfigureHtmxAuthPopup("/auth/login-popup");
-});
-```
+## Best Practices
 
-## HTMX-Specific Authentication
+1. **Middleware Order**: Always place `UseHtmxPageState()` before `UseAuthentication()`
+2. **Claim Configuration**: Configure the correct user ID claim type for your identity provider
+3. **Authorization Attributes**: Use standard ASP.NET Core authorization attributes on controllers and actions
+4. **Status Updates**: Use `[AuthStatusUpdate]` on actions that change authentication state
+5. **Popup Handling**: Implement proper popup authentication for better user experience
 
-### Handling Authentication in HTMX Requests
+## Next Steps
 
-HTMX Components provides special handling for authentication challenges in HTMX requests:
-
-```csharp
-public static class OidcOptionsExtensions
-{
-    public static void ConfigureHtmxAuthPopup(this OpenIdConnectOptions oidc, string popupUrl)
-    {
-        oidc.Events.OnRedirectToIdentityProvider = context =>
-        {
-            if (context.Request.IsHtmx())
-            {
-                // Tell HTMX to show authentication popup instead of redirecting
-                context.Response.StatusCode = 401;
-                context.Response.Headers["X-Auth-Failure"] = $"popup-login:{popupUrl}";
-                context.HandleResponse();
-            }
-            return Task.CompletedTask;
-        };
-        
-        oidc.Events.OnAccessDenied = context =>
-        {
-            if (context.Request.IsHtmx())
-            {
-                context.Response.StatusCode = 403;
-                context.Response.Headers["HX-Trigger"] = "auth-denied";
-                context.HandleResponse();
-            }
-            return Task.CompletedTask;
-        };
-    }
-}
-```
-
-### Client-Side HTMX Authentication
-
-Handle authentication events on the client side:
-
-```javascript
-// Handle authentication failures in HTMX requests
-document.addEventListener('htmx:responseError', function(evt) {
-    if (evt.detail.xhr.status === 401) {
-        const authFailure = evt.detail.xhr.getResponseHeader('X-Auth-Failure');
-        if (authFailure && authFailure.startsWith('popup-login:')) {
-            const loginUrl = authFailure.substring('popup-login:'.length);
-            openAuthPopup(loginUrl);
-        }
-    }
-});
-
-function openAuthPopup(loginUrl) {
-    const popup = window.open(loginUrl, 'auth', 'width=500,height=600');
-    
-    // Listen for successful authentication
-    const checkClosed = setInterval(() => {
-        if (popup.closed) {
-            clearInterval(checkClosed);
-            // Refresh the page or trigger a re-authentication check
-            location.reload();
-        }
-    }, 1000);
-}
-```
-
-## Authentication Status Component
-
-### Default Auth Status Provider
-
-The default provider shows basic authentication information:
-
-```csharp
-public class DefaultAuthStatusProvider : IAuthStatusProvider
-{
-    public Task<AuthStatusViewModel> GetAuthStatusAsync(ClaimsPrincipal user)
-    {
-        var isAuthenticated = user.Identity?.IsAuthenticated ?? false;
-        return Task.FromResult(new AuthStatusViewModel
-        {
-            IsAuthenticated = isAuthenticated,
-            UserName = isAuthenticated ? user.Identity?.Name : null,
-            ProfileImageUrl = null,
-            LoginUrl = "/Auth/Login"
-        });
-    }
-}
-```
-
-### Custom Auth Status Provider
-
-Create a custom provider for enhanced user information:
-
-```csharp
-public class CustomAuthStatusProvider : IAuthStatusProvider
-{
-    private readonly IUserService _userService;
-
-    public CustomAuthStatusProvider(IUserService userService)
-    {
-        _userService = userService;
-    }
-
-    public async Task<AuthStatusViewModel> GetAuthStatusAsync(ClaimsPrincipal user)
-    {
-        if (user?.Identity?.IsAuthenticated != true)
-        {
-            return new AuthStatusViewModel
-            {
-                IsAuthenticated = false,
-                LoginUrl = "/Auth/Login"
-            };
-        }
-
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var userProfile = await _userService.GetUserProfileAsync(userId);
-
-        return new AuthStatusViewModel
-        {
-            IsAuthenticated = true,
-            UserName = userProfile?.DisplayName ?? user.Identity.Name,
-            ProfileImageUrl = userProfile?.AvatarUrl,
-            LoginUrl = null
-        };
-    }
-}
-
-// Register the custom provider
-builder.Services.AddHtmxComponents(options =>
-{
-    options.WithAuthStatusProvider(sp => 
-        new CustomAuthStatusProvider(sp.GetRequiredService<IUserService>()));
-});
-```
-
-### Auth Status View
-
-Display the authentication status in your layout:
-
-```html
-<!-- In _Layout.cshtml -->
-<div class="auth-container">
-    @await Component.InvokeAsync("AuthStatus")
-</div>
-```
-
-## Authentication Controllers
-
-### Login Controller
-
-Create a controller to handle authentication:
-
-```csharp
-public class AuthController : Controller
-{
-    public IActionResult Login(string returnUrl = null)
-    {
-        if (User.Identity?.IsAuthenticated == true)
-            return RedirectToLocal(returnUrl);
-            
-        ViewData["ReturnUrl"] = returnUrl;
-        return View();
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Login(LoginModel model, string returnUrl = null)
-    {
-        if (ModelState.IsValid)
-        {
-            var result = await _signInManager.PasswordSignInAsync(
-                model.Email, model.Password, model.RememberMe, false);
-                
-            if (result.Succeeded)
-            {
-                // For HTMX requests, trigger auth status update
-                if (Request.IsHtmx())
-                {
-                    Response.Headers["HX-Trigger"] = "auth-success";
-                    return Ok();
-                }
-                
-                return RedirectToLocal(returnUrl);
-            }
-            
-            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-        }
-
-        return View(model);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Logout()
-    {
-        await _signInManager.SignOutAsync();
-        
-        if (Request.IsHtmx())
-        {
-            Response.Headers["HX-Trigger"] = "auth-logout";
-            return Ok();
-        }
-        
-        return RedirectToAction("Index", "Home");
-    }
-}
-```
-
-### Authentication Filters
-
-Use filters to automatically update authentication status:
-
-```csharp
-using Htmx.Components.AuthStatus;
-
-[AuthStatusUpdate]
-[HttpPost]
-public async Task<IActionResult> Login(LoginModel model)
-{
-    // Login logic here
-    // The AuthStatusUpdate attribute will automatically refresh
-    // the auth status component on successful HTMX requests
-    return Ok();
-}
-```
-
-## User Claims and Profiles
-
-### Extending User Claims
-
-Add custom claims during authentication:
-
-```csharp
-public async Task<ClaimsIdentity> CreateUserIdentityAsync(User user)
-{
-    var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
-    
-    // Standard claims
-    identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()));
-    identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
-    identity.AddClaim(new Claim(ClaimTypes.Email, user.Email));
-    
-    // Custom claims
-    identity.AddClaim(new Claim("DisplayName", user.DisplayName));
-    identity.AddClaim(new Claim("AvatarUrl", user.AvatarUrl ?? ""));
-    identity.AddClaim(new Claim("Subscription", user.SubscriptionLevel));
-    
-    // Add roles
-    var roles = await _userManager.GetRolesAsync(user);
+- **[Authorization](authorization.md)**: Learn about setting up authorization policies and permissions
+- **[Navigation](navigation.md)**: Understand how navigation integrates with authentication
+- **[Tables](tables.md)**: See how tables respect authorization rules
     foreach (var role in roles)
     {
         identity.AddClaim(new Claim(ClaimTypes.Role, role));
