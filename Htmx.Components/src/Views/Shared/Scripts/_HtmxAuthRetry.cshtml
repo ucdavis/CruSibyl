@@ -1,3 +1,7 @@
+// HTMX Authentication Retry for Htmx.Components
+// Captures and retries failed requests after successful authentication
+// Handles popup-based login recovery for 401 errors
+
 // always capture details of the last htmx event in order to
 // refire it after error recovery, such as login after a 401 error
 let lastRequestContext = null;

@@ -10,6 +10,7 @@ A powerful .NET library that provides server-side components for building dynami
 - **Form Handling**: Seamless form processing with page state management
 - **Authorization**: Fine-grained permission system with resource-operation based access control
 - **Out-of-Band Updates**: Efficient partial page updates using HTMX's OOB functionality
+- **JavaScript Behaviors**: Server-generated JavaScript behaviors for enhanced interactivity
 
 ## Quick Start
 
@@ -46,6 +47,7 @@ Comprehensive guides for using all the library features:
 Deep dive into the library architecture and extension points:
 - [Architecture overview](articles/developer-guide/architecture.md)
 - [Component architecture](articles/developer-guide/component-architecture.md)
+- [JavaScript architecture](articles/developer-guide/javascript-architecture.md)
 - [Design choices and rationale](articles/developer-guide/design-choices.md)
 - [Future directions and extensibility](articles/developer-guide/future-directions.md)
 - [Building custom providers](articles/developer-guide/custom-providers.md)

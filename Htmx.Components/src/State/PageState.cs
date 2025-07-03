@@ -71,6 +71,12 @@ public interface IPageState
     /// This is determined by comparing the current version with the version when the state was loaded.
     /// </summary>
     bool IsDirty { get; }
+    
+    /// <summary>
+    /// Gets the current version number of the page state.
+    /// This version is incremented whenever the state is modified.
+    /// </summary>
+    int Version { get; }
 }
 
 
@@ -259,4 +265,10 @@ public class PageState : IPageState
     /// This is determined by comparing the current version with the version when the state was loaded.
     /// </summary>
     public bool IsDirty => _version != Get<int>(MetaPartition, VersionKey);
+    
+    /// <summary>
+    /// Gets the current version number of the page state.
+    /// This version is incremented whenever the state is modified.
+    /// </summary>
+    public int Version => Get<int>(MetaPartition, VersionKey);
 }

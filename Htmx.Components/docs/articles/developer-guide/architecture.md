@@ -251,7 +251,32 @@ public class UserController : Controller
 
 This approach ensures that all authorization decisions flow through ASP.NET Core's standard authorization system while providing the performance optimizations needed for high-frequency operations like navigation building and table filtering.
 
-## Data Flow Architecture
+### 7. JavaScript Architecture
+
+The framework includes a sophisticated JavaScript delivery system that enables server-side configuration and dynamic script inclusion through the `HtmxScriptsTagHelper`.
+
+#### Key Components
+
+**HtmxScriptsTagHelper**: Central TagHelper that manages JavaScript behavior inclusion:
+```html
+<htmx-scripts include="page-state,table-behavior"></htmx-scripts>
+```
+
+**Script Behaviors**: Modular JavaScript functionalities delivered as Razor partial views:
+- `PageStateBehavior`: Automatic page state management
+- `TableBehavior`: Table interaction and editing behaviors
+- `BlurSaveCoordination`: Form coordination and race condition prevention
+- `HtmxAuthRetry`: Authentication retry handling
+
+**Benefits:**
+- **Server-side Generation**: Scripts can include dynamically generated URLs and configuration
+- **Selective Inclusion**: Choose which behaviors to include per page
+- **Maintainability**: Each behavior is isolated and testable
+- **Performance**: Inline delivery eliminates additional HTTP requests
+
+For detailed information, see [JavaScript Architecture](javascript-architecture.md).
+
+## Data Flow Diagrams
 
 ### 1. Request Processing
 

@@ -82,6 +82,22 @@ Create a view file to render the table (e.g., `Views/Admin/_Repos.cshtml`):
 </div>
 ```
 
+## JavaScript Requirements
+
+Tables with inline editing require the `table-behavior` JavaScript behavior:
+
+```html
+<!-- Include all behaviors (includes table-behavior) -->
+<htmx-scripts></htmx-scripts>
+
+<!-- Include only table-behavior -->
+<htmx-scripts include="table-behavior"></htmx-scripts>
+```
+
+The `table-behavior` provides:
+- **Visual editing states**: Highlights rows being edited
+- **Inline editing coordination**: Manages edit mode transitions
+
 ## Table Configuration Options
 
 ### Basic Column Types
@@ -189,24 +205,16 @@ Tables work seamlessly with Entity Framework Core through the `WithQueryable()` 
 - **[Authentication](authentication.md)**: Configure authentication and AuthStatus components  
 - **[Authorization](authorization.md)**: Set up authorization policies
 - **[Architecture Guide](../developer-guide/architecture.md)**: Understand the underlying patterns and design
-<= 50
-!= "Active"
 
-# Range filtering
-between 10, 100
+## Filtering
 
-# Null checks
-isnull
-isnotnull
+### Built-in Filters
 
-# String operations
-startswith "Mr"
-endswith ".com"
-contains "test"
+Easily filter tables with built-in text filters:
 
-# Column references
-> [Other Column]
-between [Min Value], [Max Value]
+```csharp
+table.AddSelectorColumn(p => p.Name, col => col
+    .WithFilter());
 ```
 
 ### Custom Filters

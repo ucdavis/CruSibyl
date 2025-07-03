@@ -15,6 +15,8 @@ A comprehensive ASP.NET Core library that provides HTMX-enabled UI components fo
 - **Out-of-Band Updates**: Automatic injection of component updates
 - **Page State Management**: Encrypted client-side state with server-side validation
 - **Authentication Retry**: Seamless re-authentication for expired sessions
+- **JavaScript Behaviors**: Dynamically generated JavaScript behaviors via TagHelper system
+- **HTMX Extensions**: Built-in table editing and coordination behaviors
 
 ### 🛡️ Authorization & Security
 - **Resource-based Authorization**: Fine-grained permissions with custom requirements
@@ -107,6 +109,27 @@ public class AdminController : Controller
     @await Component.InvokeAsync("AuthStatus")
 </div>
 ```
+
+#### JavaScript Behaviors
+
+Include JavaScript behaviors in your layout:
+
+```html
+<!-- Include all behaviors -->
+<htmx-scripts></htmx-scripts>
+
+<!-- Include specific behaviors only -->
+<htmx-scripts include="page-state,table-behavior"></htmx-scripts>
+
+<!-- Exclude specific behaviors -->
+<htmx-scripts exclude="auth-retry"></htmx-scripts>
+```
+
+Available behaviors:
+- **page-state**: Automatic page state management
+- **table-behavior**: Table editing interactions
+- **blur-save-coordination**: Form coordination
+- **auth-retry**: Authentication retry handling
 
 ## Advanced Features
 

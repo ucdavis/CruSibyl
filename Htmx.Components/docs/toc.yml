@@ -19,6 +19,8 @@
   items:
   - name: Architecture
     href: articles/developer-guide/architecture.md
+  - name: JavaScript Architecture
+    href: articles/developer-guide/javascript-architecture.md
   - name: Future Directions
     href: articles/developer-guide/future-directions.md
   - name: Custom Providers

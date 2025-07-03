@@ -77,10 +77,6 @@ Configure your layout file to include HTMX and Htmx.Components assets:
     
     <!-- HTMX library -->
     <script src="./js/htmx.min.js"></script>
-    <!-- Htmx.Components JavaScript -->
-    <script src="~/_content/Htmx.Components/js/table-behavior.js" defer></script>
-    <script src="~/_content/Htmx.Components/js/page-state-behavior.js"></script>
-    <script src="~/_content/Htmx.Components/js/htmx-auth-retry.js" defer></script>
 </head>
 <body>
     <header>
@@ -96,6 +92,9 @@ Configure your layout file to include HTMX and Htmx.Components assets:
         @RenderBody()
     </main>
     
+    <!-- Htmx.Components JavaScript Behaviors -->
+    <htmx-scripts></htmx-scripts>
+    
     <!-- Required for antiforgery token support -->
     @Html.HtmxAntiforgeryScript()
     <!-- Page state management -->
@@ -103,6 +102,29 @@ Configure your layout file to include HTMX and Htmx.Components assets:
 </body>
 </html>
 ```
+
+### JavaScript Behaviors
+
+The `<htmx-scripts>` TagHelper provides a unified way to include JavaScript behaviors:
+
+```html
+<!-- Include all behaviors (default) -->
+<htmx-scripts></htmx-scripts>
+
+<!-- Include only specific behaviors -->
+<htmx-scripts include="page-state,table-behavior"></htmx-scripts>
+
+<!-- Exclude specific behaviors -->
+<htmx-scripts exclude="auth-retry"></htmx-scripts>
+```
+
+**Available Behaviors:**
+- `page-state`: Automatic page state management for HTMX requests
+- `table-behavior`: Enhanced table interactions and editing
+- `blur-save-coordination`: Prevents form submission race conditions
+- `auth-retry`: Handles authentication retry with popup windows
+
+The behaviors are delivered as server-generated inline JavaScript, allowing for dynamic configuration and eliminating additional HTTP requests.
 
 ## 3. Set Up Tailwind CSS (Recommended)
 

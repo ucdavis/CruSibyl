@@ -4,6 +4,8 @@
   href: architecture.md
 - name: Component Architecture
   href: component-architecture.md
+- name: JavaScript Architecture
+  href: javascript-architecture.md
 - name: Design Choices
   href: design-choices.md
 - name: Future Directions
