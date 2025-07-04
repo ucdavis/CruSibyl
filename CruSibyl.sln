@@ -11,8 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CruSibyl.Jobs.Core", "CruSi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CruSibyl.Jobs.ManifestSync", "CruSibyl.Jobs.ManifestSync\CruSibyl.Jobs.ManifestSync.csproj", "{CF68ECC5-C06E-4B4C-925E-5D181916D623}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Htmx.Components", "Htmx.Components\Htmx.Components.csproj", "{B942ACDE-2148-4568-8A83-C04D8E71CC20}"
-EndProject
+
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CruSibyl.Jobs.PackageVersionSync", "CruSibyl.Jobs.PackageVersionSync\CruSibyl.Jobs.PackageVersionSync.csproj", "{F4D9C4EA-762D-4066-985B-1659162102EF}"
 EndProject
 Global
@@ -37,10 +36,6 @@ Global
 		{CF68ECC5-C06E-4B4C-925E-5D181916D623}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF68ECC5-C06E-4B4C-925E-5D181916D623}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF68ECC5-C06E-4B4C-925E-5D181916D623}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B942ACDE-2148-4568-8A83-C04D8E71CC20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B942ACDE-2148-4568-8A83-C04D8E71CC20}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B942ACDE-2148-4568-8A83-C04D8E71CC20}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B942ACDE-2148-4568-8A83-C04D8E71CC20}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4D9C4EA-762D-4066-985B-1659162102EF}.Release|Any CPU.ActiveCfg = Release|Any CPU

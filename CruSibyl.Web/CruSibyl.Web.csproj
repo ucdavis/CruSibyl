@@ -22,14 +22,14 @@
 
   <ItemGroup>
     <ProjectReference Include="../CruSibyl.Core/CruSibyl.Core.csproj" />
-    <ProjectReference Include="../Htmx.Components/Htmx.Components.csproj" />
+    <ProjectReference Include="../../Htmx.Components/Htmx.Components.csproj" />
   </ItemGroup>
 
   <!-- Only run build:css when cshtml files have been edited -->
   <PropertyGroup>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
     <!-- Use project reference if Table project exists -->
-    <HtmxProjectDir>../Htmx.Components</HtmxProjectDir>
+    <HtmxProjectDir>../../Htmx.Components</HtmxProjectDir>
     <HtmxViews Condition="Exists('$(HtmxProjectDir)')">$(HtmxProjectDir)</HtmxViews>
     <ExtractedCssClassesFile>$(HtmxProjectDir)/content/extracted-css-classes.txt</ExtractedCssClassesFile>
   </PropertyGroup>
