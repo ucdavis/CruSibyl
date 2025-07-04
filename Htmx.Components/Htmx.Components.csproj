@@ -5,6 +5,7 @@
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,41 +32,21 @@
     <EmbeddedResource Include="src/**/*.cshtml" />
   </ItemGroup>
 
-
-  <!-- This msbuild task will extract css classes to make them available for processing by tailwind in consuming apps -->
+  <!-- CSS Extraction -->
   <ItemGroup>
-    <!-- <PackageReference Include="CssExtractor.MSBuild" Version="1.0.0" /> -->
-    <ProjectReference Include="../CssExtractor.MSBuild\CssExtractor.MSBuild.csproj"
-      ReferenceOutputAssembly="false"
-      OutputItemType="Analyzer"
-      Private="false" />
+    <PackageReference Include="CssExtractor.MSBuild" Version="1.2.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
-  <Import Project="..\CssExtractor.MSBuild\targets\CssExtractor.MSBuild.targets" />
+
   <PropertyGroup>
-    <!-- Extract css classes from .WithClass(...) and .WithIcon(...) expressions -->
-    <CssExtractorPatterns>
-      $(CssExtractorPatterns);
-      \.WithClass\s*\(\s*"([^"]+)"\s*\);
-      \.WithIcon\s*\(\s*"([^"]+)"\s*\);
-    </CssExtractorPatterns>
-    <CssExtractorOutputFile>$(MSBuildProjectDirectory)/content/extracted-css-classes.txt</CssExtractorOutputFile>
+    <!-- Custom patterns for .WithClass(...) and .WithIcon(...) expressions -->
+    <CssExtractorCustomPatterns>
+      \.WithClass\s*\(\s*"([^"]+)"\s*\)
+      ;
+      \.WithIcon\s*\(\s*"([^"]+)"\s*\)
+    </CssExtractorCustomPatterns>
   </PropertyGroup>
-  
-  <!-- Include the extracted CSS file as content for NuGet package and project references -->
-  <ItemGroup>
-    <Content Include="content/extracted-css-classes.txt">
-      <Pack>true</Pack>
-      <PackagePath>content/extracted-css-classes.txt</PackagePath>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-  
-  <ItemGroup>
-    <!-- Don't scan files under docs folder -->
-    <CssExtractorExcludeFiles Include="**/docs/**" />
-    <!-- Include cs files in scans -->
-    <CssExtractorIncludeFiles Include="src/**/*.cs" />
-  </ItemGroup>
-
 
 </Project>
