@@ -79,14 +79,15 @@ public class ManifestSyncService : IManifestSyncService
 
         var platforms = await _dbContext.Platforms
             .Include(p => p.Versions)
-            .ToDictionaryAsync(p => p.Name);
+            .ToDictionaryAsync(p => p.Name, StringComparer.OrdinalIgnoreCase);
         var packages = await _dbContext.Packages
             .Include(p => p.Versions)
-            .ToDictionaryAsync(p => $"{p.Name}|{p.PlatformId}");
+            .Include(p => p.Platform)
+            .ToDictionaryAsync(p => $"{p.Name}|{p.Platform.Name}", StringComparer.OrdinalIgnoreCase);
         var manifests = await _dbContext.Manifests
-            .ToDictionaryAsync(m => $"{m.RepoId}|{m.FilePath}");
+            .ToDictionaryAsync(m => $"{m.RepoId}|{m.FilePath}", StringComparer.OrdinalIgnoreCase);
         var dependencies = await _dbContext.Dependencies
-            .ToDictionaryAsync(d => $"{d.ManifestId}|{d.PackageVersionId}");
+            .ToDictionaryAsync(d => $"{d.ManifestId}|{d.PackageVersionId}", StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -134,7 +135,7 @@ public class ManifestSyncService : IManifestSyncService
                     foreach (var dep in gitHubManifest.Dependencies)
                     {
                         // Ensure Package exists
-                        var packageKey = $"{dep.Name}|{platform.Id}";
+                        var packageKey = $"{dep.Name}|{platform.Name}";
                         if (!packages.TryGetValue(packageKey, out var package))
                         {
                             package = new Package { Name = dep.Name, Platform = platform, Versions = new() };
@@ -143,11 +144,19 @@ public class ManifestSyncService : IManifestSyncService
                         }
 
                         // Ensure PackageVersion exists
-                        var packageVersion = package.Versions.FirstOrDefault(v => v.Version == dep.Version);
+                        var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version,dep.Version, StringComparison.OrdinalIgnoreCase));
                         if (packageVersion == null)
                         {
                             var baseVersion = ExtractBaseVersion(dep.Version);
-                            var version = SemVersion.Parse(baseVersion);
+                            SemVersion? version = null;
+                            try
+                            {
+                                version = SemVersion.Parse(baseVersion);
+                            }
+                            catch (FormatException ex)
+                            {
+                                Log.Warning(ex, "Failed to parse baseVersion '{BaseVersion}' from '{VersionSpec}' for package '{Package}'", baseVersion, dep.Version, dep.Name);
+                            }
                             packageVersion = new PackageVersion
                             {
                                 Package = package,
@@ -189,8 +198,57 @@ public class ManifestSyncService : IManifestSyncService
 
     private static string ExtractBaseVersion(string versionSpec)
     {
-        // Match the first version-like pattern (e.g., 1.2.3, 1.2.3-beta)
-        var match = Regex.Match(versionSpec, @"\d+\.\d+\.\d+(-[A-Za-z0-9\.-]+)?");
-        return match.Success ? match.Value : versionSpec;
+        if (string.IsNullOrWhiteSpace(versionSpec))
+            return versionSpec;
+
+        // Remove common npm version range prefixes and operators
+        var cleaned = versionSpec.Trim();
+        
+        // Handle special cases first
+        if (cleaned.Equals("latest", StringComparison.OrdinalIgnoreCase) ||
+            cleaned.Equals("*", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Unknown"; // Default fallback for non-specific versions
+        }
+
+        // Remove version range operators (^, ~, >=, <=, >, <, =)
+        cleaned = Regex.Replace(cleaned, @"^[\^~>=<]*\s*", "");
+        
+        // Handle version ranges (e.g., "1.2.3 - 2.0.0" or ">=1.2.3 <2.0.0")
+        // Take the first version in ranges
+        var rangeMatch = Regex.Match(cleaned, @"^([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?(?:-[A-Za-z0-9\.-]+)?)\s*(?:[-\s]|$)");
+        if (rangeMatch.Success)
+        {
+            cleaned = rangeMatch.Groups[1].Value;
+        }
+
+        // Extract the core version pattern, being more permissive
+        // This handles: 1.2.3, 1.2, 1, 1.2.3-beta.1, 1.2.3-alpha+build.1, etc.
+        var versionMatch = Regex.Match(cleaned, @"^([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?(?:-([A-Za-z0-9\.-]+))?(?:\+([A-Za-z0-9\.-]+))?");
+        
+        if (versionMatch.Success)
+        {
+            var major = versionMatch.Groups[1].Value;
+            var minor = versionMatch.Groups[2].Success ? versionMatch.Groups[2].Value : "0";
+            var patch = versionMatch.Groups[3].Success ? versionMatch.Groups[3].Value : "0";
+            var prerelease = versionMatch.Groups[4].Success ? $"-{versionMatch.Groups[4].Value}" : "";
+            
+            // Build a semver-compatible version
+            return $"{major}.{minor}.{patch}{prerelease}";
+        }
+
+        // If no recognizable version pattern, try to extract just numbers and dots
+        var numbersOnly = Regex.Match(cleaned, @"([0-9]+(?:\.[0-9]+)*)");
+        if (numbersOnly.Success)
+        {
+            var parts = numbersOnly.Groups[1].Value.Split('.');
+            var major = parts.Length > 0 ? parts[0] : "0";
+            var minor = parts.Length > 1 ? parts[1] : "0";
+            var patch = parts.Length > 2 ? parts[2] : "0";
+            return $"{major}.{minor}.{patch}";
+        }
+
+        // Fallback to original if nothing else works
+        return "Unknown";
     }
 }
