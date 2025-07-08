@@ -25,23 +25,13 @@
     <ProjectReference Include="../../Htmx.Components/Htmx.Components.csproj" />
   </ItemGroup>
 
-  <!-- Only run build:css when cshtml files have been edited -->
+  <!-- Tailwind CSS Build -->
   <PropertyGroup>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
-    <!-- Use project reference if Table project exists -->
-    <HtmxProjectDir>../../Htmx.Components</HtmxProjectDir>
-    <HtmxViews Condition="Exists('$(HtmxProjectDir)')">$(HtmxProjectDir)</HtmxViews>
-    <ExtractedCssClassesFile>$(HtmxProjectDir)/content/extracted-css-classes.txt</ExtractedCssClassesFile>
+    <TailwindInputFile>Tools/input.css</TailwindInputFile>
   </PropertyGroup>
-  <ItemGroup>
-    <TailwindSources Include="Views/**/*.cshtml" />
-    <TailwindSources Include="$(HtmxViews)/**/*.cshtml" Condition="Exists('$(HtmxViews)')" />
-    <TailwindInputs Include="@(TailwindSources)" />
-    <TailwindInputs Include="$(ExtractedCssClassesFile)" Condition="Exists('$(ExtractedCssClassesFile)')" />
-  </ItemGroup>
-  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="@(TailwindInputs)" Outputs="$(TailwindOutputFile)">
+  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="$(TailwindInputFile)" Outputs="$(TailwindOutputFile)">
     <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
-    <!-- force timestamp update so that msbuild change detection prevents this task from running unnecessarily -->
     <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />
   </Target>
 
