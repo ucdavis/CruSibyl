@@ -1,5 +1,3 @@
-
-
 using System.Text.Json;
 using System.Xml.Linq;
 using Microsoft.Extensions.Options;
@@ -17,9 +15,7 @@ public class GitHubService : IGitHubService
 {
     private readonly GitHubSettings _settings;
     private readonly SemaphoreSlim _rateLimitSemaphore = new(1, 1);
-    private int _requestCount = 0;
-    private const int CoreRequestThreshold = 50;
-    private const int SearchRequestThreshold = 10;
+    private DateTime? _nextAllowedCallTime = null;
 
     public GitHubService(IOptions<GitHubSettings> settings)
     {
@@ -47,12 +43,12 @@ public class GitHubService : IGitHubService
     private async Task<List<ManifestData>> GetCSProjManifests(GitHubClient client, string owner, string repo)
     {
         Log.Information("Searching for .csproj files in repository {Repo}", repo);
-        var csprojFiles = await SearchFilesInRepoAsync(client, owner, repo, "extension:csproj");
+        var csprojFiles = await SearchFilesInRepo(client, owner, repo, "extension:csproj");
         var manifests = new List<ManifestData>();
 
         foreach (var filePath in csprojFiles)
         {
-            var xmlDoc = await LoadXmlFileFromRepoAsync(client, owner, repo, filePath);
+            var xmlDoc = await LoadXmlFileFromRepo(client, owner, repo, filePath);
             var dependencies = ExtractCsprojDependencies(xmlDoc);
 
             var targetFramework = xmlDoc.Descendants("TargetFramework").FirstOrDefault()?.Value ?? "Unknown";
@@ -71,12 +67,12 @@ public class GitHubService : IGitHubService
     private async Task<List<ManifestData>> GetNPMManifests(GitHubClient client, string owner, string repo)
     {
         Log.Information("Searching for package.json files in repository {Repo}", repo);
-        var packageJsonFiles = await SearchFilesInRepoAsync(client, owner, repo, "filename:package.json");
+        var packageJsonFiles = await SearchFilesInRepo(client, owner, repo, "filename:package.json");
         var manifests = new List<ManifestData>();
 
         foreach (var filePath in packageJsonFiles)
         {
-            var jsonContent = await LoadFileContentFromRepoAsync(client, owner, repo, filePath);
+            var jsonContent = await LoadFileContentFromRepo(client, owner, repo, filePath);
             using var doc = JsonDocument.Parse(jsonContent);
             var dependencies = ExtractNPMDependencies(doc);
 
@@ -97,30 +93,39 @@ public class GitHubService : IGitHubService
         return manifests;
     }
 
-    async Task<List<string>> SearchFilesInRepoAsync(GitHubClient client, string owner, string repo, string query)
+    async Task<List<string>> SearchFilesInRepo(GitHubClient client, string owner, string repo, string query)
     {
-        await ThrottleIfNeededAsync(client, GitHubRequestType.Search);
-        var searchQuery = $"{query} repo:{owner}/{repo}";
-        var searchRequest = new SearchCodeRequest(searchQuery);
-        var searchResults = await client.Search.SearchCode(searchRequest);
+        return await RetryApiCall(client, async () =>
+        {
+            await CheckNextAllowedCallTime();
+            var searchQuery = $"{query} repo:{owner}/{repo}";
+            var searchRequest = new SearchCodeRequest(searchQuery);
+            var searchResults = await client.Search.SearchCode(searchRequest);
 
-        return searchResults.Items.Select(item => item.Path).ToList();
+            return searchResults.Items.Select(item => item.Path).ToList();
+        }, $"search files in {owner}/{repo}");
     }
 
-    async Task<XDocument> LoadXmlFileFromRepoAsync(GitHubClient client, string owner, string repo, string filePath)
+    async Task<XDocument> LoadXmlFileFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
-        await ThrottleIfNeededAsync(client, GitHubRequestType.Core);
-        string content = await LoadFileContentFromRepoAsync(client, owner, repo, filePath);
-        return XDocument.Parse(content);
+        return await RetryApiCall(client, async () =>
+        {
+            await CheckNextAllowedCallTime();
+            string content = await LoadFileContentFromRepo(client, owner, repo, filePath);
+            return XDocument.Parse(content);
+        }, $"load XML file {filePath}");
     }
 
-    async Task<string> LoadFileContentFromRepoAsync(GitHubClient client, string owner, string repo, string filePath)
+    async Task<string> LoadFileContentFromRepo(GitHubClient client, string owner, string repo, string filePath)
     {
-        await ThrottleIfNeededAsync(client, GitHubRequestType.Core);
-        var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
-        var content = contents.FirstOrDefault()?.Content ?? "";
-        // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
-        return content.TrimStart('\uFEFF');
+        return await RetryApiCall(client, async () =>
+        {
+            await CheckNextAllowedCallTime();
+            var contents = await client.Repository.Content.GetAllContents(owner, repo, filePath);
+            var content = contents.FirstOrDefault()?.Content ?? "";
+            // strip Zero Width No-Break Space (ZWNBSP, U+FEFF) from beginning of string
+            return content.TrimStart('\uFEFF');
+        }, $"load file content {filePath}");
     }
 
     static List<DependencyData> ExtractCsprojDependencies(XDocument xmlDoc)
@@ -164,26 +169,17 @@ public class GitHubService : IGitHubService
         return packages;
     }
 
-    private async Task ThrottleIfNeededAsync(GitHubClient client, GitHubRequestType type)
+    private async Task CheckNextAllowedCallTime()
     {
         await _rateLimitSemaphore.WaitAsync();
         try
         {
-            _requestCount++;
-            int threshold = type == GitHubRequestType.Search ? SearchRequestThreshold : CoreRequestThreshold;
-            if (_requestCount % threshold == 0)
+            // Check if we need to wait based on previous rate limit info
+            if (_nextAllowedCallTime.HasValue && DateTime.UtcNow < _nextAllowedCallTime.Value)
             {
-                var rateLimits = await client.RateLimit.GetRateLimits();
-                var resource = type == GitHubRequestType.Search ? rateLimits.Resources.Search : rateLimits.Resources.Core;
-                if (resource.Remaining < threshold)
-                {
-                    var waitTime = resource.Reset.UtcDateTime - DateTime.UtcNow;
-                    if (waitTime > TimeSpan.Zero)
-                    {
-                        Log.Information("Rate limit reached for GitHubRequestType {RequestType}. Waiting {WaitTime} before next request.", type, waitTime);
-                        await Task.Delay(waitTime);
-                    }
-                }
+                var waitTime = _nextAllowedCallTime.Value - DateTime.UtcNow;
+                Log.Information("Rate limit delay active. Waiting {WaitTime} before next request.", waitTime);
+                await Task.Delay(waitTime);
             }
         }
         finally
@@ -192,8 +188,77 @@ public class GitHubService : IGitHubService
         }
     }
 
-    private enum GitHubRequestType { Core, Search }
+    private async Task<T> RetryApiCall<T>(GitHubClient client, Func<Task<T>> apiCall, string operationName)
+    {
+        try
+        {
+            var result = await apiCall();
+            
+            // Update rate limit info after successful API call
+            await UpdateNextAllowedCallTime(client);
+            
+            return result;
+        }
+        catch (RateLimitExceededException ex)
+        {
+            Log.Warning("Rate limit exceeded during {Operation}. Retrying after suggested delay.", operationName);
+            var retryDelay = ex.GetRetryAfterTimeSpan();
+            if (retryDelay > TimeSpan.Zero)
+            {
+                // Update our next allowed call time based on the exception
+                await _rateLimitSemaphore.WaitAsync();
+                try
+                {
+                    _nextAllowedCallTime = DateTime.UtcNow.Add(retryDelay);
+                    Log.Information("Updated next allowed call time to {NextCallTime} based on rate limit exception", _nextAllowedCallTime);
+                }
+                finally
+                {
+                    _rateLimitSemaphore.Release();
+                }
 
+                await Task.Delay(retryDelay);
+                
+                // Retry once
+                var result = await apiCall();
+                
+                // Update rate limit info after successful retry
+                await UpdateNextAllowedCallTime(client);
+                
+                return result;
+            }
+            throw;
+        }
+    }
+
+    private async Task UpdateNextAllowedCallTime(GitHubClient client)
+    {
+        await _rateLimitSemaphore.WaitAsync();
+        try
+        {
+            var lastApiInfo = client.GetLastApiInfo();
+            if (lastApiInfo?.RateLimit != null)
+            {
+                var rateLimit = lastApiInfo.RateLimit;
+                Log.Verbose("Updated rate limit info from API response. Remaining: {Remaining}", rateLimit.Remaining);
+                
+                // Update next allowed call time if rate limit is low
+                if (rateLimit.Remaining < 10) // Conservative threshold
+                {
+                    _nextAllowedCallTime = rateLimit.Reset.UtcDateTime;
+                    Log.Verbose("Rate limit nearly exhausted. Next allowed call at {NextCallTime}", _nextAllowedCallTime);
+                }
+                else
+                {
+                    _nextAllowedCallTime = null; // No delay needed
+                }
+            }
+        }
+        finally
+        {
+            _rateLimitSemaphore.Release();
+        }
+    }
 }
 
 public class ManifestData
