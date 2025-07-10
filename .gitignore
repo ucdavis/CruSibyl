@@ -266,3 +266,6 @@ pnpm-lock.yaml
 
 # Thumbnails
 Thumbs.db
+
+# extracted css classes for tailwind build
+local-extracted-classes.txt

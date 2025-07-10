@@ -18,19 +18,22 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Htmx.Components" Version="1.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../CruSibyl.Core/CruSibyl.Core.csproj" />
-    <ProjectReference Include="../../Htmx.Components/Htmx.Components.csproj" />
+    <!-- <ProjectReference Include="../../Htmx.Components/Htmx.Components.csproj" /> -->
   </ItemGroup>
 
   <!-- Tailwind CSS Build -->
   <PropertyGroup>
+    <CssExtractorOutputFile>$(MSBuildProjectDirectory)/Tools/local-extracted-classes.txt</CssExtractorOutputFile>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
     <TailwindInputFile>Tools/input.css</TailwindInputFile>
   </PropertyGroup>
-  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="$(TailwindInputFile)" Outputs="$(TailwindOutputFile)">
+  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="$(TailwindInputFile)"
+    Outputs="$(TailwindOutputFile)">
     <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
     <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />
   </Target>
@@ -39,7 +42,8 @@
   <PropertyGroup>
     <NpmInstallStampFile>Tools/node_modules/.install-stamp</NpmInstallStampFile>
   </PropertyGroup>
-  <Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json" Outputs="$(NpmInstallStampFile)">
+  <Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json"
+    Outputs="$(NpmInstallStampFile)">
     <Exec Command="npm install" WorkingDirectory="Tools" />
     <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
   </Target>
