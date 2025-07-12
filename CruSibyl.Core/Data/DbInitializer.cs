@@ -65,9 +65,7 @@ public class DbInitializer
             MothraId = "00183346",
         });
 
-        await CheckAndCreateRoles();
-
-        var systemRole = await _dbContext.Roles.SingleAsync(a => a.Name == Role.Codes.System);
+        var (systemRole, _) = await CheckAndCreateRoles();
 
         await CheckAndCreatePermission(JasonUser, systemRole);
         await CheckAndCreatePermission(ScottUser, systemRole);
@@ -79,10 +77,11 @@ public class DbInitializer
 
     }
 
-    public async Task CheckAndCreateRoles()
+    public async Task<(Role systemRole, Role adminRole)> CheckAndCreateRoles()
     {
         var systemRole = await CheckAndCreateRole(Role.Codes.System);
         var adminRole = await CheckAndCreateRole(Role.Codes.Admin);
+        return (systemRole, adminRole);
     }
 
     private async Task<Permission> CheckAndCreatePermission(User user, Role role)

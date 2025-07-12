@@ -18,6 +18,8 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
+using Serilog.Exceptions.Core;
+using Serilog.Exceptions.EntityFrameworkCore.Destructurers;
 using Serilog.Sinks.Elasticsearch;
 
 #if DEBUG
@@ -38,7 +40,9 @@ var configureLogging = (LoggerConfiguration cfg) =>
         .MinimumLevel.Override("System", LogEventLevel.Warning)
         .Enrich.FromLogContext()
         .Enrich.With()
-        .Enrich.WithExceptionDetails()
+        .Enrich.WithExceptionDetails(new DestructuringOptionsBuilder()
+            .WithDefaultDestructurers()
+            .WithDestructurers([new DbUpdateExceptionDestructurer()]))
         .Enrich.WithProperty("Application", loggingSection.GetValue<string>("AppName"))
         .Enrich.WithProperty("AppEnvironment", loggingSection.GetValue<string>("Environment"))
         .WriteTo.Console();
