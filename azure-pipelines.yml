@@ -141,6 +141,8 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     environment: 'Test'  # Azure DevOps environment (with approvals)
+    variables:
+    - group: CruSibyl-Test  # Re-declare at job level for deployment jobs
     strategy:
       runOnce:
         deploy:
@@ -148,12 +150,20 @@ stages:
           - download: current
             artifact: drop
           
+          - checkout: none
+          
+          # Debug step to verify variable expansion
+          - script: |
+              echo "AzureSubscription: $(AzureSubscription)"
+              echo "WebAppName: $(WebAppName)"
+            displayName: 'Debug Variables'
+          
           - task: AzureWebApp@1
             displayName: 'Deploy Web App and WebJobs to Test'
             inputs:
-              azureSubscription: '$(AzureSubscription)'
+              azureSubscription: $(AzureSubscription)
               appType: 'webApp'
-              appName: '$(WebAppName)'
+              appName: $(WebAppName)
               package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
               deploymentMethod: 'auto'
 
@@ -169,6 +179,8 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     environment: 'Prod'  # Azure DevOps environment (with approvals)
+    variables:
+    - group: CruSibyl-Prod  # Re-declare at job level for deployment jobs
     strategy:
       runOnce:
         deploy:
@@ -176,11 +188,19 @@ stages:
           - download: current
             artifact: drop
           
+          - checkout: none
+          
+          # Debug step to verify variable expansion
+          - script: |
+              echo "AzureSubscription: $(AzureSubscription)"
+              echo "WebAppName: $(WebAppName)"
+            displayName: 'Debug Variables'
+          
           - task: AzureWebApp@1
             displayName: 'Deploy Web App and WebJobs to Production'
             inputs:
-              azureSubscription: '$(AzureSubscription)'
+              azureSubscription: $(AzureSubscription)
               appType: 'webApp'
-              appName: '$(WebAppName)'
+              appName: $(WebAppName)
               package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
               deploymentMethod: 'auto'
