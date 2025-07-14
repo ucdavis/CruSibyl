@@ -133,16 +133,12 @@ stages:
   displayName: 'Deploy to Test Environment'
   dependsOn: Build
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
-  variables:
-  - group: CruSibyl-Test  # Variable group for test environment
   jobs:
   - deployment: DeployToTest
     displayName: 'Deploy to Test'
     pool:
       vmImage: 'ubuntu-latest'
     environment: 'Test'  # Azure DevOps environment (with approvals)
-    variables:
-    - group: CruSibyl-Test  # Re-declare at job level for deployment jobs
     strategy:
       runOnce:
         deploy:
@@ -150,20 +146,12 @@ stages:
           - download: current
             artifact: drop
           
-          - checkout: none
-          
-          # Debug step to verify variable expansion
-          - script: |
-              echo "AzureSubscription: $(AzureSubscription)"
-              echo "WebAppName: $(WebAppName)"
-            displayName: 'Debug Variables'
-          
           - task: AzureWebApp@1
             displayName: 'Deploy Web App and WebJobs to Test'
             inputs:
-              azureSubscription: $(AzureSubscription)
+              azureSubscription: 'UC Davis CAES Test'
               appType: 'webApp'
-              appName: $(WebAppName)
+              appName: 'CruSibyl-Test'
               package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
               deploymentMethod: 'auto'
 
@@ -171,16 +159,12 @@ stages:
   displayName: 'Deploy to Production Environment'
   dependsOn: DeployTest
   condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
-  variables:
-  - group: CruSibyl-Prod  # Variable group for production environment
   jobs:
   - deployment: DeployToProduction
     displayName: 'Deploy to Production'
     pool:
       vmImage: 'ubuntu-latest'
     environment: 'Prod'  # Azure DevOps environment (with approvals)
-    variables:
-    - group: CruSibyl-Prod  # Re-declare at job level for deployment jobs
     strategy:
       runOnce:
         deploy:
@@ -188,19 +172,11 @@ stages:
           - download: current
             artifact: drop
           
-          - checkout: none
-          
-          # Debug step to verify variable expansion
-          - script: |
-              echo "AzureSubscription: $(AzureSubscription)"
-              echo "WebAppName: $(WebAppName)"
-            displayName: 'Debug Variables'
-          
           - task: AzureWebApp@1
             displayName: 'Deploy Web App and WebJobs to Production'
             inputs:
-              azureSubscription: $(AzureSubscription)
+              azureSubscription: 'UC Davis CAES Prod'
               appType: 'webApp'
-              appName: $(WebAppName)
+              appName: 'crusibyl'
               package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
               deploymentMethod: 'auto'
