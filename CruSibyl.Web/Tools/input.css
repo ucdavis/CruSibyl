@@ -1,4 +1,5 @@
 @import "tailwindcss" source(none);
+@source "../**/*.{cshtml,html}";
 @source "local-extracted-classes.txt";
 @source "htmx-components-extracted-classes.txt";
 @plugin "daisyui";

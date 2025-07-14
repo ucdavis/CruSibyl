@@ -12,7 +12,7 @@
     "description": "",
     "devDependencies": {
         "@tailwindcss/cli": "4.1.10",
-        "daisyui": "^5.0.9",
+        "daisyui": "5.0.46",
         "ncp": "^2.0.0",
         "tailwindcss": "4.1.10"
     },
