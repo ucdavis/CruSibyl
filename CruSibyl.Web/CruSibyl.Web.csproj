@@ -33,7 +33,7 @@
     <TailwindInputFile>Tools/input.css</TailwindInputFile>
   </PropertyGroup>
   <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="$(TailwindInputFile)"
-    Outputs="$(TailwindOutputFile)">
+    Outputs="$(TailwindOutputFile)" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
     <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />
   </Target>
@@ -43,7 +43,7 @@
     <NpmInstallStampFile>Tools/node_modules/.install-stamp</NpmInstallStampFile>
   </PropertyGroup>
   <Target Name="EnsureNpmPackages" BeforeTargets="BuildTailwind" Inputs="Tools\package.json"
-    Outputs="$(NpmInstallStampFile)">
+    Outputs="$(NpmInstallStampFile)" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="npm install" WorkingDirectory="Tools" />
     <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
   </Target>
