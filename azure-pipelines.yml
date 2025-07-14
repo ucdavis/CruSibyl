@@ -58,15 +58,23 @@ stages:
         arguments: '--configuration $(buildConfiguration) --no-restore'
 
     - script: |
-        echo "Verifying CSS file after build..."
+        echo "=== Debugging Tailwind CSS Issue ==="
+        echo "1. Checking local extracted classes file:"
+        ls -la CruSibyl.Web/Tools/local-extracted-classes.txt
+        echo "Content:"
+        cat CruSibyl.Web/Tools/local-extracted-classes.txt
+        echo ""
+        echo "2. Checking for Htmx.Components extracted classes:"
+        ls -la Htmx.Components/content/extracted-css-classes.txt 2>/dev/null || echo "Htmx.Components extracted classes file not found"
+        echo ""
+        echo "3. Checking CSS file after build:"
         ls -la CruSibyl.Web/wwwroot/css/
-        echo "CSS file size:"
-        wc -c CruSibyl.Web/wwwroot/css/site.css
-        echo "First 5 lines of CSS:"
-        head -5 CruSibyl.Web/wwwroot/css/site.css
-        echo "Last 5 lines of CSS:"
-        tail -5 CruSibyl.Web/wwwroot/css/site.css
-      displayName: 'Verify CSS file after build'
+        echo "CSS file size: $(wc -c < CruSibyl.Web/wwwroot/css/site.css) bytes"
+        echo "First 500 characters of CSS:"
+        head -c 500 CruSibyl.Web/wwwroot/css/site.css
+        echo ""
+        echo "=== End Debug Info ==="
+      displayName: 'Debug CSS generation issue'
     
     # Placeholder for tests - uncomment and modify when test projects are added
     # - task: DotNetCoreCLI@2
