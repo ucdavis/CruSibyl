@@ -56,14 +56,6 @@ stages:
         command: 'build'
         projects: '$(solutionPath)'
         arguments: '--configuration $(buildConfiguration) --no-restore'
-
-    - script: |
-        echo "=== Debugging Tailwind CSS Issue ==="
-        echo "1. Checking local extracted classes file:"
-        ls -la CruSibyl.Web/Tools/local-extracted-classes.txt
-        echo "Full content of CruSibyl.Web/Tools/local-extracted-classes.txt:"
-        cat CruSibyl.Web/Tools/local-extracted-classes.txt
-      displayName: 'Debug CSS generation issue'
     
     # Placeholder for tests - uncomment and modify when test projects are added
     # - task: DotNetCoreCLI@2
