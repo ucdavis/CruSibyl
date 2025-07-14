@@ -61,11 +61,16 @@ stages:
         echo "=== Debugging Tailwind CSS Issue ==="
         echo "1. Checking local extracted classes file:"
         ls -la CruSibyl.Web/Tools/local-extracted-classes.txt
-        echo "Content:"
-        cat CruSibyl.Web/Tools/local-extracted-classes.txt
+        echo "Content (first 10 lines):"
+        head -10 CruSibyl.Web/Tools/local-extracted-classes.txt
         echo ""
         echo "2. Checking for Htmx.Components extracted classes:"
-        ls -la Htmx.Components/content/extracted-css-classes.txt 2>/dev/null || echo "Htmx.Components extracted classes file not found"
+        ls -la CruSibyl.Web/Tools/htmx-components-extracted-classes.txt 2>/dev/null || echo "Htmx.Components extracted classes file not found"
+        if [ -f "CruSibyl.Web/Tools/htmx-components-extracted-classes.txt" ]; then
+          echo "Htmx.Components extracted classes content (first 10 lines):"
+          head -10 CruSibyl.Web/Tools/htmx-components-extracted-classes.txt
+          echo "Total lines: $(wc -l < CruSibyl.Web/Tools/htmx-components-extracted-classes.txt)"
+        fi
         echo ""
         echo "3. Checking CSS file after build:"
         ls -la CruSibyl.Web/wwwroot/css/
