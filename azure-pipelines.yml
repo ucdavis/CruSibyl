@@ -61,24 +61,8 @@ stages:
         echo "=== Debugging Tailwind CSS Issue ==="
         echo "1. Checking local extracted classes file:"
         ls -la CruSibyl.Web/Tools/local-extracted-classes.txt
-        echo "Content (first 10 lines):"
-        head -10 CruSibyl.Web/Tools/local-extracted-classes.txt
-        echo ""
-        echo "2. Checking for Htmx.Components extracted classes:"
-        ls -la CruSibyl.Web/Tools/htmx-components-extracted-classes.txt 2>/dev/null || echo "Htmx.Components extracted classes file not found"
-        if [ -f "CruSibyl.Web/Tools/htmx-components-extracted-classes.txt" ]; then
-          echo "Htmx.Components extracted classes content (first 10 lines):"
-          head -10 CruSibyl.Web/Tools/htmx-components-extracted-classes.txt
-          echo "Total lines: $(wc -l < CruSibyl.Web/Tools/htmx-components-extracted-classes.txt)"
-        fi
-        echo ""
-        echo "3. Checking CSS file after build:"
-        ls -la CruSibyl.Web/wwwroot/css/
-        echo "CSS file size: $(wc -c < CruSibyl.Web/wwwroot/css/site.css) bytes"
-        echo "First 500 characters of CSS:"
-        head -c 500 CruSibyl.Web/wwwroot/css/site.css
-        echo ""
-        echo "=== End Debug Info ==="
+        echo "Full content of CruSibyl.Web/Tools/local-extracted-classes.txt:"
+        cat CruSibyl.Web/Tools/local-extracted-classes.txt
       displayName: 'Debug CSS generation issue'
     
     # Placeholder for tests - uncomment and modify when test projects are added
@@ -117,15 +101,6 @@ stages:
         zipAfterPublish: false
         modifyOutputPath: false
 
-    - script: |
-        echo "Verifying CSS file in published output..."
-        ls -la $(Build.ArtifactStagingDirectory)/webapp/wwwroot/css/
-        echo "Published CSS file size:"
-        wc -c $(Build.ArtifactStagingDirectory)/webapp/wwwroot/css/site.css
-        echo "First 5 lines of published CSS:"
-        head -5 $(Build.ArtifactStagingDirectory)/webapp/wwwroot/css/site.css
-      displayName: 'Verify CSS file in published output'
-    
     - task: DotNetCoreCLI@2
       displayName: 'Publish ManifestSync WebJob'
       inputs:
