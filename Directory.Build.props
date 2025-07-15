@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <!-- Enable package lock files for better caching -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>
