@@ -57,12 +57,13 @@ stages:
         path: $(NUGET_PACKAGES)
         cacheHitVar: CACHE_RESTORED
     
-    # Cache npm packages
+    # Cache npm packages (using package.json as primary key since package-lock.json is generated during build)
     - task: Cache@2
       displayName: 'Cache npm packages'
       inputs:
-        key: 'npm | "$(Agent.OS)" | $(System.DefaultWorkingDirectory)/CruSibyl.Web/Tools/package-lock.json'
+        key: 'npm | "$(Agent.OS)" | $(System.DefaultWorkingDirectory)/CruSibyl.Web/Tools/package.json'
         restoreKeys: |
+          npm | "$(Agent.OS)" | $(System.DefaultWorkingDirectory)/CruSibyl.Web/Tools/package.json
           npm | "$(Agent.OS)"
           npm
         path: $(System.DefaultWorkingDirectory)/CruSibyl.Web/Tools/node_modules
