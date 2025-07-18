@@ -113,19 +113,10 @@ stages:
         zipAfterPublish: false
         modifyOutputPath: false
     
-    - task: ArchiveFiles@2
-      displayName: 'Create deployment package'
-      inputs:
-        rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/webapp'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/CruSibyl.zip'
-        replaceExistingArchive: true
-    
     - task: PublishBuildArtifacts@1
       displayName: 'Publish build artifacts'
       inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)/CruSibyl.zip'
+        pathToPublish: '$(Build.ArtifactStagingDirectory)/webapp'
         artifactName: 'drop'
         publishLocation: 'Container'
 
@@ -152,7 +143,7 @@ stages:
               azureSubscription: 'UC Davis CAES Test'
               appType: 'webApp'
               appName: 'CruSibyl-Test'
-              package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
+              package: '$(Pipeline.Workspace)/drop'
               deploymentMethod: 'auto'
 
 - stage: DeployProduction
@@ -178,5 +169,5 @@ stages:
               azureSubscription: 'UC Davis CAES Prod'
               appType: 'webApp'
               appName: 'crusibyl'
-              package: '$(Pipeline.Workspace)/drop/CruSibyl.zip'
+              package: '$(Pipeline.Workspace)/drop'
               deploymentMethod: 'auto'
