@@ -99,7 +99,7 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(manifestSyncJobPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered --no-build'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered/ManifestSync --no-build'
         zipAfterPublish: false
         modifyOutputPath: false
     
@@ -109,7 +109,7 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(packageVersionSyncJobPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered --no-build'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered/PackageVersionSync --no-build'
         zipAfterPublish: false
         modifyOutputPath: false
     
