@@ -141,7 +141,7 @@ stages:
             displayName: 'Deploy Web App and WebJobs to Test'
             inputs:
               azureSubscription: 'UC Davis CAES Test'
-              appType: 'webApp'
+              appType: 'webAppLinux'
               appName: 'CruSibyl-Test'
               package: '$(Pipeline.Workspace)/drop'
               deploymentMethod: 'auto'
@@ -167,7 +167,7 @@ stages:
             displayName: 'Deploy Web App and WebJobs to Production'
             inputs:
               azureSubscription: 'UC Davis CAES Prod'
-              appType: 'webApp'
+              appType: 'webAppLinux'
               appName: 'crusibyl'
               package: '$(Pipeline.Workspace)/drop'
               deploymentMethod: 'auto'
