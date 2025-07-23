@@ -151,7 +151,7 @@ stages:
               appType: 'functionAppLinux'
               appName: 'CruSibyl-Functions-Test'
               package: '$(Pipeline.Workspace)/functions'
-              deploymentMethod: 'auto'
+              deploymentMethod: 'runFromPackage'
 
 - stage: DeployProduction
   displayName: 'Deploy to Production Environment'
@@ -188,4 +188,4 @@ stages:
               appType: 'functionAppLinux'
               appName: 'CruSibyl-Functions'
               package: '$(Pipeline.Workspace)/functions'
-              deploymentMethod: 'auto'
+              deploymentMethod: 'runFromPackage'
