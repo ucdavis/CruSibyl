@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Reflection;
-using System.Text;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Serilog.Events;
@@ -11,45 +8,31 @@ using Serilog.Exceptions.Core;
 using Serilog.Exceptions.EntityFrameworkCore.Destructurers;
 using Serilog.Sinks.Elasticsearch;
 
-namespace CruSibyl.Jobs.Core
+namespace CruSibyl.Functions
 {
     public static class LogConfiguration
     {
-        private static bool _loggingSetup;
-
-        private static IConfigurationRoot _configuration = null!;
-
-        public static void Setup(IConfigurationRoot configuration, string? jobName, Guid? jobId)
+        public static ILogger Setup(IConfiguration configuration)
         {
-            if (_loggingSetup) return;
-
-            // save configuration for later calls
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            ArgumentNullException.ThrowIfNull(configuration, nameof(configuration));
 
             // create global logger with standard configuration
-            Log.Logger = GetConfiguration()
-                .CreateLogger()
-                .ForContext("jobname", jobName ?? Assembly.GetEntryAssembly()?.GetName().Name)
-                .ForContext("jobid", jobId ?? Guid.NewGuid());
-
-            AppDomain.CurrentDomain.UnhandledException += (sender, e) => Log.Fatal(e.ExceptionObject as Exception, e.ExceptionObject?.ToString() ?? "");
-
-            AppDomain.CurrentDomain.ProcessExit += (sender, e) => Log.CloseAndFlush();
+            var loggerConfig = GetConfiguration(configuration);
+            Log.Logger = loggerConfig.CreateLogger();
 
 #if DEBUG
             Serilog.Debugging.SelfLog.Enable(msg => Debug.WriteLine(msg));
 #endif
 
-            _loggingSetup = true;
+            return Log.Logger;
         }
 
         /// <summary>
-        /// Get a logger configuration that logs to stackify
+        /// Get a logger configuration that logs to elasticsearch and console.
         /// </summary>
         /// <returns></returns>
-        public static LoggerConfiguration GetConfiguration()
+        public static LoggerConfiguration GetConfiguration(IConfiguration configuration)
         {
-            if (_configuration == null) throw new InvalidOperationException("Call Setup() before requesting a Logger Configuration"); ;
 
             // standard logger
             var logConfig = new LoggerConfiguration()
@@ -60,20 +43,20 @@ namespace CruSibyl.Jobs.Core
                 .Enrich.FromLogContext()
                 .Enrich.WithExceptionDetails(new DestructuringOptionsBuilder()
                     .WithDefaultDestructurers()
-                    .WithDestructurers(new[] { new DbUpdateExceptionDestructurer() }));
+                    .WithDestructurers([new DbUpdateExceptionDestructurer()]));
 
             // various sinks
             logConfig = logConfig
                 .WriteTo.Console()
-                .WriteToElasticSearchCustom();
+                .WriteToElasticSearchCustom(configuration);
 
             return logConfig;
         }
 
-        private static LoggerConfiguration WriteToElasticSearchCustom(this LoggerConfiguration logConfig)
+        private static LoggerConfiguration WriteToElasticSearchCustom(this LoggerConfiguration logConfig, IConfiguration configuration)
         {
             // get logging config for ES endpoint (re-use some stackify settings for now)
-            var loggingSection = _configuration.GetSection("Serilog");
+            var loggingSection = configuration.GetSection("Serilog");
 
             var esUrl = loggingSection.GetValue<string>("ElasticUrl"); //logging
 

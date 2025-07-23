@@ -23,7 +23,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/CruSibyl.Jobs.ManifestSync/CruSibyl.Jobs.ManifestSync.csproj",
+        "${workspaceFolder}/CruSibyl.Functions.ManifestSync/CruSibyl.Functions.ManifestSync.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],
@@ -35,7 +35,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/CruSibyl.Jobs.PackageVersionSync/CruSibyl.Jobs.PackageVersionSync.csproj",
+        "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync/CruSibyl.Functions.PackageVersionSync.csproj",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary"
       ],

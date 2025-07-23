@@ -19,8 +19,7 @@ variables:
   # Build paths
   solutionPath: '**/*.sln'
   webProjectPath: 'CruSibyl.Web/CruSibyl.Web.csproj'
-  manifestSyncJobPath: 'CruSibyl.Jobs.ManifestSync/CruSibyl.Jobs.ManifestSync.csproj'
-  packageVersionSyncJobPath: 'CruSibyl.Jobs.PackageVersionSync/CruSibyl.Jobs.PackageVersionSync.csproj'
+  functionsProjectPath: 'CruSibyl.Functions/CruSibyl.Functions.csproj'
 
 stages:
 - stage: Build
@@ -94,30 +93,27 @@ stages:
         modifyOutputPath: false
 
     - task: DotNetCoreCLI@2
-      displayName: 'Publish ManifestSync WebJob'
+      displayName: 'Publish Functions Azure Function'
       inputs:
         command: 'publish'
         publishWebProjects: false
-        projects: '$(manifestSyncJobPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered/ManifestSync --no-build'
-        zipAfterPublish: false
-        modifyOutputPath: false
-    
-    - task: DotNetCoreCLI@2
-      displayName: 'Publish PackageVersionSync WebJob'
-      inputs:
-        command: 'publish'
-        publishWebProjects: false
-        projects: '$(packageVersionSyncJobPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp/App_Data/jobs/triggered/PackageVersionSync --no-build'
+        projects: '$(functionsProjectPath)'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/functions --no-build'
         zipAfterPublish: false
         modifyOutputPath: false
     
     - task: PublishBuildArtifacts@1
-      displayName: 'Publish build artifacts'
+      displayName: 'Publish Web App artifact'
       inputs:
         pathToPublish: '$(Build.ArtifactStagingDirectory)/webapp'
         artifactName: 'drop'
+        publishLocation: 'Container'
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Functions artifact'
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)/functions'
+        artifactName: 'functions'
         publishLocation: 'Container'
 
 - stage: DeployTest
@@ -136,14 +132,25 @@ stages:
           steps:
           - download: current
             artifact: drop
-          
+          - download: current
+            artifact: functions
+
           - task: AzureWebApp@1
-            displayName: 'Deploy Web App and WebJobs to Test'
+            displayName: 'Deploy Web App to Test'
             inputs:
               azureSubscription: 'UC Davis CAES Test'
               appType: 'webAppLinux'
               appName: 'CruSibyl-Test'
               package: '$(Pipeline.Workspace)/drop'
+              deploymentMethod: 'auto'
+
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Functions Azure Function to Test'
+            inputs:
+              azureSubscription: 'UC Davis CAES Test'
+              appType: 'functionAppLinux'
+              appName: 'CruSibyl-Functions-Test'
+              package: '$(Pipeline.Workspace)/functions'
               deploymentMethod: 'auto'
 
 - stage: DeployProduction
@@ -162,12 +169,23 @@ stages:
           steps:
           - download: current
             artifact: drop
-          
+          - download: current
+            artifact: functions
+
           - task: AzureWebApp@1
-            displayName: 'Deploy Web App and WebJobs to Production'
+            displayName: 'Deploy Web App to Production'
             inputs:
               azureSubscription: 'UC Davis CAES Prod'
               appType: 'webAppLinux'
               appName: 'crusibyl'
               package: '$(Pipeline.Workspace)/drop'
+              deploymentMethod: 'auto'
+
+          - task: AzureFunctionApp@1
+            displayName: 'Deploy Functions Azure Function to Production'
+            inputs:
+              azureSubscription: 'UC Davis CAES Prod'
+              appType: 'functionAppLinux'
+              appName: 'CruSibyl-Functions'
+              package: '$(Pipeline.Workspace)/functions'
               deploymentMethod: 'auto'

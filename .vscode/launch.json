@@ -31,9 +31,9 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "buildManifestSync",
-      "program": "${workspaceFolder}/CruSibyl.Jobs.ManifestSync/bin/Debug/net8.0/CruSibyl.Jobs.ManifestSync.dll",
+      "program": "${workspaceFolder}/CruSibyl.Functions.ManifestSync/bin/Debug/net8.0/CruSibyl.Functions.ManifestSync.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/CruSibyl.Jobs.ManifestSync",
+      "cwd": "${workspaceFolder}/CruSibyl.Functions.ManifestSync",
       "stopAtEntry": false,
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development"
@@ -44,9 +44,9 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "buildPackageVersionSync",
-      "program": "${workspaceFolder}/CruSibyl.Jobs.PackageVersionSync/bin/Debug/net8.0/CruSibyl.Jobs.PackageVersionSync.dll",
+      "program": "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync/bin/Debug/net8.0/CruSibyl.Functions.PackageVersionSync.dll",
       "args": [],
-      "cwd": "${workspaceFolder}/CruSibyl.Jobs.PackageVersionSync",
+      "cwd": "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync",
       "stopAtEntry": false,
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development"
