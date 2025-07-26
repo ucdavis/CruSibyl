@@ -16,7 +16,7 @@ public class PackageVersionSyncFunction
     }
 
     [Function("PackageVersionSyncFunction")]
-    public async Task Run([TimerTrigger("0 */5 * * * *")] TimerInfo timer)
+    public async Task Run([TimerTrigger("0 0 10 * * *")] TimerInfo timer)
     {
         await _service.SyncPackageVersionsAsync();
     }

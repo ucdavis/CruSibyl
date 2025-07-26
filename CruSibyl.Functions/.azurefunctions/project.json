@@ -1,7 +1,0 @@
-{
-  "platform": {
-    "architecture": "x64"
-  },
-  "language": "dotnet-isolated",
-  "entryPoint": "CruSibyl.Functions.dll"
-}

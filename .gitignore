@@ -270,3 +270,6 @@ Thumbs.db
 # extracted css classes for tailwind build
 local-extracted-classes.txt
 htmx-components-extracted-classes.txt
+
+# azure functions settings
+local.settings.json
