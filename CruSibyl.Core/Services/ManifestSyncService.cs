@@ -13,7 +13,7 @@ namespace CruSibyl.Core.Services;
 
 public interface IManifestSyncService
 {
-    public Task<Result> SyncManifestsAsync();
+    public Task<Result> SyncManifestsAsync(int timeLimitInMinutes);
 }
 
 public class ManifestSyncService : IManifestSyncService
@@ -27,8 +27,12 @@ public class ManifestSyncService : IManifestSyncService
         _dbContext = dbContext;
     }
 
-    public async Task<Result> SyncManifestsAsync()
+    public async Task<Result> SyncManifestsAsync(int timeLimitInMinutes)
     {
+        if (timeLimitInMinutes <= 1)
+        {
+            throw new ArgumentException("Time limit must be greater than 1 minute", nameof(timeLimitInMinutes));
+        }
         // TODO: This scan metadata logic is kind of messy. Consider moving the data to a separate table
         var scanInfo = await _dbContext.Repos
             .GroupBy(r => 1)
@@ -91,8 +95,20 @@ public class ManifestSyncService : IManifestSyncService
 
         try
         {
+            var startTime = DateTime.UtcNow;
+            TimeSpan timeLimit = TimeSpan.FromMinutes(timeLimitInMinutes);
+            var exitingEarly = false;
             foreach (var repo in repos)
             {
+                // Github throttles searches to two per minute. GetManifests performs two searches per repo. So 
+                // we check if we are within 1 minute of the time limit.
+                var elapsed = DateTime.UtcNow - startTime;
+                if (elapsed >= timeLimit - TimeSpan.FromMinutes(1))
+                {
+                    Log.Information("Breaking out of repo sync loop: within 1 minute of time limit ({TimeLimit} min)", timeLimitInMinutes);
+                    exitingEarly = true;
+                    break;
+                }
                 Log.Verbose("Getting {RepoName} manifests", repo.Name);
                 var gitHubManifests = await _gitHubService.GetManifests(repo.Name);
 
@@ -144,7 +160,7 @@ public class ManifestSyncService : IManifestSyncService
                         }
 
                         // Ensure PackageVersion exists
-                        var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version,dep.Version, StringComparison.OrdinalIgnoreCase));
+                        var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version, dep.Version, StringComparison.OrdinalIgnoreCase));
                         if (packageVersion == null)
                         {
                             var baseVersion = ExtractBaseVersion(dep.Version);
@@ -184,7 +200,10 @@ public class ManifestSyncService : IManifestSyncService
                         }
                     }
                 }
-                repo.ScanStatus = ScanStatus.Completed;
+                if (!exitingEarly)
+                {
+                    repo.ScanStatus = ScanStatus.Completed;
+                }
                 await _dbContext.SaveChangesAsync();
             }
             return Result.Ok();
@@ -203,7 +222,7 @@ public class ManifestSyncService : IManifestSyncService
 
         // Remove common npm version range prefixes and operators
         var cleaned = versionSpec.Trim();
-        
+
         // Handle special cases first
         if (cleaned.Equals("latest", StringComparison.OrdinalIgnoreCase) ||
             cleaned.Equals("*", StringComparison.OrdinalIgnoreCase))
@@ -213,7 +232,7 @@ public class ManifestSyncService : IManifestSyncService
 
         // Remove version range operators (^, ~, >=, <=, >, <, =)
         cleaned = Regex.Replace(cleaned, @"^[\^~>=<]*\s*", "");
-        
+
         // Handle version ranges (e.g., "1.2.3 - 2.0.0" or ">=1.2.3 <2.0.0")
         // Take the first version in ranges
         var rangeMatch = Regex.Match(cleaned, @"^([0-9]+(?:\.[0-9]+)*(?:\.[0-9]+)?(?:-[A-Za-z0-9\.-]+)?)\s*(?:[-\s]|$)");
@@ -225,14 +244,14 @@ public class ManifestSyncService : IManifestSyncService
         // Extract the core version pattern, being more permissive
         // This handles: 1.2.3, 1.2, 1, 1.2.3-beta.1, 1.2.3-alpha+build.1, etc.
         var versionMatch = Regex.Match(cleaned, @"^([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?(?:-([A-Za-z0-9\.-]+))?(?:\+([A-Za-z0-9\.-]+))?");
-        
+
         if (versionMatch.Success)
         {
             var major = versionMatch.Groups[1].Value;
             var minor = versionMatch.Groups[2].Success ? versionMatch.Groups[2].Value : "0";
             var patch = versionMatch.Groups[3].Success ? versionMatch.Groups[3].Value : "0";
             var prerelease = versionMatch.Groups[4].Success ? $"-{versionMatch.Groups[4].Value}" : "";
-            
+
             // Build a semver-compatible version
             return $"{major}.{minor}.{patch}{prerelease}";
         }

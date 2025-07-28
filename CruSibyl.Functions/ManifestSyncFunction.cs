@@ -12,6 +12,9 @@ public class ManifestSyncFunction : SyncFunctionBase
 {
     private readonly IConfiguration _configuration;
     private readonly IManifestSyncService _service;
+    // Max time for Azure Function execution under consumption plan is 10 minutes.
+    // We set a 9 minute limit to allow for a safety margin.
+    private const int TimeLimitInMinutes = 9;
 
     public ManifestSyncFunction(IConfiguration configuration, IManifestSyncService service)
     {
@@ -20,16 +23,16 @@ public class ManifestSyncFunction : SyncFunctionBase
     }
 
     [Function("ManifestSyncFunction")]
-    public async Task Run([TimerTrigger("0 0 8 * * *")] TimerInfo timer)
+    public async Task Run([TimerTrigger("0 0 */4 * * *")] TimerInfo timer)
     {
-        await ExecuteSync(() => _service.SyncManifestsAsync(), "Timer trigger", "Manifest");
+        await ExecuteSync(() => _service.SyncManifestsAsync(TimeLimitInMinutes), "Timer trigger", "Manifest");
     }
 
     [Function("ManifestSyncFunction_Http")]
     public async Task<HttpResponseData> RunHttp(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        var wasExecuted = await ExecuteSync(() => _service.SyncManifestsAsync(), "Manual trigger", "Manifest");
+        var wasExecuted = await ExecuteSync(() => _service.SyncManifestsAsync(TimeLimitInMinutes), "Manual trigger", "Manifest");
 
         var response = req.CreateResponse(wasExecuted ? HttpStatusCode.OK : HttpStatusCode.Conflict);
         var message = wasExecuted
