@@ -39,10 +39,14 @@ public abstract class AppDbContext : DbContext
     public virtual DbSet<RoleOperation> RoleOperations { get; set; }
     public virtual DbSet<Resource> Resources { get; set; }
     public virtual DbSet<Operation> Operations { get; set; }
+    public virtual DbSet<App> Apps { get; set; }
+    public virtual DbSet<WebJob> WebJobs { get; set; }
+    public virtual DbSet<Event> Events { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+                
         // Set DeleteBehavior.Restrict for all required relationships
         foreach (var entityType in builder.Model.GetEntityTypes())
         {
@@ -55,6 +59,7 @@ public abstract class AppDbContext : DbContext
             }
         }
 
+        Event.OnModelCreating(builder);
         RoleOperation.OnModelCreating(builder);
     }
 }

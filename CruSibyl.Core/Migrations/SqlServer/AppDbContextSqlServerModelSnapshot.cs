@@ -22,6 +22,97 @@ namespace CruSibyl.Core.Migrations.SqlServer
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AppEvent", b =>
+                {
+                    b.Property<int>("AppsId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AppsId", "EventId");
+
+                    b.HasIndex("EventId");
+
+                    b.ToTable("EventApps", (string)null);
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.App", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DefaultHostName")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("LastHealthCheckAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("RepoId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ResourceGroup")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ResourceId")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RuntimeStack")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("SubscriptionId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("RepoId");
+
+                    b.HasIndex("ResourceGroup");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.ToTable("Apps");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Dependency", b =>
                 {
                     b.Property<int>("Id")
@@ -47,6 +138,52 @@ namespace CruSibyl.Core.Migrations.SqlServer
                         .IsUnique();
 
                     b.ToTable("Dependencies");
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.Event", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CorrelationId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Source")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("Severity");
+
+                    b.HasIndex("Timestamp");
+
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("CruSibyl.Core.Domain.Manifest", b =>
@@ -503,6 +640,131 @@ namespace CruSibyl.Core.Migrations.SqlServer
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("CruSibyl.Core.Domain.WebJob", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AppId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ExtraInfoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("JobType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("LastRunAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long?>("LastRunDurationMs")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("LastRunStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("RunMode")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Schedule")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobType");
+
+                    b.HasIndex("LastRunAt");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("AppId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("WebJobs");
+                });
+
+            modelBuilder.Entity("EventRepo", b =>
+                {
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReposId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EventId", "ReposId");
+
+                    b.HasIndex("ReposId");
+
+                    b.ToTable("EventRepos", (string)null);
+                });
+
+            modelBuilder.Entity("EventWebJob", b =>
+                {
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WebJobsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EventId", "WebJobsId");
+
+                    b.HasIndex("WebJobsId");
+
+                    b.ToTable("EventWebJobs", (string)null);
+                });
+
+            modelBuilder.Entity("AppEvent", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.App", null)
+                        .WithMany()
+                        .HasForeignKey("AppsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CruSibyl.Core.Domain.Event", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.App", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.Repo", "Repo")
+                        .WithMany()
+                        .HasForeignKey("RepoId");
+
+                    b.Navigation("Repo");
+                });
+
             modelBuilder.Entity("CruSibyl.Core.Domain.Dependency", b =>
                 {
                     b.HasOne("CruSibyl.Core.Domain.Manifest", "Manifest")
@@ -640,6 +902,52 @@ namespace CruSibyl.Core.Migrations.SqlServer
                         .IsRequired();
 
                     b.Navigation("Tag");
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.WebJob", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.App", "App")
+                        .WithMany("WebJobs")
+                        .HasForeignKey("AppId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("App");
+                });
+
+            modelBuilder.Entity("EventRepo", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.Event", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CruSibyl.Core.Domain.Repo", null)
+                        .WithMany()
+                        .HasForeignKey("ReposId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EventWebJob", b =>
+                {
+                    b.HasOne("CruSibyl.Core.Domain.Event", null)
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CruSibyl.Core.Domain.WebJob", null)
+                        .WithMany()
+                        .HasForeignKey("WebJobsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("CruSibyl.Core.Domain.App", b =>
+                {
+                    b.Navigation("WebJobs");
                 });
 
             modelBuilder.Entity("CruSibyl.Core.Domain.Manifest", b =>

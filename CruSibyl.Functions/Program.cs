@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using CruSibyl.Core.Services;
 using CruSibyl.Core.Configuration;
+using CruSibyl.Core.Models.Settings;
 using Serilog;
 using Serilog.Extensions.Logging;
 using CruSibyl.Functions;
@@ -48,11 +49,23 @@ var host = new HostBuilder()
             DBContextConfig.Configure(context.Configuration, services, out var _);
             services.AddMemoryCache();
             services.Configure<GitHubSettings>(context.Configuration.GetSection("GitHub"));
+            services.Configure<AzureSettings>(context.Configuration.GetSection("Azure"));
             services.AddSingleton<IGitHubService, GitHubService>();
             services.AddSingleton<IManifestSyncService, ManifestSyncService>();
             services.AddSingleton<IPackageVersionSyncService, PackageVersionSyncService>();
             services.AddSingleton<INuGetService, NuGetService>();
             services.AddSingleton<INpmService, NpmService>();
+            
+            // Azure services
+            services.AddSingleton<IKuduApiService>(sp => 
+            {
+                var httpClient = new System.Net.Http.HttpClient();
+                return new KuduApiService(httpClient);
+            });
+            services.AddSingleton<IEventService, EventService>();
+            services.AddSingleton<IAzureQueryService, AzureQueryService>();
+            services.AddSingleton<IAzureSyncService, AzureSyncService>();
+            
             Console.WriteLine("All services registered.");
         }
         catch (Exception ex)
