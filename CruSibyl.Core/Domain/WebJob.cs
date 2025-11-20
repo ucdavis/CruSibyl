@@ -70,6 +70,11 @@ public class WebJob
     /// </summary>
     public long? LastRunDurationMs { get; set; }
 
+    /// <summary>
+    /// Timestamp of the last status check for run history tracking
+    /// </summary>
+    public DateTime? LastStatusCheckAt { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     public bool IsEnabled { get; set; } = true;

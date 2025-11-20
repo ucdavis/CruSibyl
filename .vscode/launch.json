@@ -27,41 +27,29 @@
       }
     },
     {
-      "name": ".NET Core Launch (manifest sync job)",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "buildManifestSync",
-      "program": "${workspaceFolder}/CruSibyl.Functions.ManifestSync/bin/Debug/net8.0/CruSibyl.Functions.ManifestSync.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/CruSibyl.Functions.ManifestSync",
-      "stopAtEntry": false,
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    {
-      "name": ".NET Core Launch (package version sync job)",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "buildPackageVersionSync",
-      "program": "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync/bin/Debug/net8.0/CruSibyl.Functions.PackageVersionSync.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync",
-      "stopAtEntry": false,
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    },
-    {
-      "name": ".NET Core Attach",
-      "type": "coreclr",
-      "request": "attach"
-    },
-    {
-      "name": "Attach to .NET Functions",
+      "name": "Attach to Azure Functions",
       "type": "coreclr",
       "request": "attach",
       "processId": "${command:azureFunctions.pickProcess}"
+    },
+    {
+      // IMPORTANT: When prompted, look for the process ID that matches the highest number
+      // shown in the "func: host start" terminal output (the worker process)
+      // It will be a "dotnet" process with arguments starting with "--host 127.0.0.1"
+      "name": "Debug Azure Functions (Start & Attach)",
+      "type": "coreclr",
+      "request": "attach",
+      "preLaunchTask": "Start Functions with Azurite",
+      "processId": "${command:pickProcess}",
+      "postDebugTask": "Stop Azurite"
+    },
+    {
+      // IMPORTANT: Pick the "dotnet" process with the highest PID or check the
+      // "func: host start" terminal for the worker process ID
+      "name": "Debug Azure Functions (Attach Only)",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
     }
   ]
 }

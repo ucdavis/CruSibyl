@@ -24,6 +24,16 @@ public interface IAzureQueryService
     /// Get WebJob status and run history
     /// </summary>
     Task<WebJobStatus?> GetWebJobStatus(WebJob webJob, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get detailed WebJob run history with full run details
+    /// </summary>
+    Task<KuduTriggeredWebJobDetails?> GetWebJobRunHistory(WebJob webJob, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get log output for a WebJob run
+    /// </summary>
+    Task<string?> GetWebJobRunOutput(string outputUrl, CancellationToken cancellationToken = default);
 }
 
 public class WebJobStatus
@@ -140,6 +150,8 @@ public class AzureQueryService : IAzureQueryService
 
             // Get continuous WebJobs using Kudu API
             var continuousWebJobs = await _kuduApiService.GetContinuousWebJobs(siteName, slotName, cancellationToken);
+            Log.Debug("Found {Count} continuous WebJobs for {AppName}", continuousWebJobs.Count, app.Name);
+            
             foreach (var kuduJob in continuousWebJobs)
             {
                 var webJob = new WebJob
@@ -159,6 +171,8 @@ public class AzureQueryService : IAzureQueryService
 
             // Get triggered WebJobs using Kudu API
             var triggeredWebJobs = await _kuduApiService.GetTriggeredWebJobs(siteName, slotName, cancellationToken);
+            Log.Debug("Found {Count} triggered WebJobs for {AppName}", triggeredWebJobs.Count, app.Name);
+            
             foreach (var kuduJob in triggeredWebJobs)
             {
                 var webJob = new WebJob
@@ -178,9 +192,11 @@ public class AzureQueryService : IAzureQueryService
                 {
                     webJob.LastRunAt = kuduJob.LatestRun.StartTime;
                     webJob.LastRunStatus = kuduJob.LatestRun.Status;
-                    if (kuduJob.LatestRun.Duration.HasValue)
+                    
+                    var durationMs = kuduJob.LatestRun.GetDurationMs();
+                    if (durationMs.HasValue)
                     {
-                        webJob.LastRunDurationMs = kuduJob.LatestRun.Duration.Value;
+                        webJob.LastRunDurationMs = durationMs.Value;
                     }
                     else if (kuduJob.LatestRun.EndTime.HasValue && kuduJob.LatestRun.StartTime.HasValue)
                     {
@@ -249,10 +265,10 @@ public class AzureQueryService : IAzureQueryService
                 // For triggered jobs, get detailed run history
                 var details = await _kuduApiService.GetTriggeredWebJobDetails(siteName, webJob.Name, slotName, cancellationToken);
                 
-                if (details?.LatestRuns != null && details.LatestRuns.Count > 0)
+                if (details?.LatestRun != null)
                 {
-                    var latestRun = details.LatestRuns[0];
-                    long? durationMs = latestRun.Duration;
+                    var latestRun = details.LatestRun;
+                    long? durationMs = latestRun.GetDurationMs();
                     
                     if (!durationMs.HasValue && latestRun.EndTime.HasValue && latestRun.StartTime.HasValue)
                     {
@@ -277,5 +293,52 @@ public class AzureQueryService : IAzureQueryService
             Log.Error(ex, "Failed to get status for WebJob {WebJobName} in app {AppName}", webJob.Name, webJob.App.Name);
             throw;
         }
+    }
+
+    public async Task<KuduTriggeredWebJobDetails?> GetWebJobRunHistory(WebJob webJob, CancellationToken cancellationToken = default)
+    {
+        Log.Debug("Getting run history for WebJob {WebJobName} in app {AppName}", webJob.Name, webJob.App.Name);
+
+        if (string.IsNullOrEmpty(webJob.App.Name) || string.IsNullOrEmpty(webJob.Name))
+        {
+            Log.Warning("App or WebJob name is missing, cannot get run history");
+            return null;
+        }
+
+        try
+        {
+            // Extract slot name if present
+            string siteName = webJob.App.Name;
+            string? slotName = null;
+
+            if (webJob.App.ResourceId?.Contains("/slots/") == true)
+            {
+                var parts = webJob.App.ResourceId.Split(new[] { "/slots/" }, StringSplitOptions.None);
+                if (parts.Length > 1)
+                {
+                    slotName = parts[1].Split('/')[0];
+                }
+            }
+
+            // Fetch the full run history list and wrap it in the expected object
+            var historyRuns = await _kuduApiService.GetTriggeredWebJobHistory(siteName, webJob.Name, slotName, cancellationToken);
+            
+            // Return a wrapper object that contains the history list
+            return new KuduTriggeredWebJobDetails
+            {
+                Name = webJob.Name,
+                LatestRuns = historyRuns
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to get run history for WebJob {WebJobName} in app {AppName}", webJob.Name, webJob.App.Name);
+            throw;
+        }
+    }
+
+    public async Task<string?> GetWebJobRunOutput(string outputUrl, CancellationToken cancellationToken = default)
+    {
+        return await _kuduApiService.GetWebJobRunOutput(outputUrl, cancellationToken);
     }
 }

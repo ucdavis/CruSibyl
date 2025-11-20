@@ -271,5 +271,8 @@ Thumbs.db
 local-extracted-classes.txt
 htmx-components-extracted-classes.txt
 
-# azure functions settings
+# Azure Functions settings
 local.settings.json
+
+# Azurite local storage emulator
+.azurite/

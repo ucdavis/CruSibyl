@@ -1,4 +1,5 @@
 ﻿using CruSibyl.Core.Domain;
+using CruSibyl.Core.Extensions;
 using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Core.Data;
@@ -59,7 +60,7 @@ public abstract class AppDbContext : DbContext
             }
         }
 
-        Event.OnModelCreating(builder);
+        Event.OnModelCreating(builder, this);
         RoleOperation.OnModelCreating(builder);
     }
 }

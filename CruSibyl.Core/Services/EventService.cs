@@ -1,3 +1,4 @@
+using System.Text.Json;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ public interface IEventService
         string? details = null, 
         string? correlationId = null,
         string? source = null,
+        object? payload = null,
         CancellationToken cancellationToken = default);
 }
 
@@ -42,6 +44,7 @@ public class EventService : IEventService
         string? details = null, 
         string? correlationId = null,
         string? source = null,
+        object? payload = null,
         CancellationToken cancellationToken = default)
     {
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -54,7 +57,8 @@ public class EventService : IEventService
             Message = message,
             Details = details,
             Source = source ?? "System",
-            CorrelationId = correlationId
+            CorrelationId = correlationId,
+            Payload = payload != null ? JsonSerializer.SerializeToElement(payload) : null
         };
 
         // Load related entities

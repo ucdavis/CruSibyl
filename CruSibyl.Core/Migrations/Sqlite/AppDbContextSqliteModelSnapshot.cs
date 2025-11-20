@@ -152,6 +152,9 @@ namespace CruSibyl.Core.Migrations.Sqlite
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Payload")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Severity")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -629,6 +632,9 @@ namespace CruSibyl.Core.Migrations.Sqlite
 
                     b.Property<string>("LastRunStatus")
                         .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastStatusCheckAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")

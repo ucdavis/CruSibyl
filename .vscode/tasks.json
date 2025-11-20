@@ -18,30 +18,6 @@
       }
     },
     {
-      "label": "buildManifestSync",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/CruSibyl.Functions.ManifestSync/CruSibyl.Functions.ManifestSync.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
-      "label": "buildPackageVersionSync",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/CruSibyl.Functions.PackageVersionSync/CruSibyl.Functions.PackageVersionSync.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary"
-      ],
-      "problemMatcher": "$msCompile"
-    },
-    {
       "label": "publish",
       "command": "dotnet",
       "type": "process",
@@ -132,14 +108,200 @@
       }
     },
     {
+      "label": "func: host start",
       "type": "func",
       "dependsOn": "build (functions)",
       "options": {
-        "cwd": "${workspaceFolder}/CruSibyl.Functions/bin/Debug/net8.0"
+        "cwd": "${workspaceFolder}/CruSibyl.Functions"
       },
       "command": "host start",
       "isBackground": true,
       "problemMatcher": "$func-dotnet-watch"
+    },
+    {
+      "label": "Start Azurite",
+      "type": "shell",
+      "command": "azurite",
+      "args": [
+        "--location",
+        "${workspaceFolder}/.azurite",
+        "--debug",
+        "${workspaceFolder}/.azurite/debug.log"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Azurite",
+          "endsPattern": "successfully listening"
+        }
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Stop Azurite",
+      "type": "shell",
+      "command": "killall",
+      "args": ["azurite"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": false,
+        "reveal": "never",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Wait for Azurite",
+      "type": "shell",
+      "command": "sleep",
+      "args": ["3"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Wait for Functions Worker",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "for i in {1..10}; do PID=$(pgrep -f 'functions-worker-id'); if [ -n \"$PID\" ]; then echo \"✓ Functions Worker Started - Process ID: $PID\"; echo \"When the process picker appears, select: dotnet $PID\"; exit 0; fi; sleep 1; done; echo \"⚠ Timeout waiting for Functions worker\"; exit 1"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Start Functions with Azurite",
+      "dependsOn": [
+        "Start Azurite",
+        "Wait for Azurite",
+        "func: host start",
+        "Wait for Functions Worker"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Show Functions Worker PID",
+      "type": "shell",
+      "command": "echo",
+      "args": [
+        "Functions Worker Process ID:",
+        "$(ps aux | grep '\\-\\-functions-worker-id' | grep -v grep | awk '{print $2}' || echo 'Not running - start Functions first')"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Trigger: ManifestSync",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
+      "args": ["manifest"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Trigger: AppWebJobSync",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
+      "args": ["webjob"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Trigger: PackageVersionSync",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
+      "args": ["packageversion"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Trigger: WebJobStatusSync",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
+      "args": ["webjobstatus"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Trigger: All Functions",
+      "type": "shell",
+      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
+      "args": ["all"],
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": false
+      }
     }
   ]
 }
