@@ -1,0 +1,117 @@
+@using CruSibyl.Web.Models.Dashboard
+@model WebJobDrillDownViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">
+      @Model.WebJobName
+      <span class="badge badge-neutral badge-sm">@Model.JobType</span>
+      <span class="badge badge-ghost badge-sm">@Model.SubscriptionName</span>
+    </h3>
+    
+    <div class="text-sm">
+      <strong>App:</strong> @Model.AppName<br/>
+      <strong>Status:</strong> <span class="badge badge-sm">@Model.Status</span><br/>
+      @if (!string.IsNullOrEmpty(Model.Schedule))
+      {
+        <strong>Schedule:</strong> @Model.Schedule<br/>
+      }
+      @if (!string.IsNullOrEmpty(Model.RunMode))
+      {
+        <strong>Run Mode:</strong> @Model.RunMode<br/>
+      }
+    </div>
+
+    <!-- Future action buttons (disabled) -->
+    <div class="card-actions justify-end mt-2">
+      <button class="btn btn-sm btn-ghost" disabled title="Coming soon">
+        <i class="fas fa-play"></i> Rerun
+      </button>
+      <button class="btn btn-sm btn-ghost" disabled title="Coming soon">
+        <i class="fas fa-stop"></i> Stop
+      </button>
+    </div>
+
+    <!-- Recent Runs -->
+    <h4 class="font-bold mt-4">Recent Runs (30 Days)</h4>
+    <div class="overflow-x-auto">
+      <table class="table table-zebra table-sm">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var run in Model.RecentRuns)
+          {
+            <tr>
+              <td class="font-mono text-xs">@(run.RunId ?? "N/A")</td>
+              <td>@run.StartTime?.ToString("g")</td>
+              <td>@run.EndTime?.ToString("g")</td>
+              <td>@(run.DurationMs.HasValue ? $"{run.DurationMs.Value / 1000.0:F2}s" : "N/A")</td>
+              <td>
+                @if (run.Status == "Failed" || run.Status == "Error")
+                {
+                  <span class="badge badge-error badge-sm">@run.Status</span>
+                }
+                else if (run.Status == "Success" || run.Status == "CompletedSuccess")
+                {
+                  <span class="badge badge-success badge-sm">@run.Status</span>
+                }
+                else
+                {
+                  <span class="badge badge-ghost badge-sm">@run.Status</span>
+                }
+              </td>
+              <td>
+                @if (!string.IsNullOrEmpty(run.LogOutputPreview) || !string.IsNullOrEmpty(run.ErrorOutputPreview))
+                {
+                  <button class="btn btn-xs btn-ghost"
+                          onclick="document.getElementById('run-details-@run.RunId').classList.toggle('hidden')">
+                    <i class="fas fa-eye"></i> View Logs
+                  </button>
+                }
+              </td>
+            </tr>
+            @if (!string.IsNullOrEmpty(run.LogOutputPreview) || !string.IsNullOrEmpty(run.ErrorOutputPreview))
+            {
+              <tr id="run-details-@run.RunId" class="hidden">
+                <td colspan="6" class="bg-base-200">
+                  <div class="p-4">
+                    @if (!string.IsNullOrEmpty(run.LogOutputPreview))
+                    {
+                      <div class="mb-2">
+                        <strong>Log Output:</strong>
+                        <pre class="bg-base-300 p-2 rounded text-xs overflow-x-auto">@run.LogOutputPreview</pre>
+                        @if (run.LogTruncated && !string.IsNullOrEmpty(run.OutputUrl))
+                        {
+                          <a href="@run.OutputUrl" target="_blank" class="link link-primary text-xs">View Full Log</a>
+                        }
+                      </div>
+                    }
+                    @if (!string.IsNullOrEmpty(run.ErrorOutputPreview))
+                    {
+                      <div>
+                        <strong>Error Output:</strong>
+                        <pre class="bg-error text-error-content p-2 rounded text-xs overflow-x-auto">@run.ErrorOutputPreview</pre>
+                        @if (!string.IsNullOrEmpty(run.ErrorUrl))
+                        {
+                          <a href="@run.ErrorUrl" target="_blank" class="link link-primary text-xs">View Full Error Log</a>
+                        }
+                      </div>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

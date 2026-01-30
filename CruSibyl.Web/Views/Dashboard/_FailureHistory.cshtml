@@ -1,0 +1,109 @@
+@using CruSibyl.Web.Models.Dashboard
+@model WebJobFailureHistoryViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">WebJob Failure History (30 Days)</h3>
+    
+    <!-- Filters -->
+    <div class="flex gap-2 mb-4">
+      <input type="text" placeholder="Filter by App" class="input input-bordered input-sm" 
+             id="app-filter" value="@Model.AppFilter" />
+      <input type="text" placeholder="Filter by Job" class="input input-bordered input-sm" 
+             id="job-filter" value="@Model.JobFilter" />
+      <button class="btn btn-sm btn-primary"
+              hx-get="/Dashboard/FailureHistory"
+              hx-include="#app-filter,#job-filter,#env-filter"
+              hx-target="#dashboard-detail"
+              hx-swap="innerHTML">
+        Apply
+      </button>
+      <input type="hidden" id="subscription-filter" name="subscriptionId" value="@Model.SubscriptionId" />
+    </div>
+
+    <!-- Failure Table -->
+    <div class="overflow-x-auto">
+      <table class="table table-zebra table-sm">
+        <thead>
+          <tr>
+            <th>App</th>
+            <th>WebJob</th>
+            <th>Time</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Pattern</th>
+            <th>Trend</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @foreach (var failure in Model.Failures)
+          {
+            <tr>
+              <td>@failure.AppName</td>
+              <td>@failure.WebJobName</td>
+              <td>@failure.FailureTime.ToString("g")</td>
+              <td><span class="badge badge-error badge-sm">@failure.Status</span></td>
+              <td>@(failure.DurationMs.HasValue ? $"{failure.DurationMs.Value / 1000.0:F2}s" : "N/A")</td>
+              <td>
+                @if (failure.IsConsistent)
+                {
+                  <span class="badge badge-warning badge-sm">Consistent</span>
+                }
+                else
+                {
+                  <span class="badge badge-ghost badge-sm">Intermittent</span>
+                }
+              </td>
+              <td>
+                @if (Model.FailureSparklines.ContainsKey(failure.WebJobId))
+                {
+                  <canvas class="sparkline" data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
+                }
+              </td>
+              <td>
+                <button class="btn btn-xs btn-ghost"
+                        hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
+                        hx-target="#dashboard-detail"
+                        hx-swap="innerHTML">
+                  Details
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+@section ChartScripts {
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    document.querySelectorAll('.sparkline').forEach(canvas => {
+      const values = canvas.dataset.values.split(',').map(Number);
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: values.map((_, i) => i),
+          datasets: [{
+            data: values,
+            borderColor: 'rgb(255, 99, 132)',
+            borderWidth: 1,
+            fill: false,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: false,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: { display: false }
+          }
+        }
+      });
+    });
+  </script>
+}

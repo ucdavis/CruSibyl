@@ -32,7 +32,8 @@
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
     <TailwindInputFile>Tools/input.css</TailwindInputFile>
   </PropertyGroup>
-  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" Inputs="$(TailwindInputFile)"
+  <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" 
+    Inputs="$(TailwindInputFile);Tools/local-extracted-classes.txt;Tools/htmx-components-extracted-classes.txt"
     Outputs="$(TailwindOutputFile)" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
     <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />

@@ -76,5 +76,11 @@ public class App
 
     public bool IsEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Importance weight for prioritization (0.0 to 1.0, default 0.5)
+    /// Used to calculate priority for dependency upgrades and alerting
+    /// </summary>
+    public double Importance { get; set; } = 0.5;
+
     public List<WebJob> WebJobs { get; set; } = new();
 }

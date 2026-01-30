@@ -49,9 +49,19 @@ public class AdminController : Controller
         return Ok(tableModel);
     }
 
+    [HttpGet("Apps")]
+    [NavAction(DisplayName = "Apps", Icon = "fas fa-server", Order = 1, PushUrl = true, ViewName = "_Apps")]
+    public async Task<IActionResult> Apps()
+    {
+        var modelHandler = await _modelHandlerFactory.Get<App, int>(nameof(App), ModelUI.Table);
+        var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+
+        return Ok(tableModel);
+    }
+
     [HttpGet("AdminUsers")]
     [Authorize(Policy = AccessPolicies.SystemAccess)]
-    [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 1, PushUrl = true, ViewName = "_AdminUsers")]
+    [NavAction(DisplayName = "Admin Users", Icon = "fas fa-users-cog", Order = 2, PushUrl = true, ViewName = "_AdminUsers")]
     public async Task<IActionResult> AdminUsers()
     {
         var modelHandler = await _modelHandlerFactory.Get<AdminUserModel, int>(nameof(AdminUserModel), ModelUI.Table);
@@ -152,6 +162,31 @@ public class AdminController : Controller
                 .AddCrudDisplayColumn());
     }
 
+    [ModelConfig(nameof(App))]
+    private void ConfigureApp(ModelHandlerBuilder<App, int> builder)
+    {
+        builder
+            .WithKeySelector(a => a.Id)
+            .WithQueryable(() => _dbContext.Apps)
+            .WithUpdate(async app =>
+            {
+                _dbContext.Apps.Update(app);
+                await _dbContext.SaveChangesAsync();
+                return Htmx.Components.Models.Result.Value(app);
+            })
+            .WithInput(a => a.Importance, config => config
+                .WithLabel("Importance (0.0 - 1.0)")
+                .WithPlaceholder("0.5")
+                .WithCssClass("form-control"))
+            .WithTable(table => table
+                .WithCrudActions()
+                .AddSelectorColumn(x => x.Name)
+                .AddSelectorColumn(x => x.ResourceGroup!)
+                .AddSelectorColumn(x => x.SubscriptionId!)
+                .AddSelectorColumn(x => x.Importance, config => config.WithEditable())
+                .AddSelectorColumn(x => x.IsEnabled, config => config.WithEditable())
+                .AddCrudDisplayColumn());
+    }
 
 
     [ModelConfig(nameof(Repo))]

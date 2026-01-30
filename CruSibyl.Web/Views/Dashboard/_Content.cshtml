@@ -1,4 +1,144 @@
-<div id="main-content">
-  <h2 class="text-2xl font-bold">Dashboard Content</h2>
-  <p class="text-base text-gray-600">Welcome to the dashboard!</p>
+@using CruSibyl.Web.Models.Dashboard
+@model DashboardViewModel
+
+<div id="main-content" class="flex flex-col gap-4">
+  <!-- Subscription Selector -->
+  <div class="flex justify-between items-center">
+    <h2 class="text-2xl font-bold">Dashboard - @Model.SubscriptionName</h2>
+    @if (Model.Subscriptions.Count > 1)
+    {
+      <div class="join">
+        @foreach (var sub in Model.Subscriptions)
+        {
+          <button class="join-item btn btn-sm @(Model.SubscriptionId == sub.Value.SubscriptionId ? "btn-primary" : "btn-ghost")"
+                  hx-get="/Dashboard/Index?subscriptionId=@sub.Value.SubscriptionId"
+                  hx-target="#main-content"
+                  hx-swap="outerHTML">
+            @sub.Key
+          </button>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Critical Alerts -->
+  @if (Model.CriticalAlerts.Any())
+  {
+    <div class="alert alert-error shadow-lg">
+      <div>
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="font-bold">@Model.CriticalAlerts.Count Critical Failure(s) Detected</h3>
+          <div class="text-xs">
+            @foreach (var alert in Model.CriticalAlerts.Take(3))
+            {
+              <div>
+                <strong>@alert.AppName</strong> - @alert.WebJobName: @alert.FailureTime.ToString("g")
+                @if (alert.IsConsistent)
+                {
+                  <span class="badge badge-warning badge-xs">Consistent</span>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- App Health Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    @foreach (var app in Model.AppHealthCards)
+    {
+      <div class="card bg-base-100 shadow-xl @(app.HasCriticalFailure ? "border-2 border-error" : "")">
+        <div class="card-body">
+          <h3 class="card-title">
+            @app.AppName
+            @if (app.HasCriticalFailure)
+            {
+              <div class="badge badge-error">Critical</div>
+            }
+          </h3>
+          
+          <div class="stats stats-horizontal shadow mt-2">
+            <div class="stat py-2 px-4">
+              <div class="stat-title text-xs">Total Jobs</div>
+              <div class="stat-value text-2xl">@app.TotalWebJobs</div>
+            </div>
+            <div class="stat py-2 px-4">
+              <div class="stat-title text-xs">Running</div>
+              <div class="stat-value text-2xl text-success">@app.RunningWebJobs</div>
+            </div>
+            <div class="stat py-2 px-4">
+              <div class="stat-title text-xs">Failed</div>
+              <div class="stat-value text-2xl text-error">@app.FailedWebJobs</div>
+            </div>
+          </div>
+
+          @if (app.LastFailureAt.HasValue)
+          {
+            <div class="text-xs mt-2">
+              <strong>Last Failure:</strong> @app.LastFailureJobName<br/>
+              <span class="opacity-70">@app.LastFailureAt.Value.ToString("g")</span>
+            </div>
+          }
+
+          <div class="flex justify-between items-center text-xs opacity-70">
+            <div class="mt-1">
+              priority:
+              <progress class="progress progress-primary w-20" value="@((int)(app.Importance * 100))" max="100"></progress>
+              <span class="opacity-70">@app.Importance.ToString("0.0")</span>
+            </div>
+            <div>resource group: @app.ResourceGroup</div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="flex gap-2 mt-4">
+    <button class="btn btn-primary"
+            hx-get="/Dashboard/FailureHistory?subscriptionId=@Model.SubscriptionId"
+            hx-target="#dashboard-detail"
+            hx-swap="innerHTML">
+      <i class="fas fa-history"></i> View Failure History
+    </button>
+    <button class="btn btn-primary"
+            hx-get="/Dashboard/DependencyCurrency?subscriptionId=@Model.SubscriptionId"
+            hx-target="#dashboard-detail"
+            hx-swap="innerHTML">
+      <i class="fas fa-cubes"></i> View Dependency Currency
+    </button>
+  </div>
+
+  <!-- Collapsible DevOps Pipelines (Future) -->
+  <div class="collapse collapse-arrow bg-base-200">
+    <input type="checkbox" /> 
+    <div class="collapse-title text-xl font-medium">
+      DevOps Pipelines (Coming Soon)
+    </div>
+    <div class="collapse-content"> 
+      <p class="text-sm opacity-70">Pipeline status and build information will be displayed here.</p>
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="dashboard-detail" class="mt-4"></div>
 </div>
+
+<!-- Auto-refresh every 60 seconds -->
+<script>
+  setInterval(() => {
+    htmx.trigger('#main-content', 'refresh');
+  }, 60000);
+  
+  document.addEventListener('htmx:afterSwap', (event) => {
+    if (event.detail.target.id === 'main-content') {
+      // Reattach refresh handler after swap
+      htmx.trigger('#main-content', 'refresh');
+    }
+  });
+</script>

@@ -41,10 +41,6 @@
       <p class="text-sm text-center w-full">
         Copyright &copy; <span id="copywrite-year">@DateTime.Now.Year</span>
         The Regents of the University of California, Davis campus. All rights reserved.
-        <br>
-        <a href="https://wiki.cse.ucdavis.edu/support/contact/home" target="_blank" class="link link-primary">
-          Questions? Contact Us
-        </a>
       </p>
     </aside>
   </footer>
@@ -54,6 +50,9 @@
 
   @RenderSection("Scripts", required: false)
   <htmx-scripts></htmx-scripts>
+  
+  <!-- Chart.js loaded conditionally for dashboard -->
+  @RenderSection("ChartScripts", required: false)
 </body>
 
 </html>

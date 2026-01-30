@@ -55,6 +55,9 @@ namespace CruSibyl.Core.Migrations.SqlServer
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<double>("Importance")
+                        .HasColumnType("float");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
 
