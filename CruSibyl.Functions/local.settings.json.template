@@ -1,0 +1,11 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+        "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+        "AzureWebJobs.AppWebJobSyncFunction.Disabled": "true",
+        "AzureWebJobs.ManifestSyncFunction.Disabled": "true",
+        "AzureWebJobs.PackageVersionSyncFunction.Disabled": "true",
+        "AzureWebJobs.WebJobStatusSyncFunction_Timer.Disabled": "true"
+    }
+}

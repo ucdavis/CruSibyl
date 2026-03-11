@@ -64,10 +64,8 @@
         "/consoleloggerparameters:NoSummary"
       ],
       "type": "process",
-      "dependsOn": "clean (functions)",
       "group": {
-        "kind": "build",
-        "isDefault": true
+        "kind": "build"
       },
       "problemMatcher": "$msCompile",
       "options": {
@@ -114,20 +112,113 @@
       "options": {
         "cwd": "${workspaceFolder}/CruSibyl.Functions"
       },
-      "command": "host start",
+      "command": "host start --no-build",
       "isBackground": true,
       "problemMatcher": "$func-dotnet-watch"
     },
     {
+      "label": "Check Azure Functions Core Tools Installation",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "source ~/.zshrc 2>/dev/null || true; if command -v func &> /dev/null; then echo \"✓ Azure Functions Core Tools is installed at: $(which func)\"; exit 0; else echo \"\"; echo \"❌ ERROR: Azure Functions Core Tools is not installed!\"; echo \"\"; echo \"Install with: brew tap azure/functions && brew install azure-functions-core-tools@4\"; echo \"\"; exit 1; fi"
+      ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "if (Get-Command func -ErrorAction SilentlyContinue) { Write-Host 'Azure Functions Core Tools is installed'; exit 0 } else { Write-Host ''; Write-Host 'ERROR: Azure Functions Core Tools is not installed!'; Write-Host 'Install: npm i -g azure-functions-core-tools@4 --unsafe-perm true'; Write-Host 'or use Chocolatey: choco install azure-functions-core-tools-4'; Write-Host ''; exit 1 }"
+        ]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Ensure local.settings.json (functions)",
+      "type": "process",
+      "command": "bash",
+      "args": [
+        "-c",
+        "target=\"${workspaceFolder}/CruSibyl.Functions/local.settings.json\"; template=\"${workspaceFolder}/CruSibyl.Functions/local.settings.json.template\"; if [ -f \"$target\" ]; then echo \"local.settings.json found\"; exit 0; fi; if [ -f \"$template\" ]; then cp \"$template\" \"$target\"; echo \"Created local.settings.json from template\"; echo \"Update secrets/config before running production-like syncs.\"; exit 0; fi; echo \"ERROR: Missing local.settings.json and local.settings.json.template\"; exit 1"
+      ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "$root='${workspaceFolder}'; $target=Join-Path $root 'CruSibyl.Functions\\local.settings.json'; $template=Join-Path $root 'CruSibyl.Functions\\local.settings.json.template'; if (Test-Path $target) { Write-Host 'local.settings.json found'; exit 0 }; if (Test-Path $template) { Copy-Item $template $target; Write-Host 'Created local.settings.json from template'; Write-Host 'Update secrets/config before running production-like syncs.'; exit 0 }; Write-Host 'ERROR: Missing local.settings.json and local.settings.json.template'; exit 1"
+        ]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
+      "label": "Check Azurite Installation",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "source ~/.zshrc 2>/dev/null || true; if command -v azurite &> /dev/null; then echo \"✓ Azurite is installed at: $(which azurite)\"; exit 0; else echo \"\"; echo \"❌ ERROR: Azurite is not installed!\"; echo \"\"; echo \"Please install Azurite using one of these methods:\"; echo \"  npm install -g azurite\"; echo \"  brew install azurite\"; echo \"\"; echo \"For more info: https://learn.microsoft.com/azure/storage/common/storage-use-azurite\"; echo \"\"; exit 1; fi"
+      ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "if (Get-Command azurite -ErrorAction SilentlyContinue) { Write-Host 'Azurite is installed'; exit 0 } else { Write-Host ''; Write-Host 'ERROR: Azurite is not installed!'; Write-Host 'Install: npm install -g azurite'; Write-Host ''; exit 1 }"
+        ]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
       "label": "Start Azurite",
       "type": "shell",
-      "command": "azurite",
+      "command": "bash",
       "args": [
-        "--location",
-        "${workspaceFolder}/.azurite",
-        "--debug",
-        "${workspaceFolder}/.azurite/debug.log"
+        "-c",
+        "source ~/.zshrc 2>/dev/null || true; azurite --location ${workspaceFolder}/.azurite --debug ${workspaceFolder}/.azurite/debug.log"
       ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "azurite --location ${workspaceFolder}\\.azurite --debug ${workspaceFolder}\\.azurite\\debug.log"
+        ]
+      },
+      "dependsOn": "Check Azurite Installation",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
@@ -152,10 +243,48 @@
       }
     },
     {
+      "label": "Verify Azurite Ports",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "for p in 10000 10001 10002; do ok=0; for i in {1..20}; do if nc -z 127.0.0.1 \"$p\" >/dev/null 2>&1; then ok=1; break; fi; sleep 0.25; done; if [ \"$ok\" -ne 1 ]; then echo \"ERROR: Azurite port $p is not reachable\"; exit 1; fi; done; echo \"Azurite ports are reachable\""
+      ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "$ports = @(10000,10001,10002); foreach ($p in $ports) { $ok = $false; for ($i=0; $i -lt 20; $i++) { try { $c = New-Object Net.Sockets.TcpClient; $c.Connect('127.0.0.1',$p); $c.Close(); $ok = $true; break } catch { Start-Sleep -Milliseconds 250 } }; if (-not $ok) { Write-Host \"ERROR: Azurite port $p is not reachable\"; exit 1 } }; Write-Host 'Azurite ports are reachable'"
+        ]
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": false
+      }
+    },
+    {
       "label": "Stop Azurite",
       "type": "shell",
-      "command": "killall",
-      "args": ["azurite"],
+      "command": "bash",
+      "args": ["-c", "pkill -f \"[a]zurite\" >/dev/null 2>&1 || true"],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "$p = Get-Process azurite -ErrorAction SilentlyContinue; if ($p) { $p | Stop-Process -Force -ErrorAction SilentlyContinue }; exit 0"
+        ]
+      },
       "problemMatcher": [],
       "presentation": {
         "echo": false,
@@ -167,14 +296,27 @@
       }
     },
     {
-      "label": "Wait for Azurite",
+      "label": "Stop Functions Host (Port 7071)",
       "type": "shell",
-      "command": "sleep",
-      "args": ["3"],
+      "command": "bash",
+      "args": [
+        "-c",
+        "PIDS=$(lsof -ti tcp:7071 2>/dev/null || true); if [ -n \"$PIDS\" ]; then echo \"Stopping process(es) on port 7071: $PIDS\"; echo \"$PIDS\" | xargs kill >/dev/null 2>&1 || true; else echo \"No process listening on port 7071\"; fi"
+      ],
+      "windows": {
+        "command": "powershell",
+        "args": [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          "$conns = Get-NetTCPConnection -LocalPort 7071 -State Listen -ErrorAction SilentlyContinue; if ($conns) { $conns | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host (\"Stopped process on port 7071: \" + $_) } } else { Write-Host 'No process listening on port 7071' }"
+        ]
+      },
       "problemMatcher": [],
       "presentation": {
         "echo": true,
-        "reveal": "silent",
+        "reveal": "never",
         "focus": false,
         "panel": "shared",
         "showReuseMessage": false,
@@ -182,19 +324,18 @@
       }
     },
     {
-      "label": "Wait for Functions Worker",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-c",
-        "for i in {1..10}; do PID=$(pgrep -f 'functions-worker-id'); if [ -n \"$PID\" ]; then echo \"✓ Functions Worker Started - Process ID: $PID\"; echo \"When the process picker appears, select: dotnet $PID\"; exit 0; fi; sleep 1; done; echo \"⚠ Timeout waiting for Functions worker\"; exit 1"
+      "label": "Stop Functions + Azurite",
+      "dependsOn": [
+        "Stop Functions Host (Port 7071)",
+        "Stop Azurite"
       ],
+      "dependsOrder": "sequence",
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
-        "reveal": "always",
+        "echo": false,
+        "reveal": "never",
         "focus": false,
-        "panel": "dedicated",
+        "panel": "shared",
         "showReuseMessage": false,
         "clear": false
       }
@@ -202,106 +343,16 @@
     {
       "label": "Start Functions with Azurite",
       "dependsOn": [
+        "Stop Functions Host (Port 7071)",
+        "Check Azure Functions Core Tools Installation",
+        "Ensure local.settings.json (functions)",
+        "Stop Azurite",
         "Start Azurite",
-        "Wait for Azurite",
-        "func: host start",
-        "Wait for Functions Worker"
+        "Verify Azurite Ports",
+        "func: host start"
       ],
       "dependsOrder": "sequence",
       "problemMatcher": []
-    },
-    {
-      "label": "Show Functions Worker PID",
-      "type": "shell",
-      "command": "echo",
-      "args": [
-        "Functions Worker Process ID:",
-        "$(ps aux | grep '\\-\\-functions-worker-id' | grep -v grep | awk '{print $2}' || echo 'Not running - start Functions first')"
-      ],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": true,
-        "panel": "dedicated",
-        "showReuseMessage": false,
-        "clear": false
-      }
-    },
-    {
-      "label": "Trigger: ManifestSync",
-      "type": "shell",
-      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
-      "args": ["manifest"],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      }
-    },
-    {
-      "label": "Trigger: AppWebJobSync",
-      "type": "shell",
-      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
-      "args": ["webjob"],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      }
-    },
-    {
-      "label": "Trigger: PackageVersionSync",
-      "type": "shell",
-      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
-      "args": ["packageversion"],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      }
-    },
-    {
-      "label": "Trigger: WebJobStatusSync",
-      "type": "shell",
-      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
-      "args": ["webjobstatus"],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      }
-    },
-    {
-      "label": "Trigger: All Functions",
-      "type": "shell",
-      "command": "${workspaceFolder}/.vscode/trigger-functions.sh",
-      "args": ["all"],
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": false,
-        "clear": false
-      }
     }
   ]
 }

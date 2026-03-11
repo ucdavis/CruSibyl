@@ -1,9 +1,9 @@
 #!/bin/bash
 # Trigger Azure Functions locally for testing
 # Usage: ./trigger-functions.sh [function-name]
-# Available functions: manifest, webjob, packageversion, webjobtatus, all
+# Available functions: manifest, webjob, packageversion, webjobstatus, all
 
-BASE_URL="http://localhost:7071/api"
+BASE_URL="${FUNCTIONS_BASE_URL:-http://localhost:7071/api}"
 
 trigger_manifest() {
     echo "🔄 Triggering ManifestSyncFunction..."

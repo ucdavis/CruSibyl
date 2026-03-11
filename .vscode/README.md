@@ -1,40 +1,25 @@
-# Azure Functions Testing Scripts
+# Azure Functions Local Debugging
 
-This directory contains helper scripts and HTTP files for triggering Azure Functions during development and debugging.
+This workspace keeps VS Code tasks focused on shared setup/build/debug lifecycle tasks. Function-specific trigger tasks were removed to keep `tasks.json` small.
 
-## Available Functions
+## Recommended Debug Flow
 
-1. **ManifestSyncFunction** - Syncs app manifests from Azure
-2. **AppWebJobSyncFunction** - Syncs WebJobs from Azure App Services
-3. **PackageVersionSyncFunction** - Syncs package versions (NuGet/npm)
-4. **WebJobStatusSyncFunction** - Syncs WebJob status updates and logs
+1. Set breakpoints in the timer-triggered function you want to debug.
+2. Temporarily set `RunOnStartup = true` on that function's `[TimerTrigger(...)]` attribute.
+3. Start **Debug Azure Functions (Start & Attach)**.
+4. Select the `dotnet` Functions worker process from the process picker.
+5. The selected timer function runs on host startup and should hit your breakpoints.
+6. Revert `RunOnStartup` when you finish debugging.
 
-## Usage Options
+Example:
 
-### Option 1: VS Code Tasks (Recommended)
-
-Press `Cmd+Shift+P` → "Run Task" → Select:
-- `Trigger: ManifestSync`
-- `Trigger: AppWebJobSync`
-- `Trigger: PackageVersionSync`
-- `Trigger: WebJobStatusSync`
-- `Trigger: All Functions` (runs all sequentially)
-
-### Option 2: Shell Script
-
-```bash
-# From workspace root
-./.vscode/trigger-functions.sh [function-name]
-
-# Examples:
-./.vscode/trigger-functions.sh manifest
-./.vscode/trigger-functions.sh webjob
-./.vscode/trigger-functions.sh packageversion
-./.vscode/trigger-functions.sh webjobstatus
-./.vscode/trigger-functions.sh all
+```csharp
+[TimerTrigger("0 0 */4 * * *", RunOnStartup = true)]
 ```
 
-### Option 3: Direct curl
+## Optional Manual HTTP Triggering
+
+If you want to trigger HTTP endpoints directly:
 
 ```bash
 curl -X POST http://localhost:7071/api/ManifestSyncFunction_Http
@@ -43,16 +28,31 @@ curl -X POST http://localhost:7071/api/PackageVersionSyncFunction_Http
 curl -X POST http://localhost:7071/api/WebJobStatusSyncFunction_Http
 ```
 
-## Debugging Tips
+The helper script is still available:
 
-1. **Set breakpoints** in your function code
-2. **Start debugging** with "Debug Azure Functions (Start & Attach)"
-3. **Wait for PID display**, then select the correct `dotnet` process
-4. **Trigger a function** using any of the methods above
-5. **Breakpoint hits** and you can step through!
+```bash
+./.vscode/trigger-functions.sh [manifest|webjob|packageversion|webjobstatus|all]
+```
 
 ## Prerequisites
 
-- Azure Functions must be running (`func: host start` task or F5)
+- Azure Functions Core Tools and Azurite installed
 - Functions listen on `http://localhost:7071` by default
-- Azurite must be running for local storage emulation
+- `local.settings.json` will be auto-created from `CruSibyl.Functions/local.settings.json.template` when missing
+- `Debug Azure Functions (Start & Attach)` now verifies Azurite ports `10000/10001/10002` before starting the Functions host
+
+## First-Time Local Setup
+
+The Functions host reads app config from `appsettings.json`, environment variables, and user secrets.
+
+```bash
+dotnet user-secrets set --project CruSibyl.Functions/CruSibyl.Functions.csproj "ConnectionStrings:DefaultConnection" "Data Source=/tmp/crusibyl.db"
+dotnet user-secrets set --project CruSibyl.Functions/CruSibyl.Functions.csproj "GitHub:AccessToken" "<token>"
+```
+
+Optional if you want Azure App/WebJob sync calls to return data:
+
+```bash
+dotnet user-secrets set --project CruSibyl.Functions/CruSibyl.Functions.csproj "Azure:Subscriptions:CAES-Test:SubscriptionId" "<subscription-guid>"
+dotnet user-secrets set --project CruSibyl.Functions/CruSibyl.Functions.csproj "Azure:Subscriptions:CAES-Test:Enabled" "true"
+```
