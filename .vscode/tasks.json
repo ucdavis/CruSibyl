@@ -136,7 +136,7 @@
       },
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "always",
         "focus": true,
         "panel": "dedicated",
@@ -164,7 +164,7 @@
       },
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "always",
         "focus": true,
         "panel": "dedicated",
@@ -192,7 +192,7 @@
       },
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "always",
         "focus": true,
         "panel": "dedicated",
@@ -234,7 +234,7 @@
         }
       },
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "always",
         "focus": false,
         "panel": "dedicated",
@@ -262,7 +262,7 @@
       },
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "always",
         "focus": false,
         "panel": "dedicated",
@@ -315,7 +315,7 @@
       },
       "problemMatcher": [],
       "presentation": {
-        "echo": true,
+        "echo": false,
         "reveal": "never",
         "focus": false,
         "panel": "shared",
