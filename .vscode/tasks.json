@@ -112,7 +112,7 @@
       "options": {
         "cwd": "${workspaceFolder}/CruSibyl.Functions"
       },
-      "command": "host start --no-build",
+      "command": "host start",
       "isBackground": true,
       "problemMatcher": "$func-dotnet-watch"
     },
