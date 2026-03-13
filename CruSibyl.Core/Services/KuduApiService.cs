@@ -249,9 +249,22 @@ public class KuduApiService : IKuduApiService
             await AuthenticateRequest(request, cancellationToken);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                Log.Debug("No WebJobs found at {Url} (404)", url);
+                return new List<KuduWebJob>();
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                Log.Warning("Kudu returned 409 Conflict for {Url}. Treating as no WebJobs for this pass. Response: {ResponseBody}", url, json);
+                return new List<KuduWebJob>();
+            }
+
             response.EnsureSuccessStatusCode();
 
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
             Log.Debug("Kudu API response from {Url}: {Json}", url, json);
             
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
@@ -265,13 +278,6 @@ public class KuduApiService : IKuduApiService
         }
         catch (HttpRequestException ex)
         {
-            // 404 is normal if no WebJobs of this type exist
-            if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                Log.Debug("No WebJobs found at {Url} (404)", url);
-                return new List<KuduWebJob>();
-            }
-            
             Log.Error(ex, "Failed to get WebJobs from {Url}", url);
             return new List<KuduWebJob>();
         }
