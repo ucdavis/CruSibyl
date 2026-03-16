@@ -14,11 +14,52 @@ fi
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BICEP_FILE="$SCRIPT_DIR/../main.bicep"
 
+sanitize_pipeline_value() {
+  local value="${1:-}"
+
+  # Azure DevOps leaves unresolved macro references in the form $(VAR_NAME).
+  # Treat those as unset so optional overrides do not get forwarded into Bicep.
+  if [[ "$value" =~ ^\$\([A-Za-z0-9_.-]+\)$ ]]; then
+    printf ''
+    return
+  fi
+
+  printf '%s' "$value"
+}
+
+DEPLOYMENT_NAME=$(sanitize_pipeline_value "${DEPLOYMENT_NAME:-}")
+RESOURCE_GROUP=$(sanitize_pipeline_value "${RESOURCE_GROUP:-}")
+LOCATION=$(sanitize_pipeline_value "${LOCATION:-}")
+APP_NAME=$(sanitize_pipeline_value "${APP_NAME:-}")
+ENVIRONMENT=$(sanitize_pipeline_value "${ENVIRONMENT:-}")
+SQL_ADMIN_LOGIN=$(sanitize_pipeline_value "${SQL_ADMIN_LOGIN:-}")
+SQL_ADMIN_PASSWORD=$(sanitize_pipeline_value "${SQL_ADMIN_PASSWORD:-}")
+
+DEPLOY_MONITORING=$(sanitize_pipeline_value "${DEPLOY_MONITORING:-}")
 DEPLOY_MONITORING=${DEPLOY_MONITORING:-true}
+
+APP_SERVICE_PLAN_SKU=$(sanitize_pipeline_value "${APP_SERVICE_PLAN_SKU:-}")
 APP_SERVICE_PLAN_SKU=${APP_SERVICE_PLAN_SKU:-B1}
+
+APP_SERVICE_PLAN_TIER=$(sanitize_pipeline_value "${APP_SERVICE_PLAN_TIER:-}")
 APP_SERVICE_PLAN_TIER=${APP_SERVICE_PLAN_TIER:-Basic}
+
+APP_SERVICE_PLAN_CAPACITY=$(sanitize_pipeline_value "${APP_SERVICE_PLAN_CAPACITY:-}")
 APP_SERVICE_PLAN_CAPACITY=${APP_SERVICE_PLAN_CAPACITY:-1}
+
+SQL_DATABASE_NAME=$(sanitize_pipeline_value "${SQL_DATABASE_NAME:-}")
 SQL_DATABASE_NAME=${SQL_DATABASE_NAME:-${APP_NAME:-crusibyl}}
+
+APP_SERVICE_PLAN_NAME=$(sanitize_pipeline_value "${APP_SERVICE_PLAN_NAME:-}")
+WEB_APP_NAME=$(sanitize_pipeline_value "${WEB_APP_NAME:-}")
+FUNCTION_APP_NAME=$(sanitize_pipeline_value "${FUNCTION_APP_NAME:-}")
+FUNCTION_STORAGE_ACCOUNT_NAME=$(sanitize_pipeline_value "${FUNCTION_STORAGE_ACCOUNT_NAME:-}")
+SQL_SERVER_NAME=$(sanitize_pipeline_value "${SQL_SERVER_NAME:-}")
+APP_INSIGHTS_NAME=$(sanitize_pipeline_value "${APP_INSIGHTS_NAME:-}")
+LOG_ANALYTICS_WORKSPACE_NAME=$(sanitize_pipeline_value "${LOG_ANALYTICS_WORKSPACE_NAME:-}")
+
+SUBSCRIPTION_ID=$(sanitize_pipeline_value "${SUBSCRIPTION_ID:-}")
+SUBSCRIPTION_NAME=$(sanitize_pipeline_value "${SUBSCRIPTION_NAME:-}")
 
 required_vars=(
   DEPLOYMENT_NAME
@@ -38,7 +79,7 @@ for var in "${required_vars[@]}"; do
 done
 
 if (( ${#missing_vars[@]} > 0 )); then
-  echo "Missing required environment variables: ${missing_vars[*]}" >&2
+  echo "Missing required environment variables (unset or unresolved pipeline placeholders): ${missing_vars[*]}" >&2
   exit 1
 fi
 
