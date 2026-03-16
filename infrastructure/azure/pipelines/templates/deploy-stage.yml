@@ -1,0 +1,312 @@
+parameters:
+  - name: stageName
+    type: string
+  - name: displayName
+    type: string
+  - name: dependsOn
+    type: object
+    default: []
+  - name: condition
+    type: string
+    default: succeeded()
+
+  - name: variableGroup
+    type: string
+  - name: environmentName
+    type: string
+  - name: azureSubscription
+    type: string
+
+stages:
+  - stage: ${{ parameters.stageName }}
+    displayName: ${{ parameters.displayName }}
+    dependsOn: ${{ parameters.dependsOn }}
+    condition: ${{ parameters.condition }}
+    variables:
+      # Create this variable group in Azure DevOps with environment-specific values.
+      # Required:
+      # - RESOURCE_GROUP, LOCATION, APP_NAME, ENVIRONMENT, DEPLOYMENT_NAME
+      # - WEB_APP_NAME, FUNCTION_APP_NAME (required when deployInfra=false and no prior deployment outputs exist)
+      # - SQL_ADMIN_LOGIN, SQL_ADMIN_PASSWORD (required when deployInfra=true)
+      # Optional:
+      # - deployInfra
+      # - DEPLOY_MONITORING, APP_SERVICE_PLAN_SKU, APP_SERVICE_PLAN_TIER, APP_SERVICE_PLAN_CAPACITY
+      # - SQL_DATABASE_NAME, APP_SERVICE_PLAN_NAME, FUNCTION_STORAGE_ACCOUNT_NAME, SQL_SERVER_NAME
+      # - APP_INSIGHTS_NAME, LOG_ANALYTICS_WORKSPACE_NAME
+      # - WEB_APP_SETTINGS_JSON, FUNCTION_APP_SETTINGS_JSON
+      # - EXPECTED_FUNCTIONS
+      - group: ${{ parameters.variableGroup }}
+    jobs:
+      - deployment: deploy
+        displayName: Deploy to ${{ parameters.environmentName }}
+        environment: ${{ parameters.environmentName }}
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  displayName: Checkout repo
+
+                - download: current
+                  artifact: packages
+
+                - task: AzureCLI@2
+                  displayName: (optional) Deploy infra (Bicep)
+                  condition: and(succeeded(), eq(variables['deployInfra'], 'true'))
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    workingDirectory: $(Build.SourcesDirectory)
+                    inlineScript: |
+                      set -euo pipefail
+                      bash infrastructure/azure/scripts/deploy.sh
+                  env:
+                    RESOURCE_GROUP: $(RESOURCE_GROUP)
+                    LOCATION: $(LOCATION)
+                    APP_NAME: $(APP_NAME)
+                    ENVIRONMENT: $(ENVIRONMENT)
+                    DEPLOYMENT_NAME: $(DEPLOYMENT_NAME)
+                    SQL_ADMIN_LOGIN: $(SQL_ADMIN_LOGIN)
+                    SQL_ADMIN_PASSWORD: $(SQL_ADMIN_PASSWORD)
+                    DEPLOY_MONITORING: $(DEPLOY_MONITORING)
+                    APP_SERVICE_PLAN_SKU: $(APP_SERVICE_PLAN_SKU)
+                    APP_SERVICE_PLAN_TIER: $(APP_SERVICE_PLAN_TIER)
+                    APP_SERVICE_PLAN_CAPACITY: $(APP_SERVICE_PLAN_CAPACITY)
+                    SQL_DATABASE_NAME: $(SQL_DATABASE_NAME)
+                    APP_SERVICE_PLAN_NAME: $(APP_SERVICE_PLAN_NAME)
+                    WEB_APP_NAME: $(WEB_APP_NAME)
+                    FUNCTION_APP_NAME: $(FUNCTION_APP_NAME)
+                    FUNCTION_STORAGE_ACCOUNT_NAME: $(FUNCTION_STORAGE_ACCOUNT_NAME)
+                    SQL_SERVER_NAME: $(SQL_SERVER_NAME)
+                    APP_INSIGHTS_NAME: $(APP_INSIGHTS_NAME)
+                    LOG_ANALYTICS_WORKSPACE_NAME: $(LOG_ANALYTICS_WORKSPACE_NAME)
+
+                - task: AzureCLI@2
+                  name: resolveNames
+                  displayName: Resolve app names from infra outputs
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      web_app_name="${WEB_APP_NAME:-}"
+                      function_app_name="${FUNCTION_APP_NAME:-}"
+
+                      if az deployment group show \
+                        --resource-group "$(RESOURCE_GROUP)" \
+                        --name "$(DEPLOYMENT_NAME)" \
+                        --query name \
+                        --output tsv >/dev/null 2>&1; then
+                        deployed_web_app_name=$(az deployment group show \
+                          --resource-group "$(RESOURCE_GROUP)" \
+                          --name "$(DEPLOYMENT_NAME)" \
+                          --query "properties.outputs.webAppName.value" \
+                          --output tsv 2>/dev/null || true)
+
+                        deployed_function_app_name=$(az deployment group show \
+                          --resource-group "$(RESOURCE_GROUP)" \
+                          --name "$(DEPLOYMENT_NAME)" \
+                          --query "properties.outputs.functionAppName.value" \
+                          --output tsv 2>/dev/null || true)
+
+                        if [[ -n "$deployed_web_app_name" && "$deployed_web_app_name" != "null" ]]; then
+                          web_app_name="$deployed_web_app_name"
+                        fi
+
+                        if [[ -n "$deployed_function_app_name" && "$deployed_function_app_name" != "null" ]]; then
+                          function_app_name="$deployed_function_app_name"
+                        fi
+                      else
+                        echo "No deployment outputs found for $(DEPLOYMENT_NAME); falling back to variable-group names."
+                      fi
+
+                      missing_vars=()
+                      if [[ -z "$web_app_name" || "$web_app_name" == "null" ]]; then
+                        missing_vars+=("WEB_APP_NAME")
+                      fi
+
+                      if [[ -z "$function_app_name" || "$function_app_name" == "null" ]]; then
+                        missing_vars+=("FUNCTION_APP_NAME")
+                      fi
+
+                      if (( ${#missing_vars[@]} > 0 )); then
+                        echo "Unable to resolve deployed app names. Provide ${missing_vars[*]} in the variable group or run with deployInfra=true." >&2
+                        exit 1
+                      fi
+
+                      echo "Resolved web app: $web_app_name"
+                      echo "Resolved function app: $function_app_name"
+
+                      echo "##vso[task.setvariable variable=webAppName]$web_app_name"
+                      echo "##vso[task.setvariable variable=functionAppName]$function_app_name"
+                  env:
+                    WEB_APP_NAME: $(WEB_APP_NAME)
+                    FUNCTION_APP_NAME: $(FUNCTION_APP_NAME)
+
+                - task: AzureAppServiceSettings@1
+                  displayName: Set web app settings
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    appName: $(webAppName)
+                    resourceGroupName: $(RESOURCE_GROUP)
+                    appSettings: |
+                      $(WEB_APP_SETTINGS_JSON)
+
+                - task: AzureAppServiceSettings@1
+                  displayName: Set Function App settings
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    appName: $(functionAppName)
+                    resourceGroupName: $(RESOURCE_GROUP)
+                    appSettings: |
+                      $(FUNCTION_APP_SETTINGS_JSON)
+
+                - task: AzureWebApp@1
+                  displayName: Deploy web app
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    appType: webAppLinux
+                    appName: $(webAppName)
+                    package: $(Pipeline.Workspace)/packages/webapp.zip
+
+                - task: AzureFunctionApp@2
+                  displayName: Deploy Function App
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    appType: functionAppLinux
+                    appName: $(functionAppName)
+                    package: $(Pipeline.Workspace)/packages/functionapp.zip
+
+                - task: AzureCLI@2
+                  displayName: Validate Function App host and registrations
+                  inputs:
+                    azureSubscription: ${{ parameters.azureSubscription }}
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      resource_group="$(RESOURCE_GROUP)"
+                      function_app_name="$(functionAppName)"
+                      expected_csv="${EXPECTED_FUNCTIONS:-}"
+                      restart_after_attempt=4
+
+                      trim() {
+                        local value="$1"
+                        value="${value#"${value%%[![:space:]]*}"}"
+                        value="${value%"${value##*[![:space:]]}"}"
+                        printf '%s' "$value"
+                      }
+
+                      list_registered_functions() {
+                        az functionapp function list \
+                          --resource-group "$resource_group" \
+                          --name "$function_app_name" \
+                          --query "[].name" \
+                          --output tsv 2>/dev/null || true
+                      }
+
+                      state=''
+                      for attempt in $(seq 1 8); do
+                        state=$(az functionapp show \
+                          --resource-group "$resource_group" \
+                          --name "$function_app_name" \
+                          --query state \
+                          --output tsv 2>/dev/null || true)
+
+                        echo "Function App state attempt $attempt: ${state:-<empty>}"
+
+                        if [[ "$state" == "Running" ]]; then
+                          break
+                        fi
+
+                        if [[ "$attempt" -eq "$restart_after_attempt" ]]; then
+                          echo "Restarting Function App after repeated non-running state checks..."
+                          az functionapp restart --resource-group "$resource_group" --name "$function_app_name"
+                        fi
+
+                        sleep 15
+                      done
+
+                      if [[ "$state" != "Running" ]]; then
+                        echo "Function App $function_app_name did not reach Running state." >&2
+                        exit 1
+                      fi
+
+                      IFS=',' read -r -a expected_items <<< "$expected_csv"
+                      expected_functions=()
+                      for item in "${expected_items[@]}"; do
+                        trimmed_item=$(trim "$item")
+                        if [[ -n "$trimmed_item" ]]; then
+                          expected_functions+=("$trimmed_item")
+                        fi
+                      done
+
+                      if (( ${#expected_functions[@]} == 0 )); then
+                        echo "No EXPECTED_FUNCTIONS were provided; host state validation passed."
+                        exit 0
+                      fi
+
+                      missing_functions=("${expected_functions[@]}")
+                      last_registered="<none>"
+
+                      for attempt in $(seq 1 8); do
+                        mapfile -t raw_registered < <(list_registered_functions)
+
+                        registered_functions=()
+                        for entry in "${raw_registered[@]}"; do
+                          function_name="${entry##*/}"
+                          if [[ -n "$function_name" ]]; then
+                            registered_functions+=("$function_name")
+                          fi
+                        done
+
+                        if (( ${#registered_functions[@]} > 0 )); then
+                          printf -v last_registered '%s, ' "${registered_functions[@]}"
+                          last_registered="${last_registered%, }"
+                        else
+                          last_registered="<none>"
+                        fi
+
+                        missing_functions=()
+                        for expected in "${expected_functions[@]}"; do
+                          found='false'
+                          for actual in "${registered_functions[@]}"; do
+                            if [[ "$actual" == "$expected" ]]; then
+                              found='true'
+                              break
+                            fi
+                          done
+
+                          if [[ "$found" != 'true' ]]; then
+                            missing_functions+=("$expected")
+                          fi
+                        done
+
+                        echo "Registered functions attempt $attempt: $last_registered"
+
+                        if (( ${#missing_functions[@]} == 0 )); then
+                          echo "Function host validation passed."
+                          exit 0
+                        fi
+
+                        printf 'Missing expected functions: %s\n' "${missing_functions[*]}"
+
+                        if [[ "$attempt" -eq "$restart_after_attempt" ]]; then
+                          echo "Restarting Function App to force a fresh host start before final validation attempts..."
+                          az functionapp restart --resource-group "$resource_group" --name "$function_app_name"
+                        fi
+
+                        sleep 20
+                      done
+
+                      printf 'Function host validation failed. Missing expected functions: %s\n' "${missing_functions[*]}" >&2
+                      echo "Last registered functions: $last_registered" >&2
+                      exit 1
+                  env:
+                    EXPECTED_FUNCTIONS: $(EXPECTED_FUNCTIONS)

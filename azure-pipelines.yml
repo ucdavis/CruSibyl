@@ -1,38 +1,52 @@
 trigger:
   branches:
     include:
-    - main
+      - main
   paths:
     exclude:
-    - README.md
-    - docs/*
+      - README.md
+      - docs/*
 
 pr:
-  - main
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+#
+# Service connection inputs (e.g., `azureSubscription:`) must resolve at compile-time so Azure DevOps can
+# authorize and inject the endpoint. Runtime variables from variable groups will not expand for these inputs.
+#
+parameters:
+  - name: azureServiceConnectionTest
+    type: string
+    default: 'UC Davis CAES Test'
+  - name: azureServiceConnectionProd
+    type: string
+    default: 'UC Davis CAES Prod'
 
 variables:
-  # Build Configuration
   buildConfiguration: 'Release'
-  dotNetFramework: 'net8.0'
   dotNetVersion: '8.0.x'
-  
-  # Build paths
   solutionPath: '**/*.sln'
   webProjectPath: 'CruSibyl.Web/CruSibyl.Web.csproj'
   functionsProjectPath: 'CruSibyl.Functions/CruSibyl.Functions.csproj'
+  deployInfra: 'false'
+  WEB_APP_SETTINGS_JSON: '[]'
+  FUNCTION_APP_SETTINGS_JSON: '[]'
+  EXPECTED_FUNCTIONS: 'AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction_Timer'
 
 stages:
 - stage: Build
-  displayName: 'Build and Test'
+  displayName: 'Build and package'
   jobs:
   - job: BuildJob
     displayName: 'Build Solution'
-    pool:
-      vmImage: 'ubuntu-latest'
-    
     steps:
     - checkout: self
-      fetchDepth: 0 # Shallow fetch for performance
+      fetchDepth: 0
     
     - task: UseDotNet@2
       displayName: 'Use .NET SDK $(dotNetVersion)'
@@ -56,7 +70,7 @@ stages:
         projects: '$(solutionPath)'
         arguments: '--configuration $(buildConfiguration) --no-restore'
     
-    # Placeholder for tests - uncomment and modify when test projects are added
+    # Placeholder for tests - uncomment and modify when test projects are added.
     # - task: DotNetCoreCLI@2
     #   displayName: 'Run tests'
     #   inputs:
@@ -88,115 +102,61 @@ stages:
         command: 'publish'
         publishWebProjects: false
         projects: '$(webProjectPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/webapp --no-build'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/publish/web --no-build'
         zipAfterPublish: false
         modifyOutputPath: false
 
     - task: DotNetCoreCLI@2
-      displayName: 'Publish Functions Azure Function'
+      displayName: 'Publish Function App'
       inputs:
         command: 'publish'
         publishWebProjects: false
         projects: '$(functionsProjectPath)'
-        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/functions --no-build'
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)/publish/function --no-build'
         zipAfterPublish: false
         modifyOutputPath: false
-    
-    # Create zip file for Function App deployment
+
+    - script: mkdir -p "$(Build.ArtifactStagingDirectory)/packages"
+      displayName: 'Prepare package directory'
+
     - task: ArchiveFiles@2
-      displayName: 'Archive Functions for deployment'
+      displayName: 'Archive Web App package'
       inputs:
-        rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/functions'
+        rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/publish/web'
         includeRootFolder: false
         archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/functions.zip'
-    
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Web App artifact'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/packages/webapp.zip'
+        replaceExistingArchive: true
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive Function App package'
       inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)/webapp'
-        artifactName: 'drop'
-        publishLocation: 'Container'
+        rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/publish/function'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/packages/functionapp.zip'
+        replaceExistingArchive: true
 
-    - task: PublishBuildArtifacts@1
-      displayName: 'Publish Functions artifact'
-      inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)/functions.zip'
-        artifactName: 'functions'
-        publishLocation: 'Container'
+    - publish: '$(Build.ArtifactStagingDirectory)/packages'
+      displayName: 'Publish deploy packages artifact'
+      artifact: packages
 
-- stage: DeployTest
-  displayName: 'Deploy to Test Environment'
-  dependsOn: Build
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: DeployToTest
-    displayName: 'Deploy to Test'
-    pool:
-      vmImage: 'ubuntu-latest'
-    environment: 'Test'  # Azure DevOps environment (with approvals)
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - download: current
-            artifact: functions
+- template: infrastructure/azure/pipelines/templates/deploy-stage.yml
+  parameters:
+    stageName: DeployTest
+    displayName: 'Deploy (test)'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    variableGroup: crusibyl-test
+    environmentName: Test
+    azureSubscription: ${{ parameters.azureServiceConnectionTest }}
 
-          - task: AzureWebApp@1
-            displayName: 'Deploy Web App to Test'
-            inputs:
-              azureSubscription: 'UC Davis CAES Test'
-              appType: 'webAppLinux'
-              appName: 'CruSibyl-Test'
-              package: '$(Pipeline.Workspace)/drop'
-              deploymentMethod: 'auto'
-
-          - task: AzureFunctionApp@1
-            displayName: 'Deploy Functions Azure Function to Test'
-            inputs:
-              azureSubscription: 'UC Davis CAES Test'
-              appType: 'functionApp'
-              appName: 'CruSibyl-Functions-Test'
-              package: '$(Pipeline.Workspace)/functions/functions.zip'
-              deploymentMethod: 'zipDeploy'  # Changed from runFromPackage
-              appSettings: '-FUNCTIONS_WORKER_RUNTIME dotnet-isolated -FUNCTIONS_EXTENSION_VERSION ~4 -DOTNET_FRAMEWORK_VERSION v8.0'
-
-- stage: DeployProduction
-  displayName: 'Deploy to Production Environment'
-  dependsOn: DeployTest
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
-  jobs:
-  - deployment: DeployToProduction
-    displayName: 'Deploy to Production'
-    pool:
-      vmImage: 'ubuntu-latest'
-    environment: 'Prod'  # Azure DevOps environment (with approvals)
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-            artifact: drop
-          - download: current
-            artifact: functions
-
-          - task: AzureWebApp@1
-            displayName: 'Deploy Web App to Production'
-            inputs:
-              azureSubscription: 'UC Davis CAES Prod'
-              appType: 'webAppLinux'
-              appName: 'crusibyl'
-              package: '$(Pipeline.Workspace)/drop'
-              deploymentMethod: 'auto'
-
-          - task: AzureFunctionApp@1
-            displayName: 'Deploy Functions Azure Function to Production'
-            inputs:
-              azureSubscription: 'UC Davis CAES Prod'
-              appType: 'functionApp'
-              appName: 'CruSibyl-Functions'
-              package: '$(Pipeline.Workspace)/functions/functions.zip'
-              deploymentMethod: 'zipDeploy'  # Changed from runFromPackage
-              appSettings: '-FUNCTIONS_WORKER_RUNTIME dotnet-isolated -FUNCTIONS_EXTENSION_VERSION ~4 -DOTNET_FRAMEWORK_VERSION v8.0'
+- template: infrastructure/azure/pipelines/templates/deploy-stage.yml
+  parameters:
+    stageName: DeployProduction
+    displayName: 'Deploy (prod)'
+    dependsOn: DeployTest
+    condition: and(succeeded('DeployTest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    variableGroup: crusibyl-prod
+    environmentName: Prod
+    azureSubscription: ${{ parameters.azureServiceConnectionProd }}

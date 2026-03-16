@@ -238,6 +238,9 @@ _Pvt_Extensions
 
 # Node.js dependencies
 node_modules/
+
+# Generated Bicep build output
+/infrastructure/azure/main.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
