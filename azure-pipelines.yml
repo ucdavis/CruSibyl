@@ -36,7 +36,7 @@ variables:
   deployInfra: 'false'
   WEB_APP_SETTINGS_JSON: '[]'
   FUNCTION_APP_SETTINGS_JSON: '[]'
-  EXPECTED_FUNCTIONS: 'AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction_Timer'
+  EXPECTED_FUNCTIONS: 'AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction'
 
 stages:
 - stage: Build

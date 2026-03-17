@@ -6,6 +6,6 @@
         "AzureWebJobs.AppWebJobSyncFunction.Disabled": "true",
         "AzureWebJobs.ManifestSyncFunction.Disabled": "true",
         "AzureWebJobs.PackageVersionSyncFunction.Disabled": "true",
-        "AzureWebJobs.WebJobStatusSyncFunction_Timer.Disabled": "true"
+        "AzureWebJobs.WebJobStatusSyncFunction.Disabled": "true"
     }
 }

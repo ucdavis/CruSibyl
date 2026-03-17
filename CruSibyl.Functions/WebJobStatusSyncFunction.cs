@@ -24,7 +24,7 @@ public class WebJobStatusSyncFunction
         _azureSettings = azureSettings.Value;
     }
 
-    [Function("WebJobStatusSyncFunction_Timer")]
+    [Function("WebJobStatusSyncFunction")]
     public async Task RunTimer(
         [TimerTrigger("0 */15 * * * *")] TimerInfo timerInfo,
         CancellationToken cancellationToken)

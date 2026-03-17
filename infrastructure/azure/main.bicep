@@ -71,9 +71,10 @@ param assignResourceGroupReader bool = false
 var appSlug = toLower(replace(replace(replace(appName, '-', ''), '_', ''), ' ', ''))
 var envSlug = toLower(replace(replace(env, '-', ''), ' ', ''))
 var nameToken = substring(uniqueString(resourceGroup().id, appName, env), 0, 6)
+var defaultWebAppName = env == 'prod' ? appSlug : '${appSlug}-${envSlug}'
 
 var resolvedAppServicePlanName = appServicePlanName == '' ? toLower('asp-${appSlug}-${envSlug}-${nameToken}') : appServicePlanName
-var resolvedWebAppName = webAppName == '' ? toLower('web-${appSlug}-${envSlug}-${nameToken}') : toLower(webAppName)
+var resolvedWebAppName = webAppName == '' ? defaultWebAppName : toLower(webAppName)
 var resolvedFunctionAppName = functionAppName == '' ? toLower('fn-${appSlug}-${envSlug}-${nameToken}') : toLower(functionAppName)
 
 var storageNameToken = nameToken

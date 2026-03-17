@@ -39,6 +39,11 @@ param appInsightsConnectionString string = ''
 @description('Application Insights instrumentation key (optional).')
 param appInsightsInstrumentationKey string = ''
 
+@description('Allowed CORS origins for the Function App.')
+param functionAppCorsAllowedOrigins array = [
+  'https://portal.azure.com'
+]
+
 resource sharedPlan 'Microsoft.Web/serverfarms@2025-03-01' = {
   name: planName
   location: location
@@ -107,6 +112,10 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
       ftpsState: 'FtpsOnly'
       linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       minTlsVersion: '1.2'
+      cors: {
+        allowedOrigins: functionAppCorsAllowedOrigins
+        supportCredentials: false
+      }
       appSettings: concat([
         {
           name: 'AZURE_FUNCTIONS_ENVIRONMENT'

@@ -110,7 +110,7 @@ Notes:
 - `WEB_APP_NAME` and `FUNCTION_APP_NAME` are only strictly required when `deployInfra=false` and the pipeline cannot look up names from a prior Bicep deployment output.
 - `SQL_ADMIN_LOGIN` and `SQL_ADMIN_PASSWORD` are only required when `deployInfra=true`.
 - `WEB_APP_SETTINGS_JSON` and `FUNCTION_APP_SETTINGS_JSON` default to `[]` in the pipeline and are meant to hold Azure App Service settings payloads.
-- `EXPECTED_FUNCTIONS` defaults to the current timer functions: `AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction_Timer`.
+- `EXPECTED_FUNCTIONS` defaults to the current timer functions: `AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction`.
 
 Example `WEB_APP_SETTINGS_JSON` value:
 
@@ -120,12 +120,12 @@ Example `WEB_APP_SETTINGS_JSON` value:
   { "name": "Authentication__ClientSecret", "value": "$(AUTHENTICATION_CLIENT_SECRET)", "slotSetting": false },
   { "name": "Authentication__Authority", "value": "https://cas.ucdavis.edu/cas/oidc", "slotSetting": false },
   { "name": "Authentication__IamKey", "value": "$(AUTHENTICATION_IAM_KEY)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Test__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Test__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Test__Default", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Prod__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Prod__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Prod__Default", "value": "false", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESTest__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESTest__Enabled", "value": "true", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESTest__Default", "value": "true", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESProd__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESProd__Enabled", "value": "true", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESProd__Default", "value": "false", "slotSetting": false },
   { "name": "Serilog__Environment", "value": "$(ENVIRONMENT)", "slotSetting": false },
   { "name": "Serilog__ElasticUrl", "value": "$(SERILOG_ELASTIC_URL)", "slotSetting": false }
 ]
@@ -137,10 +137,10 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 [
   { "name": "GitHub__RepoOwner", "value": "ucdavis", "slotSetting": false },
   { "name": "GitHub__AccessToken", "value": "$(GITHUB_ACCESS_TOKEN)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Test__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Test__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Prod__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAES-Prod__Enabled", "value": "true", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESTest__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESTest__Enabled", "value": "true", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESProd__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
+  { "name": "Azure__Subscriptions__CAESProd__Enabled", "value": "true", "slotSetting": false },
   { "name": "Serilog__Environment", "value": "$(ENVIRONMENT)", "slotSetting": false },
   { "name": "Serilog__ElasticUrl", "value": "$(SERILOG_ELASTIC_URL)", "slotSetting": false }
 ]
@@ -148,7 +148,8 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 
 ## Notes
 
-- Resource names default to deterministic values derived from app name, environment, and resource group.
+- Resource names default to deterministic values derived from app name, environment, and resource group. The Web App defaults are `crusibyl-test` for test and `crusibyl` for prod unless explicitly overridden.
 - Monitoring is enabled by default and can be disabled with `DEPLOY_MONITORING=false`.
 - The Function App currently uses the SQL connection string via `ConnectionStrings__DefaultConnection`.
+- The Function App allows `https://portal.azure.com` in CORS so HTTP-trigger functions can be invoked from the Azure portal.
 - The pipeline template validates host health plus registered function names, which is our first-pass check that timer triggers synced after deployment.

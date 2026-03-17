@@ -10,27 +10,27 @@ public static class DBContextConfig
     public static void Configure(IConfiguration configuration, IServiceCollection services, out bool migrationScaffoldRequested)
     {
         // Migration scaffolding in EF Core 8 appears to instantiate a DbContext, so we're using
-        // an environment variable set by CreateMigration.sh to ensure the correct provider is used.
-        var migrationUseSql = configuration.GetValue<bool?>("Migration:UseSql");
-        var useSql = migrationUseSql.HasValue ? migrationUseSql.Value : configuration.GetValue<bool>("Dev:UseSql");
+        // an environment variable set by CreateMigration.sh to opt into Sqlite when needed.
+        var migrationUseSqlite = configuration.GetValue<bool?>("Migration:UseSqlite");
+        var useSqlite = migrationUseSqlite.HasValue ? migrationUseSqlite.Value : configuration.GetValue<bool>("Dev:UseSqlite");
 
-        if (useSql)
-        {
-            services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>(ConfigSqlServer(configuration));
-            services.AddDbContextFactory<AppDbContextSqlServer>(ConfigSqlServer(configuration));
-            services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
-                new DbContextFactoryAdapter<AppDbContextSqlServer>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlServer>>()));
-        }
-        else
+        if (useSqlite)
         {
             services.AddDbContextPool<AppDbContext, AppDbContextSqlite>(ConfigSqlite(configuration));
             services.AddDbContextFactory<AppDbContextSqlite>(ConfigSqlite(configuration));
             services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
                 new DbContextFactoryAdapter<AppDbContextSqlite>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlite>>()));
         }
+        else
+        {
+            services.AddDbContextPool<AppDbContext, AppDbContextSqlServer>(ConfigSqlServer(configuration));
+            services.AddDbContextFactory<AppDbContextSqlServer>(ConfigSqlServer(configuration));
+            services.AddScoped<IDbContextFactory<AppDbContext>>(sp =>
+                new DbContextFactoryAdapter<AppDbContextSqlServer>(sp.GetRequiredService<IDbContextFactory<AppDbContextSqlServer>>()));
+        }
 
         // A null value indicates that no migration scaffold has been requested.
-        migrationScaffoldRequested = migrationUseSql.HasValue;
+        migrationScaffoldRequested = migrationUseSqlite.HasValue;
     }
 
     static Action<IServiceProvider, DbContextOptionsBuilder> ConfigSqlServer(IConfiguration configuration)
