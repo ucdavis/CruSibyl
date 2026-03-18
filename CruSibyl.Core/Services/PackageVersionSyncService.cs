@@ -40,6 +40,7 @@ public class PackageVersionSyncService : IPackageVersionSyncService
                 AllSameScanNumber = g.Select(p => p.ScanNumber ?? 0).Distinct().Count() == 1,
                 AllCompleted = g.All(p => p.ScanStatus == ScanStatus.Completed)
             })
+            .OrderBy(x => x.MaxScanNumber) // just to eliminate the warning about using First without OrderBy
             .FirstAsync();
 
         var scanNumber = scanInfo.MaxScanNumber;

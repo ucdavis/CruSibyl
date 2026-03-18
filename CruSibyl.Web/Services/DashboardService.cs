@@ -223,6 +223,7 @@ public class DashboardService : IDashboardService
     {
         var webJob = await _dbContext.WebJobs
             .Include(wj => wj.App)
+            .OrderBy(wj => wj.Id) // just to eliminate the warning about using First without OrderBy
             .FirstOrDefaultAsync(wj => wj.Id == webJobId);
 
         if (webJob == null)

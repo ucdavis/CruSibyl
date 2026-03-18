@@ -130,6 +130,7 @@ public class AdminController : Controller
                 var user = await _dbContext.Users
                     .Include(u => u.Permissions)
                     .ThenInclude(p => p.Role)
+                    .OrderBy(u => u.Id) // just to eliminate the warning about using First without OrderBy
                     .FirstOrDefaultAsync(u => u.Id == id);
                 if (user != null)
                 {

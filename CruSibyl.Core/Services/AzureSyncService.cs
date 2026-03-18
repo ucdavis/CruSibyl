@@ -58,6 +58,7 @@ public class AzureSyncService : IAzureSyncService
                     // Check if app exists in database
                     var existingApp = await dbContext.Apps
                     .Include(a => a.WebJobs)
+                    .OrderBy(a => a.Id) // just to eliminate the warning about using First without OrderBy
                     .FirstOrDefaultAsync(a => a.Name == app.Name && 
                                             a.SubscriptionId == subscriptionId, 
                                             cancellationToken);

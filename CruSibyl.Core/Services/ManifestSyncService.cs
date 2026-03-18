@@ -42,6 +42,7 @@ public class ManifestSyncService : IManifestSyncService
                 AllSameScanNumber = g.Select(r => r.ScanNumber ?? 0).Distinct().Count() == 1,
                 AllCompleted = g.All(r => r.ScanStatus == ScanStatus.Completed)
             })
+            .OrderBy(x => x.MaxScanNumber) // just to eliminate the warning about using First without OrderBy
             .FirstAsync();
 
         var scanNumber = scanInfo.MaxScanNumber;
