@@ -17,4 +17,4 @@ resource resourceGroupReader 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
-output notes string = 'Cross-subscription Reader assignments for scanned subscriptions are intentionally left for a later step.'
+output notes string = 'Optional resource-group Reader assignment for the Function App identity.'

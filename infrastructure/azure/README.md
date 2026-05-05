@@ -11,12 +11,12 @@ The scaffold currently covers:
 - a Function App on the shared plan with `Always On`
 - Function host storage
 - Azure SQL server + database
+- subscription-scope RBAC for the Function App identity to read App Services and call Kudu/WebJobs APIs
 - optional Log Analytics + Application Insights
 - Azure Pipelines deploy-stage template for infra + app deployment
 
 The scaffold intentionally does not yet cover:
 
-- cross-subscription Reader role assignments for the Function App identity
 - app-specific secret values themselves
 - timer diagnostics in `PackageVersionSyncFunction`
 
@@ -58,6 +58,8 @@ Optional overrides:
 - `APP_SERVICE_PLAN_NAME=...`
 - `FUNCTION_STORAGE_ACCOUNT_NAME=...`
 - `SQL_SERVER_NAME=...`
+- `AZURE_SYNC_SUBSCRIPTION_IDS=105dede4-4731-492e-8c28-5121226319b0[,other-subscription-guid]`
+- `AZURE_SYNC_SUBSCRIPTION_ROLE=WebsiteContributor`
 
 ## Azure Pipelines
 
@@ -100,6 +102,8 @@ Optional variable-group values:
 - `SQL_SERVER_NAME`
 - `APP_INSIGHTS_NAME`
 - `LOG_ANALYTICS_WORKSPACE_NAME`
+- `AZURE_SYNC_SUBSCRIPTION_IDS`
+- `AZURE_SYNC_SUBSCRIPTION_ROLE`
 - `WEB_APP_SETTINGS_JSON`
 - `FUNCTION_APP_SETTINGS_JSON`
 - `EXPECTED_FUNCTIONS`
@@ -111,6 +115,9 @@ Notes:
 - `SQL_ADMIN_LOGIN` and `SQL_ADMIN_PASSWORD` are only required when `deployInfra=true`.
 - `WEB_APP_SETTINGS_JSON` and `FUNCTION_APP_SETTINGS_JSON` default to `[]` in the pipeline and are meant to hold Azure App Service settings payloads.
 - `EXPECTED_FUNCTIONS` defaults to the current timer functions: `AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction`.
+- `AZURE_SYNC_SUBSCRIPTION_IDS` is optional. When omitted, Bicep assigns access on the deployment subscription. Use a comma-separated list or JSON array when the sync functions scan additional subscriptions.
+- `AZURE_SYNC_SUBSCRIPTION_ROLE` defaults to `WebsiteContributor`, which is needed for Kudu/WebJobs API access. Use `Reader` only for deployments that do not call Kudu.
+- The identity running the Bicep deployment must be allowed to create role assignments, such as Owner or User Access Administrator, on every subscription in `AZURE_SYNC_SUBSCRIPTION_IDS`.
 
 Example `WEB_APP_SETTINGS_JSON` value:
 
@@ -151,5 +158,6 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 - Resource names default to deterministic values derived from app name, environment, and resource group. The Web App defaults are `crusibyl-test` for test and `crusibyl` for prod unless explicitly overridden.
 - Monitoring is enabled by default and can be disabled with `DEPLOY_MONITORING=false`.
 - The Function App currently uses the SQL connection string via `ConnectionStrings__DefaultConnection`.
+- The Function App uses its system-assigned managed identity for Azure sync calls. Bicep grants that identity `AZURE_SYNC_SUBSCRIPTION_ROLE` on each configured sync subscription.
 - The Function App allows `https://portal.azure.com` in CORS so HTTP-trigger functions can be invoked from the Azure portal.
 - The pipeline template validates host health plus registered function names, which is our first-pass check that timer triggers synced after deployment.

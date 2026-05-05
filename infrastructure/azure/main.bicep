@@ -68,6 +68,18 @@ param monitoringRetentionInDays int = 30
 @description('Whether to create a resource-group Reader role assignment for the Function App identity.')
 param assignResourceGroupReader bool = false
 
+@description('Subscription IDs scanned by Azure sync functions. The Function App identity receives azureSyncSubscriptionRole at each subscription scope.')
+param azureSyncSubscriptionIds array = [
+  subscription().subscriptionId
+]
+
+@allowed([
+  'Reader'
+  'WebsiteContributor'
+])
+@description('Built-in role assigned to the Function App identity on each azureSyncSubscriptionIds scope. WebsiteContributor is required for Kudu/WebJobs API access.')
+param azureSyncSubscriptionRole string = 'WebsiteContributor'
+
 var appSlug = toLower(replace(replace(replace(appName, '-', ''), '_', ''), ' ', ''))
 var envSlug = toLower(replace(replace(env, '-', ''), ' ', ''))
 var nameToken = substring(uniqueString(resourceGroup().id, appName, env), 0, 6)
@@ -89,6 +101,11 @@ var resourceTags = union(tags, {
   application: appName
   environment: env
 })
+
+var azureSyncRoleDefinitionGuids = {
+  Reader: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+  WebsiteContributor: 'de139f84-1756-47ae-9be6-808fbbe84772'
+}
 
 module functionStorage 'modules/function-storage.bicep' = {
   name: 'functionStorage'
@@ -153,6 +170,16 @@ module rbac 'modules/rbac.bicep' = {
   }
 }
 
+module azureSyncSubscriptionRbac 'modules/azure-sync-subscription-rbac.bicep' = [for subscriptionId in azureSyncSubscriptionIds: if (!empty(subscriptionId)) {
+  name: 'azureSyncRbac-${uniqueString(subscriptionId, resolvedFunctionAppName, azureSyncSubscriptionRole)}'
+  scope: subscription(subscriptionId)
+  params: {
+    functionPrincipalId: compute.outputs.functionPrincipalId
+    roleAssignmentNameSeed: azureSyncSubscriptionRole
+    roleDefinitionGuid: azureSyncRoleDefinitionGuids[azureSyncSubscriptionRole]
+  }
+}]
+
 output appServicePlanName string = resolvedAppServicePlanName
 output webAppName string = resolvedWebAppName
 output functionAppName string = resolvedFunctionAppName
@@ -162,3 +189,4 @@ output sqlDatabaseName string = sqlDatabaseName
 output appInsightsName string = deployMonitoring ? monitoring!.outputs.appInsightsName : ''
 output logAnalyticsWorkspaceName string = deployMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceName : ''
 output functionPrincipalId string = compute.outputs.functionPrincipalId
+output azureSyncRbacSubscriptionIds array = azureSyncSubscriptionIds

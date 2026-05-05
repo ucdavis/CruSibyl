@@ -27,6 +27,52 @@ sanitize_pipeline_value() {
   printf '%s' "$value"
 }
 
+normalize_subscription_ids_parameter() {
+  local value="${1:-}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+
+  if [[ -z "$value" ]]; then
+    printf ''
+    return
+  fi
+
+  if [[ "$value" == \[* ]]; then
+    printf '%s' "$value"
+    return
+  fi
+
+  local result="["
+  local first=1
+  local id
+
+  IFS=',' read -ra ids <<< "$value"
+  for id in "${ids[@]}"; do
+    id="${id#"${id%%[![:space:]]*}"}"
+    id="${id%"${id##*[![:space:]]}"}"
+
+    if [[ -z "$id" ]]; then
+      continue
+    fi
+
+    if [[ ! "$id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+      echo "AZURE_SYNC_SUBSCRIPTION_IDS must contain subscription GUIDs. Invalid value: $id" >&2
+      exit 1
+    fi
+
+    if (( first )); then
+      first=0
+    else
+      result+=", "
+    fi
+
+    result+="\"$id\""
+  done
+
+  result+="]"
+  printf '%s' "$result"
+}
+
 DEPLOYMENT_NAME=$(sanitize_pipeline_value "${DEPLOYMENT_NAME:-}")
 RESOURCE_GROUP=$(sanitize_pipeline_value "${RESOURCE_GROUP:-}")
 LOCATION=$(sanitize_pipeline_value "${LOCATION:-}")
@@ -57,6 +103,8 @@ FUNCTION_STORAGE_ACCOUNT_NAME=$(sanitize_pipeline_value "${FUNCTION_STORAGE_ACCO
 SQL_SERVER_NAME=$(sanitize_pipeline_value "${SQL_SERVER_NAME:-}")
 APP_INSIGHTS_NAME=$(sanitize_pipeline_value "${APP_INSIGHTS_NAME:-}")
 LOG_ANALYTICS_WORKSPACE_NAME=$(sanitize_pipeline_value "${LOG_ANALYTICS_WORKSPACE_NAME:-}")
+AZURE_SYNC_SUBSCRIPTION_IDS=$(sanitize_pipeline_value "${AZURE_SYNC_SUBSCRIPTION_IDS:-}")
+AZURE_SYNC_SUBSCRIPTION_ROLE=$(sanitize_pipeline_value "${AZURE_SYNC_SUBSCRIPTION_ROLE:-}")
 
 SUBSCRIPTION_ID=$(sanitize_pipeline_value "${SUBSCRIPTION_ID:-}")
 SUBSCRIPTION_NAME=$(sanitize_pipeline_value "${SUBSCRIPTION_NAME:-}")
@@ -144,6 +192,15 @@ fi
 
 if [[ -n "${LOG_ANALYTICS_WORKSPACE_NAME:-}" ]]; then
   parameter_args+=(--parameters "logAnalyticsWorkspaceName=$LOG_ANALYTICS_WORKSPACE_NAME")
+fi
+
+if [[ -n "${AZURE_SYNC_SUBSCRIPTION_IDS:-}" ]]; then
+  normalized_sync_subscription_ids=$(normalize_subscription_ids_parameter "$AZURE_SYNC_SUBSCRIPTION_IDS")
+  parameter_args+=(--parameters "azureSyncSubscriptionIds=$normalized_sync_subscription_ids")
+fi
+
+if [[ -n "${AZURE_SYNC_SUBSCRIPTION_ROLE:-}" ]]; then
+  parameter_args+=(--parameters "azureSyncSubscriptionRole=$AZURE_SYNC_SUBSCRIPTION_ROLE")
 fi
 
 echo "Deploying infrastructure from $BICEP_FILE..."
