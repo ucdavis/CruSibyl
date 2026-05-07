@@ -183,7 +183,6 @@ public class AdminController : Controller
                 .WithCrudActions()
                 .AddSelectorColumn(x => x.Name)
                 .AddSelectorColumn(x => x.ResourceGroup!)
-                .AddSelectorColumn(x => x.SubscriptionId!)
                 .AddSelectorColumn(x => x.Importance, config => config.WithEditable())
                 .AddSelectorColumn(x => x.IsEnabled, config => config.WithEditable())
                 .AddCrudDisplayColumn());

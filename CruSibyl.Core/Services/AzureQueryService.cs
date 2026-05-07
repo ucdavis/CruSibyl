@@ -4,6 +4,8 @@ using Azure.ResourceManager;
 using Azure.ResourceManager.AppService;
 using Azure.ResourceManager.Resources;
 using CruSibyl.Core.Domain;
+using CruSibyl.Core.Models.Settings;
+using Microsoft.Extensions.Options;
 using Serilog;
 
 namespace CruSibyl.Core.Services;
@@ -11,9 +13,9 @@ namespace CruSibyl.Core.Services;
 public interface IAzureQueryService
 {
     /// <summary>
-    /// Get all App Services in the specified subscription
+    /// Get all App Services in the configured subscription
     /// </summary>
-    Task<List<App>> GetApps(string subscriptionId, CancellationToken cancellationToken = default);
+    Task<List<App>> GetApps(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get WebJobs for a specific App Service
@@ -49,12 +51,15 @@ public class AzureQueryService : IAzureQueryService
     private readonly ArmClient _armClient;
     private readonly LogsQueryClient? _logsQueryClient;
     private readonly IKuduApiService _kuduApiService;
+    private readonly AzureSettings _azureSettings;
 
     public AzureQueryService(
         IKuduApiService kuduApiService,
+        IOptions<AzureSettings> azureSettings,
         DefaultAzureCredential? credential = null)
     {
         _kuduApiService = kuduApiService;
+        _azureSettings = azureSettings.Value;
         
         // Use provided credential or create a new one
         var azureCredential = credential ?? new DefaultAzureCredential();
@@ -71,8 +76,9 @@ public class AzureQueryService : IAzureQueryService
         }
     }
 
-    public async Task<List<App>> GetApps(string subscriptionId, CancellationToken cancellationToken = default)
+    public async Task<List<App>> GetApps(CancellationToken cancellationToken = default)
     {
+        var subscriptionId = GetConfiguredSubscriptionId();
         Log.Information("Getting App Services in subscription {SubscriptionId}", subscriptionId);
 
         var apps = new List<App>();
@@ -340,5 +346,15 @@ public class AzureQueryService : IAzureQueryService
     public async Task<string?> GetWebJobRunOutput(string outputUrl, CancellationToken cancellationToken = default)
     {
         return await _kuduApiService.GetWebJobRunOutput(outputUrl, cancellationToken);
+    }
+
+    private string GetConfiguredSubscriptionId()
+    {
+        if (string.IsNullOrWhiteSpace(_azureSettings.SubscriptionId))
+        {
+            throw new InvalidOperationException("Azure:SubscriptionId must be configured before Azure resources can be queried.");
+        }
+
+        return _azureSettings.SubscriptionId.Trim();
     }
 }

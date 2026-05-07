@@ -82,6 +82,10 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
           name: 'ConnectionStrings__DefaultConnection'
           value: sqlConnectionString
         }
+        {
+          name: 'Azure__SubscriptionId'
+          value: subscription().subscriptionId
+        }
       ], appInsightsConnectionString != '' ? [
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
@@ -128,6 +132,10 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'ConnectionStrings__DefaultConnection'
           value: sqlConnectionString
+        }
+        {
+          name: 'Azure__SubscriptionId'
+          value: subscription().subscriptionId
         }
         {
           name: 'FUNCTIONS_EXTENSION_VERSION'

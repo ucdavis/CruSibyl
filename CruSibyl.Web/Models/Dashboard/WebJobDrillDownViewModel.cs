@@ -6,8 +6,6 @@ public class WebJobDrillDownViewModel
     public string WebJobName { get; set; } = null!;
     public int AppId { get; set; }
     public string AppName { get; set; } = null!;
-    public string SubscriptionId { get; set; } = string.Empty;
-    public string SubscriptionName { get; set; } = string.Empty;
     public string JobType { get; set; } = null!;
     public string? Status { get; set; }
     public string? Schedule { get; set; }

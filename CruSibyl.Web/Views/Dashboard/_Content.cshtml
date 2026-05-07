@@ -2,23 +2,8 @@
 @model DashboardViewModel
 
 <div id="main-content" class="flex flex-col gap-4">
-  <!-- Subscription Selector -->
   <div class="flex justify-between items-center">
-    <h2 class="text-2xl font-bold">Dashboard - @Model.SubscriptionName</h2>
-    @if (Model.Subscriptions.Count > 1)
-    {
-      <div class="join">
-        @foreach (var sub in Model.Subscriptions)
-        {
-          <button class="join-item btn btn-sm @(Model.SubscriptionId == sub.Value.SubscriptionId ? "btn-primary" : "btn-ghost")"
-                  hx-get="/Dashboard/Index?subscriptionId=@sub.Value.SubscriptionId"
-                  hx-target="#main-content"
-                  hx-swap="outerHTML">
-            @sub.Key
-          </button>
-        }
-      </div>
-    }
+    <h2 class="text-2xl font-bold">Dashboard</h2>
   </div>
 
   <!-- Critical Alerts -->
@@ -101,13 +86,13 @@
   <!-- Action Buttons -->
   <div class="flex gap-2 mt-4">
     <button class="btn btn-primary"
-            hx-get="/Dashboard/FailureHistory?subscriptionId=@Model.SubscriptionId"
+            hx-get="/Dashboard/FailureHistory"
             hx-target="#dashboard-detail"
             hx-swap="innerHTML">
       <i class="fas fa-history"></i> View Failure History
     </button>
     <button class="btn btn-primary"
-            hx-get="/Dashboard/DependencyCurrency?subscriptionId=@Model.SubscriptionId"
+            hx-get="/Dashboard/DependencyCurrency"
             hx-target="#dashboard-detail"
             hx-swap="innerHTML">
       <i class="fas fa-cubes"></i> View Dependency Currency

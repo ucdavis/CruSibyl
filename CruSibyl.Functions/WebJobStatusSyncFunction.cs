@@ -1,12 +1,9 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Options;
 using Serilog;
 
 namespace CruSibyl.Functions;
@@ -14,14 +11,10 @@ namespace CruSibyl.Functions;
 public class WebJobStatusSyncFunction
 {
     private readonly IAzureSyncService _azureSyncService;
-    private readonly AzureSettings _azureSettings;
 
-    public WebJobStatusSyncFunction(
-        IAzureSyncService azureSyncService,
-        IOptions<AzureSettings> azureSettings)
+    public WebJobStatusSyncFunction(IAzureSyncService azureSyncService)
     {
         _azureSyncService = azureSyncService;
-        _azureSettings = azureSettings.Value;
     }
 
     [Function("WebJobStatusSyncFunction")]
@@ -44,35 +37,8 @@ public class WebJobStatusSyncFunction
 
     private async Task SyncWebJobStatuses(CancellationToken cancellationToken)
     {
-        var enabledSubscriptions = _azureSettings.Subscriptions
-            .Where(kvp => kvp.Value.Enabled && !string.IsNullOrEmpty(kvp.Value.SubscriptionId))
-            .ToList();
-
-        if (!enabledSubscriptions.Any())
-        {
-            Log.Warning("No enabled Azure subscriptions configured");
-            return;
-        }
-
-        Log.Information("Starting WebJob status sync for {Count} subscription(s)", enabledSubscriptions.Count);
-
-        foreach (var (subscriptionName, subscription) in enabledSubscriptions)
-        {
-            Log.Information("Syncing WebJob statuses for subscription: {SubscriptionName} ({SubscriptionId})", 
-                subscriptionName, subscription.SubscriptionId);
-
-            try
-            {
-                await _azureSyncService.SyncWebJobStatuses(subscription.SubscriptionId, cancellationToken);
-                Log.Information("Successfully synced WebJob statuses for subscription: {SubscriptionName}", subscriptionName);
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex, "Failed to sync WebJob statuses for subscription: {SubscriptionName}", subscriptionName);
-                // Continue with next subscription
-            }
-        }
-
-        Log.Information("WebJob status sync completed");
+        Log.Information("Starting WebJob status sync for configured subscription");
+        await _azureSyncService.SyncWebJobStatuses(cancellationToken);
+        Log.Information("WebJob status sync completed for configured subscription");
     }
 }

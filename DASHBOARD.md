@@ -6,7 +6,7 @@ The CruSibyl dashboard provides real-time monitoring and management capabilities
 ## Features Implemented
 
 ### 1. WebJobs Health Monitoring
-- **Environment Toggle**: Switch between Production and Test environments (Production is default)
+- **Deployment-scoped data**: Shows Azure resources synced by the current CruSibyl environment
 - **App Health Cards**: Per-application overview showing:
   - Total, running, and failed WebJob counts
   - Last failure information
@@ -18,7 +18,7 @@ The CruSibyl dashboard provides real-time monitoring and management capabilities
 ### 2. Failure History (30 Days)
 - **Filtered Table View**: 
   - Filter by app name or job name
-  - Environment-specific filtering
+  - Deployment-local data only
   - Displays up to 100 most recent failures
 - **Failure Pattern Detection**:
   - Consistent vs Intermittent classification
@@ -39,8 +39,7 @@ The CruSibyl dashboard provides real-time monitoring and management capabilities
 
 ### 4. Dependency & Platform Currency
 - **Prioritized View**: 
-  - Priority Score = (Environment Weight × App Importance × Version Delta Severity)
-  - Environment Weight: Production = 1.0, Test = 0.5
+  - Priority Score = (App Importance × Version Delta Severity)
   - Version Delta Severity: Major behind = 3.0, Minor behind = 2.0, Current = 1.0
 - **Version Comparison**:
   - Current version vs Latest Major
@@ -64,11 +63,12 @@ The CruSibyl dashboard provides real-time monitoring and management capabilities
 - **WebJob Status**: Events table with `EventType.WebJobStatus`
 - **WebJob Run Details**: `WebJobStatusPayload` JSON in Event.Payload
 - **Dependencies**: Existing Dependency/PackageVersion tables
-- **Apps**: Apps table with subscriptions (filters for Prod/Test)
+- **Apps**: Apps table from the current deployment database
 
-### Environment Detection
-- **Production**: `SubscriptionId` does NOT contain "test" (case-insensitive)
-- **Test**: `SubscriptionId` CONTAINS "test" (case-insensitive)
+### Deployment Scope
+- Each CruSibyl deployment syncs one Azure subscription: the subscription configured as `Azure:SubscriptionId`.
+- Production and test separation is handled by separate deployments, databases, service connections, and Function App identities.
+- `App.SubscriptionId` may be stored as Azure metadata, but it is not used as a dashboard selector.
 
 ## Services & Components
 
@@ -76,10 +76,10 @@ The CruSibyl dashboard provides real-time monitoring and management capabilities
 Location: `/CruSibyl.Web/Services/DashboardService.cs`
 
 **Methods:**
-- `GetDashboardOverviewAsync(environment)`: Main dashboard with health cards and alerts
-- `GetFailureHistoryAsync(environment, appFilter, jobFilter)`: 30-day failure history with sparklines
+- `GetDashboardOverviewAsync()`: Main dashboard with health cards and alerts
+- `GetFailureHistoryAsync(appFilter, jobFilter)`: 30-day failure history with sparklines
 - `GetWebJobDrillDownAsync(webJobId)`: Detailed job view with recent runs
-- `GetDependencyCurrencyAsync(environment)`: Prioritized dependency upgrade list
+- `GetDependencyCurrencyAsync()`: Prioritized dependency upgrade list
 
 ### View Models
 Location: `/CruSibyl.Web/Models/Dashboard/`
@@ -93,10 +93,10 @@ Location: `/CruSibyl.Web/Models/Dashboard/`
 Location: `/CruSibyl.Web/Controllers/DashboardController.cs`
 
 **Endpoints:**
-- `GET /Dashboard/Index?env={environment}`: Main dashboard
-- `GET /Dashboard/FailureHistory?env={environment}&app={filter}&job={filter}`: Failure history
+- `GET /Dashboard/Index`: Main dashboard
+- `GET /Dashboard/FailureHistory?app={filter}&job={filter}`: Failure history
 - `GET /Dashboard/WebJobDrillDown/{webJobId}`: Job drill-down
-- `GET /Dashboard/DependencyCurrency?env={environment}`: Dependency currency
+- `GET /Dashboard/DependencyCurrency`: Dependency currency
 
 ### Views
 Location: `/CruSibyl.Web/Views/Dashboard/`
@@ -111,8 +111,8 @@ Location: `/CruSibyl.Web/Views/Dashboard/`
 ### DaisyUI Components Used
 - **Cards**: App health cards, detail panels
 - **Alerts**: Critical failure alerts
-- **Badges**: Status, severity, environment indicators
-- **Buttons**: Actions, environment toggle (join component)
+- **Badges**: Status and severity indicators
+- **Buttons**: Dashboard action buttons
 - **Tables**: Failure history, run history, dependency currency
 - **Stats**: WebJob counts (total, running, failed)
 - **Progress**: App importance visualization
@@ -127,7 +127,6 @@ Location: `/CruSibyl.Web/Views/Dashboard/`
 ### HTMX Integration
 - **Navigation**: `hx-get`, `hx-target`, `hx-swap`
 - **Auto-refresh**: JavaScript interval triggering HTMX refresh
-- **Environment Toggle**: HTMX-powered environment switching
 - **Drill-Down**: HTMX partial loading into detail panel
 
 ## Admin Features
@@ -135,7 +134,7 @@ Location: `/CruSibyl.Web/Views/Dashboard/`
 ### Apps Management
 - **New Admin Page**: `/Admin/Apps`
 - **Editable Fields**: Importance, IsEnabled
-- **Display Fields**: Name, ResourceGroup, SubscriptionId
+- **Display Fields**: Name, ResourceGroup
 - **CRUD Operations**: Update only (via Htmx.Components table)
 
 ## Configuration & Setup
@@ -157,9 +156,9 @@ dotnet ef database update
 ## Usage Patterns
 
 ### HTMX Navigation Flow
-1. User clicks environment toggle → HTMX GET to `/Dashboard/Index?env={env}`
-2. Server returns new `_Content.cshtml` with filtered data
-3. HTMX swaps `#main-content` → dashboard refreshes
+1. User opens dashboard → MVC GET to `/Dashboard/Index`
+2. Server returns `_Content.cshtml` with current deployment data
+3. HTMX-powered panels load details into `#dashboard-detail`
 
 ### Failure Investigation Flow
 1. User sees critical alert on dashboard
@@ -193,8 +192,8 @@ dotnet ef database update
 ## Testing Recommendations
 
 ### Manual Testing Checklist
-- [ ] Dashboard loads with Production data by default
-- [ ] Environment toggle switches between Prod/Test
+- [ ] Dashboard loads data for the current deployment
+- [ ] No prod/test toggle or subscription selector is shown
 - [ ] Critical alerts appear when 3+ failures in 24 hours
 - [ ] Health cards show correct counts and importance
 - [ ] Failure history filters work correctly
@@ -224,7 +223,6 @@ Dashboard uses standard MVC filter pipeline. Could be extended with custom filte
 - Cache headers for auto-refresh optimization
 
 ### State Management
-- Environment selection: URL parameter (stateless)
 - Filters: Form inputs with HTMX
 - Expand/collapse: Client-side only (no server state)
 - Page state: Htmx.Components page state (encrypted, session-scoped)

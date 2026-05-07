@@ -4,7 +4,6 @@ using CruSibyl.Core.Data;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
 using CruSibyl.Core.Services;
-using CruSibyl.Web.Configuration;
 using CruSibyl.Web.Extensions;
 using CruSibyl.Web.Middleware;
 using CruSibyl.Web.Middleware.Auth;
@@ -129,7 +128,6 @@ try
     DBContextConfig.Configure(appBuilder.Configuration, appBuilder.Services, out var migrationScaffoldRequested);
 
     appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Authentication"));
-    appBuilder.Services.Configure<AzureConfig>(appBuilder.Configuration.GetSection("Azure"));
 
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
@@ -229,6 +227,5 @@ finally
 }
 
 return 0;
-
 
 

@@ -13,12 +13,12 @@ public interface IAzureSyncService
     /// <summary>
     /// Update all apps and their WebJobs in the database
     /// </summary>
-    Task SyncAppsAndWebJobs(string subscriptionId, CancellationToken cancellationToken = default);
+    Task SyncAppsAndWebJobs(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sync WebJob status and run history for all WebJobs in the database
     /// </summary>
-    Task SyncWebJobStatuses(string subscriptionId, CancellationToken cancellationToken = default);
+    Task SyncWebJobStatuses(CancellationToken cancellationToken = default);
 }
 
 public class AzureSyncService : IAzureSyncService
@@ -40,8 +40,9 @@ public class AzureSyncService : IAzureSyncService
         _azureSettings = azureSettings.Value;
     }
 
-    public async Task SyncAppsAndWebJobs(string subscriptionId, CancellationToken cancellationToken = default)
+    public async Task SyncAppsAndWebJobs(CancellationToken cancellationToken = default)
     {
+        var subscriptionId = GetConfiguredSubscriptionId();
         Log.Information("Starting sync for subscription {SubscriptionId}", subscriptionId);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -49,7 +50,7 @@ public class AzureSyncService : IAzureSyncService
         try
         {
             // Get apps
-            var apps = await _azureQueryService.GetApps(subscriptionId, cancellationToken);
+            var apps = await _azureQueryService.GetApps(cancellationToken);
 
             foreach (var app in apps)
             {
@@ -187,8 +188,9 @@ public class AzureSyncService : IAzureSyncService
         }
     }
 
-    public async Task SyncWebJobStatuses(string subscriptionId, CancellationToken cancellationToken = default)
+    public async Task SyncWebJobStatuses(CancellationToken cancellationToken = default)
     {
+        var subscriptionId = GetConfiguredSubscriptionId();
         Log.Information("Starting WebJob status sync for subscription {SubscriptionId}", subscriptionId);
 
         await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
@@ -344,5 +346,15 @@ public class AzureSyncService : IAzureSyncService
             Log.Error(ex, "Failed to sync status for WebJob {WebJobName} in {AppName}", webJob.Name, webJob.App.Name);
             // Continue processing other WebJobs
         }
+    }
+
+    private string GetConfiguredSubscriptionId()
+    {
+        if (string.IsNullOrWhiteSpace(_azureSettings.SubscriptionId))
+        {
+            throw new InvalidOperationException("Azure:SubscriptionId must be configured before Azure sync can run.");
+        }
+
+        return _azureSettings.SubscriptionId.Trim();
     }
 }

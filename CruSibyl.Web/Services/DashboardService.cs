@@ -3,54 +3,37 @@ using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
 using CruSibyl.Web.Models.Dashboard;
-using CruSibyl.Web.Configuration;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace CruSibyl.Web.Services;
 
 public interface IDashboardService
 {
-    Task<DashboardViewModel> GetDashboardOverviewAsync(string subscriptionId);
-    Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string subscriptionId, string? appFilter = null, string? jobFilter = null);
+    Task<DashboardViewModel> GetDashboardOverviewAsync();
+    Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string? appFilter = null, string? jobFilter = null);
     Task<WebJobDrillDownViewModel> GetWebJobDrillDownAsync(int webJobId);
-    Task<DependencyCurrencyViewModel> GetDependencyCurrencyAsync(string subscriptionId);
-    Dictionary<string, AzureSubscription> GetSubscriptions();
-    string GetDefaultSubscriptionId();
+    Task<DependencyCurrencyViewModel> GetDependencyCurrencyAsync();
 }
 
 public class DashboardService : IDashboardService
 {
     private readonly AppDbContext _dbContext;
-    private readonly Dictionary<string, AzureSubscription> _subscriptions;
 
-    public DashboardService(AppDbContext dbContext, IOptions<AzureConfig> azureConfig)
+    public DashboardService(AppDbContext dbContext)
     {
         _dbContext = dbContext;
-        _subscriptions = azureConfig.Value.Subscriptions.Where(s => s.Value.Enabled).ToDictionary(s => s.Key, s => s.Value);
     }
 
-    public Dictionary<string, AzureSubscription> GetSubscriptions() => _subscriptions;
-
-    public string GetDefaultSubscriptionId()
-    {
-        var defaultSub = _subscriptions.FirstOrDefault(s => s.Value.Default);
-        return defaultSub.Value?.SubscriptionId ?? _subscriptions.FirstOrDefault().Value?.SubscriptionId ?? string.Empty;
-    }
-
-    public async Task<DashboardViewModel> GetDashboardOverviewAsync(string subscriptionId)
+    public async Task<DashboardViewModel> GetDashboardOverviewAsync()
     {
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         
-        // Filter apps by subscription
-        var subscriptionName = _subscriptions.FirstOrDefault(s => s.Value.SubscriptionId == subscriptionId).Key ?? subscriptionId;
         var apps = await _dbContext.Apps
             .Include(a => a.WebJobs)
             .Where(a => a.IsEnabled)
-            .Where(a => a.SubscriptionId == subscriptionId && a.WebJobs.Any(wj => wj.IsEnabled))
+            .Where(a => a.WebJobs.Any(wj => wj.IsEnabled))
             .ToListAsync();
 
-        var appIds = apps.Select(a => a.Id).ToList();
         var webJobIds = apps.SelectMany(a => a.WebJobs).Select(wj => wj.Id).ToList();
 
         // Get recent failure events for these apps
@@ -108,7 +91,6 @@ public class DashboardService : IDashboardService
                 AppId = app.Id,
                 AppName = app.Name,
                 ResourceGroup = app.ResourceGroup,
-                SubscriptionId = app.SubscriptionId,
                 Importance = app.Importance,
                 TotalWebJobs = appWebJobs.Count,
                 RunningWebJobs = appWebJobs.Count(wj => wj.Status == "Running"),
@@ -121,18 +103,14 @@ public class DashboardService : IDashboardService
 
         return new DashboardViewModel
         {
-            SubscriptionId = subscriptionId,
-            SubscriptionName = subscriptionName,
-            Subscriptions = _subscriptions,
             AppHealthCards = appHealthCards.OrderByDescending(a => a.HasCriticalFailure).ThenByDescending(a => a.Importance).ToList(),
             CriticalAlerts = criticalAlerts.OrderByDescending(a => a.FailureTime).ToList()
         };
     }
 
-    public async Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string subscriptionId, string? appFilter = null, string? jobFilter = null)
+    public async Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string? appFilter = null, string? jobFilter = null)
     {
         var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
-        var subscriptionName = _subscriptions.FirstOrDefault(s => s.Value.SubscriptionId == subscriptionId).Key ?? subscriptionId;
 
         var query = _dbContext.Events
             .Where(e => e.EventType == EventType.WebJobStatus)
@@ -141,9 +119,6 @@ public class DashboardService : IDashboardService
             .Include(e => e.WebJobs)
                 .ThenInclude(wj => wj.App)
             .AsQueryable();
-
-        // Filter by subscription
-        query = query.Where(e => e.WebJobs.Any(wj => wj.App.SubscriptionId == subscriptionId));
 
         if (!string.IsNullOrWhiteSpace(appFilter))
         {
@@ -181,8 +156,6 @@ public class DashboardService : IDashboardService
                 WebJobName = webJob.Name,
                 AppId = webJob.App.Id,
                 AppName = webJob.App.Name,
-                SubscriptionId = subscriptionId,
-                SubscriptionName = subscriptionName,
                 FailureTime = evt.Timestamp,
                 Status = payload?.Status ?? "Failed",
                 DurationMs = payload?.DurationMs,
@@ -210,8 +183,6 @@ public class DashboardService : IDashboardService
 
         return new WebJobFailureHistoryViewModel
         {
-            SubscriptionId = subscriptionId,
-            SubscriptionName = subscriptionName,
             AppFilter = appFilter,
             JobFilter = jobFilter,
             Failures = failures,
@@ -272,17 +243,12 @@ public class DashboardService : IDashboardService
             });
         }
 
-        var subscriptionId = webJob.App.SubscriptionId ?? string.Empty;
-        var subscriptionName = _subscriptions.FirstOrDefault(s => s.Value.SubscriptionId == subscriptionId).Key ?? subscriptionId;
-
         return new WebJobDrillDownViewModel
         {
             WebJobId = webJob.Id,
             WebJobName = webJob.Name,
             AppId = webJob.App.Id,
             AppName = webJob.App.Name,
-            SubscriptionId = subscriptionId,
-            SubscriptionName = subscriptionName,
             JobType = webJob.JobType,
             Status = webJob.Status,
             Schedule = webJob.Schedule,
@@ -291,14 +257,10 @@ public class DashboardService : IDashboardService
         };
     }
 
-    public async Task<DependencyCurrencyViewModel> GetDependencyCurrencyAsync(string subscriptionId)
+    public async Task<DependencyCurrencyViewModel> GetDependencyCurrencyAsync()
     {
-        var subscriptionName = _subscriptions.FirstOrDefault(s => s.Value.SubscriptionId == subscriptionId).Key ?? subscriptionId;
-
-        // Get apps filtered by subscription
         var apps = await _dbContext.Apps
             .Where(a => a.IsEnabled)
-            .Where(a => a.SubscriptionId == subscriptionId)
             .Select(a => new { a.Id, a.Name, a.Importance, a.RepoId })
             .ToListAsync();
 
@@ -400,8 +362,6 @@ public class DashboardService : IDashboardService
                 AppId = app.Id,
                 AppName = app.Name,
                 AppImportance = app.Importance,
-                SubscriptionId = subscriptionId,
-                SubscriptionName = subscriptionName,
                 PlatformName = dep.PlatformName,
                 PackageName = dep.PackageName,
                 CurrentVersion = dep.CurrentVersion,
@@ -416,8 +376,6 @@ public class DashboardService : IDashboardService
 
         return new DependencyCurrencyViewModel
         {
-            SubscriptionId = subscriptionId,
-            SubscriptionName = subscriptionName,
             Dependencies = currencyModels.OrderByDescending(d => d.PriorityScore).ToList()
         };
     }

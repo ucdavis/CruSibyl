@@ -11,7 +11,7 @@ The scaffold currently covers:
 - a Function App on the shared plan with `Always On`
 - Function host storage
 - Azure SQL server + database
-- subscription-scope RBAC for the Function App identity to read App Services and call Kudu/WebJobs APIs
+- same-subscription RBAC for the Function App identity to read App Services and call Kudu/WebJobs APIs
 - optional Log Analytics + Application Insights
 - Azure Pipelines deploy-stage template for infra + app deployment
 
@@ -58,7 +58,6 @@ Optional overrides:
 - `APP_SERVICE_PLAN_NAME=...`
 - `FUNCTION_STORAGE_ACCOUNT_NAME=...`
 - `SQL_SERVER_NAME=...`
-- `AZURE_SYNC_SUBSCRIPTION_IDS=105dede4-4731-492e-8c28-5121226319b0[,other-subscription-guid]`
 - `AZURE_SYNC_SUBSCRIPTION_ROLE=WebsiteContributor`
 
 ## Azure Pipelines
@@ -102,7 +101,6 @@ Optional variable-group values:
 - `SQL_SERVER_NAME`
 - `APP_INSIGHTS_NAME`
 - `LOG_ANALYTICS_WORKSPACE_NAME`
-- `AZURE_SYNC_SUBSCRIPTION_IDS`
 - `AZURE_SYNC_SUBSCRIPTION_ROLE`
 - `WEB_APP_SETTINGS_JSON`
 - `FUNCTION_APP_SETTINGS_JSON`
@@ -115,9 +113,9 @@ Notes:
 - `SQL_ADMIN_LOGIN` and `SQL_ADMIN_PASSWORD` are only required when `deployInfra=true`.
 - `WEB_APP_SETTINGS_JSON` and `FUNCTION_APP_SETTINGS_JSON` default to `[]` in the pipeline and are meant to hold Azure App Service settings payloads.
 - `EXPECTED_FUNCTIONS` defaults to the current timer functions: `AppWebJobSyncFunction,ManifestSyncFunction,PackageVersionSyncFunction,WebJobStatusSyncFunction`.
-- `AZURE_SYNC_SUBSCRIPTION_IDS` is optional. When omitted, Bicep assigns access on the deployment subscription. Use a comma-separated list or JSON array when the sync functions scan additional subscriptions.
 - `AZURE_SYNC_SUBSCRIPTION_ROLE` defaults to `WebsiteContributor`, which is needed for Kudu/WebJobs API access. Use `Reader` only for deployments that do not call Kudu.
-- The identity running the Bicep deployment must be allowed to create role assignments, such as Owner or User Access Administrator, on every subscription in `AZURE_SYNC_SUBSCRIPTION_IDS`.
+- Bicep assigns Azure sync access only in the deployment subscription. Test and production isolation is handled by separate deployments, databases, service connections, and Function App identities.
+- The identity running the Bicep deployment must be allowed to create role assignments, such as Owner or User Access Administrator, in the deployment subscription.
 
 Example `WEB_APP_SETTINGS_JSON` value:
 
@@ -127,12 +125,7 @@ Example `WEB_APP_SETTINGS_JSON` value:
   { "name": "Authentication__ClientSecret", "value": "$(AUTHENTICATION_CLIENT_SECRET)", "slotSetting": false },
   { "name": "Authentication__Authority", "value": "https://cas.ucdavis.edu/cas/oidc", "slotSetting": false },
   { "name": "Authentication__IamKey", "value": "$(AUTHENTICATION_IAM_KEY)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESTest__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESTest__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESTest__Default", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESProd__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESProd__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESProd__Default", "value": "false", "slotSetting": false },
+  { "name": "Azure__SubscriptionId", "value": "$(AZURE_SUBSCRIPTION_ID)", "slotSetting": false },
   { "name": "Serilog__Environment", "value": "$(ENVIRONMENT)", "slotSetting": false },
   { "name": "Serilog__ElasticUrl", "value": "$(SERILOG_ELASTIC_URL)", "slotSetting": false }
 ]
@@ -144,10 +137,7 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 [
   { "name": "GitHub__RepoOwner", "value": "ucdavis", "slotSetting": false },
   { "name": "GitHub__AccessToken", "value": "$(GITHUB_ACCESS_TOKEN)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESTest__SubscriptionId", "value": "$(CAES_TEST_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESTest__Enabled", "value": "true", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESProd__SubscriptionId", "value": "$(CAES_PROD_SUBSCRIPTION_ID)", "slotSetting": false },
-  { "name": "Azure__Subscriptions__CAESProd__Enabled", "value": "true", "slotSetting": false },
+  { "name": "Azure__SubscriptionId", "value": "$(AZURE_SUBSCRIPTION_ID)", "slotSetting": false },
   { "name": "Serilog__Environment", "value": "$(ENVIRONMENT)", "slotSetting": false },
   { "name": "Serilog__ElasticUrl", "value": "$(SERILOG_ELASTIC_URL)", "slotSetting": false }
 ]
@@ -158,6 +148,6 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 - Resource names default to deterministic values derived from app name, environment, and resource group. The Web App defaults are `crusibyl-test` for test and `crusibyl` for prod unless explicitly overridden.
 - Monitoring is enabled by default and can be disabled with `DEPLOY_MONITORING=false`.
 - The Function App currently uses the SQL connection string via `ConnectionStrings__DefaultConnection`.
-- The Function App uses its system-assigned managed identity for Azure sync calls. Bicep grants that identity `AZURE_SYNC_SUBSCRIPTION_ROLE` on each configured sync subscription.
+- The Function App uses its system-assigned managed identity for Azure sync calls. Bicep grants that identity `AZURE_SYNC_SUBSCRIPTION_ROLE` only in the deployment subscription.
 - The Function App allows `https://portal.azure.com` in CORS so HTTP-trigger functions can be invoked from the Azure portal.
 - The pipeline template validates host health plus registered function names, which is our first-pass check that timer triggers synced after deployment.
