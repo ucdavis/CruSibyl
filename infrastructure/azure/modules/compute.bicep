@@ -79,10 +79,6 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
           value: environmentName
         }
         {
-          name: 'ConnectionStrings__DefaultConnection'
-          value: sqlConnectionString
-        }
-        {
           name: 'Azure__SubscriptionId'
           value: subscription().subscriptionId
         }
@@ -96,6 +92,17 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
           value: appInsightsInstrumentationKey
         }
       ] : [])
+    }
+  }
+}
+
+resource webConnectionStrings 'Microsoft.Web/sites/config@2025-03-01' = {
+  parent: webApp
+  name: 'connectionstrings'
+  properties: {
+    DefaultConnection: {
+      value: sqlConnectionString
+      type: 'SQLAzure'
     }
   }
 }
@@ -130,10 +137,6 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
           value: functionStorageConnectionString
         }
         {
-          name: 'ConnectionStrings__DefaultConnection'
-          value: sqlConnectionString
-        }
-        {
           name: 'Azure__SubscriptionId'
           value: subscription().subscriptionId
         }
@@ -155,6 +158,17 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
           value: appInsightsInstrumentationKey
         }
       ] : [])
+    }
+  }
+}
+
+resource functionConnectionStrings 'Microsoft.Web/sites/config@2025-03-01' = {
+  parent: functionApp
+  name: 'connectionstrings'
+  properties: {
+    DefaultConnection: {
+      value: sqlConnectionString
+      type: 'SQLAzure'
     }
   }
 }

@@ -155,6 +155,9 @@ module compute 'modules/compute.bicep' = {
     tags: resourceTags
     webAppName: resolvedWebAppName
   }
+  dependsOn: [
+    sql
+  ]
 }
 
 module rbac 'modules/rbac.bicep' = {

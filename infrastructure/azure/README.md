@@ -28,9 +28,10 @@ Prerequisites:
 - authenticated with `az login`
 - access to the target subscription
 
-Set the SQL admin password and deploy:
+Set the SQL admin login and password, then deploy:
 
 ```bash
+export SQL_ADMIN_LOGIN='your-existing-sql-admin-login'
 export SQL_ADMIN_PASSWORD='your-strong-password'
 bash infrastructure/azure/scripts/deploy_test.sh
 ```
@@ -43,7 +44,7 @@ export LOCATION='westus2'
 export APP_NAME='crusibyl'
 export ENVIRONMENT='test'
 export DEPLOYMENT_NAME='crusibyl-test'
-export SQL_ADMIN_LOGIN='crusibyl'
+export SQL_ADMIN_LOGIN='your-existing-sql-admin-login'
 export SQL_ADMIN_PASSWORD='your-strong-password'
 bash infrastructure/azure/scripts/deploy.sh
 ```
@@ -147,7 +148,7 @@ Example `FUNCTION_APP_SETTINGS_JSON` value:
 
 - Resource names default to deterministic values derived from app name, environment, and resource group. The Web App defaults are `crusibyl-test` for test and `crusibyl` for prod unless explicitly overridden.
 - Monitoring is enabled by default and can be disabled with `DEPLOY_MONITORING=false`.
-- The Function App currently uses the SQL connection string via `ConnectionStrings__DefaultConnection`.
+- The Web App and Function App store `DefaultConnection` in App Service connection strings as a `SQLAzure` connection string. Remove stale `ConnectionStrings__DefaultConnection` app settings if they were previously configured manually or by pipeline variables.
 - The Function App uses its system-assigned managed identity for Azure sync calls. Bicep grants that identity `AZURE_SYNC_SUBSCRIPTION_ROLE` only in the deployment subscription.
 - The Function App allows `https://portal.azure.com` in CORS so HTTP-trigger functions can be invoked from the Azure portal.
 - The pipeline template validates host health plus registered function names, which is our first-pass check that timer triggers synced after deployment.
