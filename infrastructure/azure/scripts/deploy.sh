@@ -50,6 +50,12 @@ APP_SERVICE_PLAN_CAPACITY=${APP_SERVICE_PLAN_CAPACITY:-1}
 SQL_DATABASE_NAME=$(sanitize_pipeline_value "${SQL_DATABASE_NAME:-}")
 SQL_DATABASE_NAME=${SQL_DATABASE_NAME:-${APP_NAME:-crusibyl}}
 
+SQL_SKU_NAME=$(sanitize_pipeline_value "${SQL_SKU_NAME:-}")
+SQL_SKU_NAME=${SQL_SKU_NAME:-Basic}
+
+SQL_SKU_TIER=$(sanitize_pipeline_value "${SQL_SKU_TIER:-}")
+SQL_SKU_TIER=${SQL_SKU_TIER:-Basic}
+
 APP_SERVICE_PLAN_NAME=$(sanitize_pipeline_value "${APP_SERVICE_PLAN_NAME:-}")
 WEB_APP_NAME=$(sanitize_pipeline_value "${WEB_APP_NAME:-}")
 FUNCTION_APP_NAME=$(sanitize_pipeline_value "${FUNCTION_APP_NAME:-}")
@@ -113,6 +119,8 @@ parameter_args=(
   --parameters "sqlAdminLogin=$SQL_ADMIN_LOGIN"
   --parameters "sqlAdminPassword=$SQL_ADMIN_PASSWORD"
   --parameters "sqlDatabaseName=$SQL_DATABASE_NAME"
+  --parameters "sqlSkuName=$SQL_SKU_NAME"
+  --parameters "sqlSkuTier=$SQL_SKU_TIER"
   --parameters "deployMonitoring=$DEPLOY_MONITORING"
   --parameters "planSkuName=$APP_SERVICE_PLAN_SKU"
   --parameters "planSkuTier=$APP_SERVICE_PLAN_TIER"
@@ -157,3 +165,5 @@ az deployment group create \
   --name "$DEPLOYMENT_NAME" \
   --template-file "$BICEP_FILE" \
   "${parameter_args[@]}"
+
+echo "Infrastructure deployment complete. Deploy application packages through the Azure DevOps pipeline to publish web and function app code."

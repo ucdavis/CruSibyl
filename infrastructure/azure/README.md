@@ -36,6 +36,8 @@ export SQL_ADMIN_PASSWORD='your-strong-password'
 bash infrastructure/azure/scripts/deploy_test.sh
 ```
 
+The deploy scripts provision and configure Azure infrastructure only. They do not publish the Web App or Function App packages; application code is deployed by the Azure DevOps pipeline after the build stage creates `webapp.zip` and `functionapp.zip`.
+
 Generic deploy entrypoint:
 
 ```bash
@@ -54,6 +56,8 @@ Optional overrides:
 - `DEPLOY_MONITORING=false`
 - `APP_SERVICE_PLAN_SKU=B1`
 - `APP_SERVICE_PLAN_TIER=Basic`
+- `SQL_SKU_NAME=S0`
+- `SQL_SKU_TIER=Standard`
 - `WEB_APP_NAME=...`
 - `FUNCTION_APP_NAME=...`
 - `APP_SERVICE_PLAN_NAME=...`

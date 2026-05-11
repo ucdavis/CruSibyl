@@ -70,6 +70,7 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
+      appCommandLine: 'dotnet /home/site/wwwroot/CruSibyl.Web.dll'
       ftpsState: 'FtpsOnly'
       linuxFxVersion: 'DOTNETCORE|8.0'
       minTlsVersion: '1.2'
@@ -81,6 +82,10 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
         {
           name: 'Azure__SubscriptionId'
           value: subscription().subscriptionId
+        }
+        {
+          name: 'WEBSITES_CONTAINER_START_TIME_LIMIT'
+          value: '600'
         }
       ], appInsightsConnectionString != '' ? [
         {

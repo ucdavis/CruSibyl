@@ -30,6 +30,12 @@ param sqlAdminPassword string
 @description('SQL database name.')
 param sqlDatabaseName string = appName
 
+@description('SQL database SKU name.')
+param sqlSkuName string = 'Basic'
+
+@description('SQL database SKU tier.')
+param sqlSkuTier string = 'Basic'
+
 @description('Shared App Service plan SKU name.')
 param planSkuName string = 'B1'
 
@@ -130,13 +136,15 @@ module sql 'modules/sql.bicep' = {
     databaseName: sqlDatabaseName
     location: location
     name: resolvedSqlServerName
+    skuName: sqlSkuName
+    skuTier: sqlSkuTier
     tags: resourceTags
   }
 }
 
 var sqlServerHostnameSuffix = environment().suffixes.sqlServerHostname
 var sqlServerFqdn = '${resolvedSqlServerName}${startsWith(sqlServerHostnameSuffix, '.') ? '' : '.'}${sqlServerHostnameSuffix}'
-var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
+var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;ConnectRetryCount=5;ConnectRetryInterval=10;'
 
 module compute 'modules/compute.bicep' = {
   name: 'compute'
