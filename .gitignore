@@ -271,8 +271,11 @@ pnpm-lock.yaml
 Thumbs.db
 
 # extracted css classes for tailwind build
+extracted-css-classes.txt
 local-extracted-classes.txt
 htmx-components-extracted-classes.txt
+htmx-components-extracted-classes.css
+Directory.Build.local.props
 
 # Azure Functions settings
 local.settings.json

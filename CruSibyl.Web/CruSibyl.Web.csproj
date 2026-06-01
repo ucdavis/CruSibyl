@@ -18,22 +18,26 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-    <PackageReference Include="Htmx.Components" Version="1.0.3" />
+    <PackageReference Include="Htmx.Components" Version="1.2.0" GeneratePathProperty="true" Condition="'$(HtmxComponentsProjectPath)' == ''" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../CruSibyl.Core/CruSibyl.Core.csproj" />
-    <!-- <ProjectReference Include="../../Htmx.Components/Htmx.Components.csproj" /> -->
+    <ProjectReference Include="$(HtmxComponentsProjectPath)" Condition="'$(HtmxComponentsProjectPath)' != ''" />
   </ItemGroup>
 
   <!-- Tailwind CSS Build -->
   <PropertyGroup>
-    <CssExtractorOutputFile>$(MSBuildProjectDirectory)/Tools/local-extracted-classes.txt</CssExtractorOutputFile>
     <TailwindOutputFile>wwwroot/css/site.css</TailwindOutputFile>
     <TailwindInputFile>Tools/input.css</TailwindInputFile>
+    <HtmxComponentsTailwindSourceFile>Tools/htmx-components-extracted-classes.css</HtmxComponentsTailwindSourceFile>
+    <HtmxComponentsProjectDirectory Condition="'$(HtmxComponentsProjectPath)' != ''">$([System.IO.Path]::GetDirectoryName('$(HtmxComponentsProjectPath)'))</HtmxComponentsProjectDirectory>
   </PropertyGroup>
+  <ItemGroup>
+    <TailwindSourceFiles Include="**/*.cs;**/*.cshtml;**/*.html" Exclude="bin/**;obj/**;Tools/node_modules/**" />
+  </ItemGroup>
   <Target Name="BuildTailwind" AfterTargets="ResolveProjectReferences" 
-    Inputs="$(TailwindInputFile);Tools/local-extracted-classes.txt;Tools/htmx-components-extracted-classes.txt"
+    Inputs="$(TailwindInputFile);$(HtmxComponentsTailwindSourceFile);@(TailwindSourceFiles)"
     Outputs="$(TailwindOutputFile)" Condition="'$(DesignTimeBuild)' != 'true'">
     <Exec Command="cd $(ProjectDir)Tools &amp;&amp; npm run build:css" />
     <Touch Files="$(TailwindOutputFile)" AlwaysCreate="true" />
@@ -49,15 +53,19 @@
     <Touch Files="$(NpmInstallStampFile)" AlwaysCreate="true" />
   </Target>
 
-  <!-- Copy Htmx.Components extracted CSS classes from NuGet package -->
+  <!-- Copy Htmx.Components Tailwind source CSS from the NuGet package or local project. -->
   <Target Name="CopyHtmxExtractedClasses" BeforeTargets="BuildTailwind" Condition="'$(DesignTimeBuild)' != 'true'">
     <ItemGroup>
-      <HtmxExtractedClassesFile Include="$(NuGetPackageRoot)htmx.components/1.0.3/content/extracted-css-classes.txt" Condition="Exists('$(NuGetPackageRoot)htmx.components/1.0.3/content/extracted-css-classes.txt')" />
+      <HtmxExtractedClassesFile Include="$(PkgHtmx_Components)/content/extracted-css-classes.css" Condition="'$(HtmxComponentsProjectPath)' == '' and Exists('$(PkgHtmx_Components)/content/extracted-css-classes.css')" />
+      <HtmxExtractedClassesFile Include="$(HtmxComponentsProjectDirectory)/tools/tailwind/extracted-css-classes.css" Condition="'$(HtmxComponentsProjectDirectory)' != '' and Exists('$(HtmxComponentsProjectDirectory)/tools/tailwind/extracted-css-classes.css')" />
+      <HtmxExtractedClassesFile Include="$(HtmxComponentsProjectDirectory)/content/extracted-css-classes.css" Condition="'$(HtmxComponentsProjectDirectory)' != '' and '@(HtmxExtractedClassesFile)' == '' and Exists('$(HtmxComponentsProjectDirectory)/content/extracted-css-classes.css')" />
     </ItemGroup>
-    <Copy SourceFiles="@(HtmxExtractedClassesFile)" DestinationFiles="Tools/htmx-components-extracted-classes.txt" Condition="@(HtmxExtractedClassesFile) != ''" />
-    
-    <!-- Fallback: create empty file if NuGet package file doesn't exist -->
-    <WriteLinesToFile File="Tools/htmx-components-extracted-classes.txt" Lines="" Overwrite="false" Condition="!Exists('Tools/htmx-components-extracted-classes.txt')" />
+    <Copy SourceFiles="@(HtmxExtractedClassesFile)" DestinationFiles="$(HtmxComponentsTailwindSourceFile)" Condition="'@(HtmxExtractedClassesFile)' != ''" />
+    <Error Text="Htmx.Components Tailwind source CSS was not found. Build the local Htmx.Components project or use a package that contains content/extracted-css-classes.css." Condition="'@(HtmxExtractedClassesFile)' == ''" />
+  </Target>
+
+  <Target Name="BlockLocalHtmxOnPublish" BeforeTargets="Publish" Condition="'$(HtmxComponentsProjectPath)' != ''">
+    <Error Text="Refusing to publish while Htmx.Components is referenced from a local project: $(HtmxComponentsProjectPath). Remove HtmxComponentsProjectPath from Directory.Build.local.props before publishing." />
   </Target>
 
 </Project>

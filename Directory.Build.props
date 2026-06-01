@@ -1,0 +1,13 @@
+<Project>
+  <Import Project="Directory.Build.local.props" Condition="Exists('Directory.Build.local.props')" />
+</Project>
+<!-- 
+To be able to debug against a local copy of the Htmx.Components repo, add a Directory.Build.local.props
+file with the following content to your local copy of the CruSibyl repo, and update the path to point to 
+your local Htmx.Components.csproj:
+<Project>
+  <PropertyGroup>
+    <HtmxComponentsProjectPath>../../Htmx.Components/Htmx.Components.csproj</HtmxComponentsProjectPath>
+  </PropertyGroup>
+</Project>
+-->
