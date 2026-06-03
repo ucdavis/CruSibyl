@@ -1,7 +1,13 @@
 @using CruSibyl.Web.Models.Dashboard
 @model DashboardViewModel
 
-<div id="main-content" class="flex flex-col gap-4">
+<htmx-request-scope id="main-content"
+                    class="flex flex-col gap-4"
+                    data-dashboard-root
+                    hx-get="/Dashboard"
+                    hx-trigger="dashboard:refresh"
+                    hx-target="this"
+                    hx-swap="outerHTML">
   <div class="flex justify-between items-center">
     <h2 class="text-2xl font-bold">Dashboard</h2>
   </div>
@@ -111,19 +117,6 @@
   </div>
 
   <!-- Detail Panel -->
+  <htmx-error-region class="alert alert-error" hidden></htmx-error-region>
   <div id="dashboard-detail" class="mt-4"></div>
-</div>
-
-<!-- Auto-refresh every 60 seconds -->
-<script>
-  setInterval(() => {
-    htmx.trigger('#main-content', 'refresh');
-  }, 60000);
-  
-  document.addEventListener('htmx:afterSwap', (event) => {
-    if (event.detail.target.id === 'main-content') {
-      // Reattach refresh handler after swap
-      htmx.trigger('#main-content', 'refresh');
-    }
-  });
-</script>
+</htmx-request-scope>

@@ -57,7 +57,7 @@
               <td>
                 @if (Model.FailureSparklines.ContainsKey(failure.WebJobId))
                 {
-                  <canvas class="sparkline" data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
+                  <canvas data-dashboard-sparkline data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
                 }
               </td>
               <td>
@@ -75,34 +75,3 @@
     </div>
   </div>
 </div>
-
-@section ChartScripts {
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script>
-    document.querySelectorAll('.sparkline').forEach(canvas => {
-      const values = canvas.dataset.values.split(',').map(Number);
-      new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: values.map((_, i) => i),
-          datasets: [{
-            data: values,
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1,
-            fill: false,
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: false,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { display: false },
-            y: { display: false }
-          }
-        }
-      });
-    });
-  </script>
-}

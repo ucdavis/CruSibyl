@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="~/_content/Htmx.Components/css/table-overrides.css">
   @RenderSection("Styles", required: false)
   <script src="./js/htmx.min.js"></script>
+  <script src="./js/dashboard.js" defer></script>
 </head>
 
 <body class="min-h-screen flex flex-col">
@@ -50,9 +51,6 @@
 
   @RenderSection("Scripts", required: false)
   <htmx-scripts></htmx-scripts>
-  
-  <!-- Chart.js loaded conditionally for dashboard -->
-  @RenderSection("ChartScripts", required: false)
 </body>
 
 </html>
