@@ -29,7 +29,7 @@ parameters:
 
 variables:
   buildConfiguration: 'Release'
-  dotNetVersion: '8.0.x'
+  dotNetVersion: '10.0.x'
   solutionPath: '**/*.sln'
   webProjectPath: 'CruSibyl.Web/CruSibyl.Web.csproj'
   functionsProjectPath: 'CruSibyl.Functions/CruSibyl.Functions.csproj'
@@ -70,24 +70,23 @@ stages:
         projects: '$(solutionPath)'
         arguments: '--configuration $(buildConfiguration) --no-restore'
     
-    # Placeholder for tests - uncomment and modify when test projects are added.
-    # - task: DotNetCoreCLI@2
-    #   displayName: 'Run tests'
-    #   inputs:
-    #     command: 'test'
-    #     projects: '**/*Tests.csproj'
-    #     arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --logger trx --results-directory $(Agent.TempDirectory)'
-    #   continueOnError: false
+    - task: DotNetCoreCLI@2
+      displayName: 'Run tests'
+      inputs:
+        command: 'test'
+        projects: '**/*Tests.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --results-directory $(Agent.TempDirectory)'
+      continueOnError: false
     
-    # - task: PublishTestResults@2
-    #   displayName: 'Publish test results'
-    #   condition: succeededOrFailed()
-    #   inputs:
-    #     testResultsFormat: 'VSTest'
-    #     testResultsFiles: '**/*.trx'
-    #     searchFolder: '$(Agent.TempDirectory)'
-    #     mergeTestResults: true
-    #     failTaskOnFailedTests: true
+    - task: PublishTestResults@2
+      displayName: 'Publish test results'
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        searchFolder: '$(Agent.TempDirectory)'
+        mergeTestResults: true
+        failTaskOnFailedTests: true
     
     # - task: PublishCodeCoverageResults@1
     #   displayName: 'Publish code coverage'
