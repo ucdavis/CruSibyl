@@ -10,6 +10,7 @@ using CruSibyl.Web.Middleware.Auth;
 using CruSibyl.Web.Services;
 using Htmx.Components;
 using Htmx.Components.Configuration;
+using Htmx.Components.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -122,8 +123,11 @@ try
     {
         options.AddAccessPolicy(AccessPolicies.SystemAccess);
         options.AddAccessPolicy(AccessPolicies.AdminAccess);
+        options.AddPolicy("DevelopmentOnly", policy =>
+            policy.Requirements.Add(new DevelopmentEnvironmentRequirement()));
     });
     appBuilder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();
+    appBuilder.Services.AddSingleton<IAuthorizationHandler, DevelopmentEnvironmentHandler>();
 
     DBContextConfig.Configure(appBuilder.Configuration, appBuilder.Services, out var migrationScaffoldRequested);
 
@@ -205,6 +209,75 @@ try
     // app.UseMiddleware<LogUserNameMiddleware>();
     app.UseSerilogRequestLogging();
 
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapGet("/dev/htmx-errors/{status:int}", (int status) =>
+        {
+            var error = status switch
+            {
+                StatusCodes.Status400BadRequest => new HtmxErrorFragment(
+                    "Check your entry",
+                    "This development-only endpoint returned a validation error.",
+                    HtmxErrorKinds.Validation),
+                StatusCodes.Status401Unauthorized => new HtmxErrorFragment(
+                    "Sign in required",
+                    "Please sign in and try again.",
+                    HtmxErrorKinds.Authorization),
+                StatusCodes.Status403Forbidden => new HtmxErrorFragment(
+                    "Access denied",
+                    "You do not have permission to perform this action.",
+                    HtmxErrorKinds.Authorization),
+                StatusCodes.Status500InternalServerError => throw new InvalidOperationException("Development-only HTMX 500 trigger."),
+                _ => new HtmxErrorFragment(
+                    "Request failed",
+                    "This development-only endpoint returned an error.",
+                    HtmxErrorKinds.General)
+            };
+
+            return Results.Content(error.ToHtml(), "text/html", statusCode: status);
+        });
+
+        app.MapGet("/dev/htmx-errors/{kind}", (string kind) =>
+        {
+            var (status, error) = kind.ToLowerInvariant() switch
+            {
+                "validation" => (StatusCodes.Status400BadRequest, new HtmxErrorFragment(
+                    "Check your entry",
+                    "This development-only endpoint returned a validation error.",
+                    HtmxErrorKinds.Validation)),
+                "crud" => (StatusCodes.Status400BadRequest, new HtmxErrorFragment(
+                    "Request not completed",
+                    "This development-only endpoint returned a CRUD operation error.",
+                    HtmxErrorKinds.Crud)),
+                "missing-handler" => (StatusCodes.Status400BadRequest, new HtmxErrorFragment(
+                    "Request not available",
+                    "This development-only endpoint returned a missing handler error.",
+                    HtmxErrorKinds.MissingHandler)),
+                "unauthorized" => (StatusCodes.Status401Unauthorized, new HtmxErrorFragment(
+                    "Sign in required",
+                    "Please sign in and try again.",
+                    HtmxErrorKinds.Authorization)),
+                "forbidden" => (StatusCodes.Status403Forbidden, new HtmxErrorFragment(
+                    "Access denied",
+                    "You do not have permission to perform this action.",
+                    HtmxErrorKinds.Authorization)),
+                "server" => throw new InvalidOperationException("Development-only HTMX server error trigger."),
+                _ => (StatusCodes.Status400BadRequest, new HtmxErrorFragment(
+                    "Request failed",
+                    "This development-only endpoint returned an unknown test error.",
+                    HtmxErrorKinds.General))
+            };
+
+            return Results.Content(error.ToHtml(), "text/html", statusCode: status);
+        });
+
+        app.MapGet("/dev/htmx-errors/timeout", async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            return Results.Content("Delayed development-only response.", "text/plain");
+        });
+    }
+
     // default for MVC server-side endpoints
     app.MapControllerRoute(
         name: "default",
@@ -227,5 +300,3 @@ finally
 }
 
 return 0;
-
-

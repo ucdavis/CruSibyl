@@ -1,0 +1,116 @@
+@using CruSibyl.Web.Models.Test
+@model ErrorTestViewModel
+
+<htmx-request-scope id="main-content"
+                    class="flex flex-col gap-4"
+                    data-error-test-root
+                    data-hc-pending-disable="scope"
+                    data-hc-pending-disable-selector="button, input, select, textarea, a, summary, [tabindex]"
+                    data-hc-request-indicator-selector="find [data-hc-request-indicator]"
+                    data-hc-stale-region-selector="find [data-hc-stale-region]">
+  <div class="flex items-center justify-between gap-4">
+    <div>
+      <h2 class="text-2xl font-bold">Test</h2>
+      <p class="text-sm opacity-70">Development-only HTMX error contract checks.</p>
+    </div>
+    <button type="button"
+            class="btn btn-sm"
+            data-error-test-action="clear">
+      <i class="fas fa-eraser"></i>
+      Clear
+    </button>
+  </div>
+
+  <div class="hc-request-indicator" data-hc-request-indicator hidden aria-hidden="true">
+    <span class="hc-request-indicator-spinner" aria-hidden="true"></span>
+    <span class="hc-request-indicator-label">Loading</span>
+  </div>
+
+  <htmx-error-region data-hc-error-region class="alert alert-error" hidden></htmx-error-region>
+
+  <section class="flex flex-col gap-3" data-hc-stale-region>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <button type="button"
+              class="btn btn-outline btn-error justify-start"
+              hx-get="/dev/htmx-errors/validation"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-exclamation-circle"></i>
+        Validation 400
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-error justify-start"
+              hx-get="/dev/htmx-errors/crud"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-database"></i>
+        CRUD 400
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-error justify-start"
+              hx-get="/dev/htmx-errors/missing-handler"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-unlink"></i>
+        Missing Handler 400
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-warning justify-start"
+              hx-get="/dev/htmx-errors/unauthorized"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-sign-in-alt"></i>
+        Unauthorized 401
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-warning justify-start"
+              hx-get="/dev/htmx-errors/forbidden"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-ban"></i>
+        Forbidden 403
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-error justify-start"
+              hx-get="/dev/htmx-errors/server"
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-bolt"></i>
+        Server 500
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-info justify-start"
+              hx-get="/dev/htmx-errors/timeout"
+              hx-request='{"timeout": @Model.TimeoutMilliseconds}'
+              hx-target="#error-test-result"
+              hx-swap="innerHTML">
+        <i class="fas fa-hourglass-half"></i>
+        Timeout
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-info justify-start"
+              data-error-test-action="send-error">
+        <i class="fas fa-wifi"></i>
+        Send Error
+      </button>
+
+      <button type="button"
+              class="btn btn-outline btn-info justify-start"
+              data-error-test-action="swap-error">
+        <i class="fas fa-code"></i>
+        Swap Error
+      </button>
+    </div>
+
+    <div id="error-test-result" class="mockup-code min-h-24 text-sm">
+      <pre data-prefix=">"><code>Ready</code></pre>
+    </div>
+  </section>
+</htmx-request-scope>

@@ -14,6 +14,9 @@
   @RenderSection("Styles", required: false)
   <script src="./js/htmx.min.js"></script>
   <script src="./js/dashboard.js" defer></script>
+  <environment include="Development">
+    <script src="./js/error-tests.js" defer></script>
+  </environment>
 </head>
 
 <body class="min-h-screen flex flex-col">
@@ -44,6 +47,11 @@
     <main id="tab-content" class="p-4 flex-1 flex flex-col min-h-0 pb-8" data-hc-stale-region>
       @RenderBody() @* Initial content - first tab loads by default *@
     </main>
+    <htmx-error-region id="app-shell-error-region"
+                       data-hc-global-error-region
+                       data-hc-error-region
+                       class="alert alert-error mx-4 mb-4"
+                       hidden></htmx-error-region>
   </htmx-request-scope>
 
   <footer class="footer footer-center bg-base-300 text-base-content p-4 sticky bottom-0 z-50 h-16">
