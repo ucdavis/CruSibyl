@@ -2,9 +2,11 @@
   "use strict";
 
   const refreshTimers = new WeakMap();
+  const chartInstances = new WeakMap();
   let chartLoadPromise = null;
 
   function initDashboard(root) {
+    root = normalizeRoot(root);
     const dashboardRoot = findDashboardRoot(root);
 
     if (dashboardRoot) {
@@ -12,6 +14,20 @@
     }
 
     initSparklines(root);
+  }
+
+  function destroyDashboard(root) {
+    root = normalizeRoot(root);
+    const dashboardRoot = findDashboardRoot(root);
+    if (dashboardRoot) {
+      stopAutoRefresh(dashboardRoot);
+    }
+
+    destroySparklines(root);
+  }
+
+  function normalizeRoot(root) {
+    return root instanceof Element || root instanceof Document ? root : document;
   }
 
   function findDashboardRoot(root) {
@@ -42,10 +58,20 @@
     refreshTimers.set(dashboardRoot, timer);
   }
 
+  function stopAutoRefresh(dashboardRoot) {
+    const timer = refreshTimers.get(dashboardRoot);
+    if (!timer) {
+      return;
+    }
+
+    window.clearInterval(timer);
+    refreshTimers.delete(dashboardRoot);
+  }
+
   function initSparklines(root) {
     const canvases = Array.from(root.querySelectorAll?.("canvas[data-dashboard-sparkline]") || []);
     const uninitialized = canvases.filter(function (canvas) {
-      return canvas.dataset.dashboardSparklineInitialized !== "true";
+      return !chartInstances.has(canvas);
     });
 
     if (uninitialized.length === 0) {
@@ -53,7 +79,11 @@
     }
 
     loadChartJs().then(function () {
-      uninitialized.forEach(renderSparkline);
+      uninitialized.forEach(function (canvas) {
+        if (document.body.contains(canvas)) {
+          renderSparkline(canvas);
+        }
+      });
     }).catch(function (error) {
       console.warn("Chart.js could not be loaded for dashboard sparklines.", error);
     });
@@ -81,7 +111,7 @@
   }
 
   function renderSparkline(canvas) {
-    if (!window.Chart || canvas.dataset.dashboardSparklineInitialized === "true") {
+    if (!window.Chart || chartInstances.has(canvas)) {
       return;
     }
 
@@ -96,9 +126,7 @@
       return;
     }
 
-    canvas.dataset.dashboardSparklineInitialized = "true";
-
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: "line",
       data: {
         labels: values.map(function (_, index) {
@@ -122,10 +150,31 @@
         },
       },
     });
+    chartInstances.set(canvas, chart);
+  }
+
+  function destroySparklines(root) {
+    const canvases = root instanceof Element && root.matches("canvas[data-dashboard-sparkline]")
+      ? [root]
+      : Array.from(root.querySelectorAll?.("canvas[data-dashboard-sparkline]") || []);
+
+    canvases.forEach(function (canvas) {
+      const chart = chartInstances.get(canvas);
+      if (!chart) {
+        return;
+      }
+
+      chart.destroy();
+      chartInstances.delete(canvas);
+    });
   }
 
   document.addEventListener("htmx-components:load", function (event) {
     initDashboard(event.detail.root);
+  });
+
+  document.addEventListener("htmx:beforeCleanupElement", function (event) {
+    destroyDashboard(event.detail.elt);
   });
 
   if (document.readyState === "loading") {

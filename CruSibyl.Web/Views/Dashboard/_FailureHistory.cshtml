@@ -6,19 +6,18 @@
     <h3 class="card-title">WebJob Failure History (30 Days)</h3>
     
     <!-- Filters -->
-    <div class="flex gap-2 mb-4">
+    <form class="flex gap-2 mb-4"
+          hx-get="/Dashboard/FailureHistory"
+          hx-target="#dashboard-detail-content"
+          hx-swap="innerHTML">
       <input type="text" placeholder="Filter by App" class="input input-bordered input-sm" 
              id="app-filter" name="app" value="@Model.AppFilter" />
       <input type="text" placeholder="Filter by Job" class="input input-bordered input-sm" 
              id="job-filter" name="job" value="@Model.JobFilter" />
-      <button class="btn btn-sm btn-primary"
-              hx-get="/Dashboard/FailureHistory"
-              hx-include="#app-filter,#job-filter"
-              hx-target="#dashboard-detail"
-              hx-swap="innerHTML">
+      <button class="btn btn-sm btn-primary" type="submit">
         Apply
       </button>
-    </div>
+    </form>
 
     <!-- Failure Table -->
     <div class="overflow-x-auto">
@@ -61,12 +60,12 @@
                 }
               </td>
               <td>
-                <button class="btn btn-xs btn-ghost"
-                        hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
-                        hx-target="#dashboard-detail"
-                        hx-swap="innerHTML">
-                  Details
-                </button>
+                  <button class="btn btn-xs btn-ghost"
+                          hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
+                          hx-target="#dashboard-detail-content"
+                          hx-swap="innerHTML">
+                    Details
+                  </button>
               </td>
             </tr>
           }
