@@ -17,8 +17,17 @@
 </head>
 
 <body class="min-h-screen flex flex-col">
-  <div class="flex-1 flex flex-col">
-    <header class="sticky top-0 z-50">
+  <htmx-request-scope id="app-shell-request-scope"
+                      class="flex-1 flex flex-col relative"
+                      data-hc-pending-disable="scope"
+                      data-hc-pending-disable-selector="button, input, select, textarea, a, summary, [tabindex]"
+                      data-hc-request-indicator-selector="#app-shell-request-indicator"
+                      data-hc-stale-region-selector="find [data-hc-stale-region]">
+    <div id="app-shell-request-indicator" class="hc-request-indicator hc-request-indicator-page" data-hc-request-indicator hidden aria-hidden="true" style="inset: 50% auto auto 50%; position: fixed; transform: translate(-50%, -50%);">
+      <span class="hc-request-indicator-spinner" aria-hidden="true"></span>
+      <span class="hc-request-indicator-label">Loading</span>
+    </div>
+    <header class="sticky top-0 z-50" data-hc-stale-region>
       <div class="navbar bg-base-100 shadow-md rounded-box px-4 z-50">
         <div class="navbar-start">
           <a class="text-xl font-bold">CruSibyl</a>
@@ -32,10 +41,10 @@
     </header>
 
 
-    <main id="tab-content" class="p-4 flex-1 flex flex-col min-h-0 pb-8">
+    <main id="tab-content" class="p-4 flex-1 flex flex-col min-h-0 pb-8" data-hc-stale-region>
       @RenderBody() @* Initial content - first tab loads by default *@
     </main>
-  </div>
+  </htmx-request-scope>
 
   <footer class="footer footer-center bg-base-300 text-base-content p-4 sticky bottom-0 z-50 h-16">
     <aside class="flex items-center h-full w-full">
