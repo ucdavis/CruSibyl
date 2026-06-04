@@ -10,7 +10,7 @@
       "request": "launch",
       "preLaunchTask": "buildWeb",
       // If you have changed target frameworks, make sure to update the program path.
-      "program": "${workspaceFolder}/CruSibyl.Web/bin/Debug/net8.0/CruSibyl.Web.dll",
+      "program": "${workspaceFolder}/CruSibyl.Web/bin/Debug/net10.0/CruSibyl.Web.dll",
       "args": [],
       "cwd": "${workspaceFolder}/CruSibyl.Web",
       "stopAtEntry": false,
