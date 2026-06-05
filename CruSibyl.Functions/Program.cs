@@ -51,10 +51,10 @@ var host = new HostBuilder()
             services.Configure<GitHubSettings>(context.Configuration.GetSection("GitHub"));
             services.Configure<AzureSettings>(context.Configuration.GetSection("Azure"));
             services.AddSingleton<IGitHubService, GitHubService>();
-            services.AddSingleton<IManifestSyncService, ManifestSyncService>();
-            services.AddSingleton<IPackageVersionSyncService, PackageVersionSyncService>();
             services.AddSingleton<INuGetService, NuGetService>();
             services.AddSingleton<INpmService, NpmService>();
+            services.AddScoped<IManifestSyncService, ManifestSyncService>();
+            services.AddScoped<IPackageVersionSyncService, PackageVersionSyncService>();
             
             // Azure services
             services.AddSingleton<IKuduApiService>(sp => 
@@ -62,9 +62,9 @@ var host = new HostBuilder()
                 var httpClient = new System.Net.Http.HttpClient();
                 return new KuduApiService(httpClient);
             });
-            services.AddSingleton<IEventService, EventService>();
             services.AddSingleton<IAzureQueryService, AzureQueryService>();
-            services.AddSingleton<IAzureSyncService, AzureSyncService>();
+            services.AddScoped<IEventService, EventService>();
+            services.AddScoped<IAzureSyncService, AzureSyncService>();
             
             Console.WriteLine("All services registered.");
         }
