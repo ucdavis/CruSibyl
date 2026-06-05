@@ -122,12 +122,15 @@ Location: `/CruSibyl.Web/Views/Dashboard/`
 ### Chart.js Integration
 - **Library**: Chart.js 4.4.0 (loaded from CDN)
 - **Usage**: Sparkline charts for 30-day failure trends
-- **Location**: Conditionally loaded via `@section ChartScripts`
+- **Location**: Lazy-loaded by `/CruSibyl.Web/wwwroot/js/dashboard.js` when a swapped dashboard fragment contains `canvas[data-dashboard-sparkline]`
 
 ### HTMX Integration
 - **Navigation**: `hx-get`, `hx-target`, `hx-swap`
-- **Auto-refresh**: JavaScript interval triggering HTMX refresh
-- **Drill-Down**: HTMX partial loading into detail panel
+- **Auto-refresh**: `dashboard.js` starts a 60-second timer for `[data-dashboard-root]` and triggers `dashboard:refresh` on the dashboard request scope
+- **Drill-Down**: HTMX partial loading into a scoped detail panel
+- **Pending UI**: Nested `htmx-request-scope` elements show request indicators, dim stale content, and disable only the active scope
+- **Error UI**: Dashboard detail failures render into a local `htmx-error-region`; shell-level failures fall back to the global app-shell error region
+- **Lifecycle**: Dashboard initialization listens for `htmx-components:load` and cleans up charts/timers on `htmx:beforeCleanupElement`
 
 ## Admin Features
 
@@ -146,13 +149,6 @@ Location: `/CruSibyl.Web/Program.cs`
 appBuilder.Services.AddScoped<IDashboardService, DashboardService>();
 ```
 
-### Migration Required
-Run migrations before first use:
-```bash
-cd CruSibyl.Core
-dotnet ef database update
-```
-
 ## Usage Patterns
 
 ### HTMX Navigation Flow
@@ -168,10 +164,10 @@ dotnet ef database update
 5. User expands run logs → Pure client-side toggle
 
 ### Auto-Refresh Flow
-1. JavaScript interval (60s) triggers `htmx.trigger('#main-content', 'refresh')`
+1. JavaScript interval (60s) triggers `htmx.trigger(dashboardRoot, 'dashboard:refresh')`
 2. HTMX re-fetches current dashboard state
 3. DOM updates with latest data
-4. Event listener reattaches refresh handler after swap
+4. `htmx-components:load` initializes the swapped dashboard root, and `htmx:beforeCleanupElement` tears down timers/charts for removed content
 
 ## Future Enhancements
 
@@ -202,13 +198,15 @@ dotnet ef database update
 - [ ] Log previews expand/collapse correctly
 - [ ] Dependency currency calculates priority correctly
 - [ ] Auto-refresh updates data every 60 seconds
+- [ ] Pending indicators clear after dashboard refresh and detail-panel requests
+- [ ] Dashboard errors render in the scoped detail error region without leaking server exception details
 - [ ] Apps admin page allows editing Importance field
 
 ### Performance Considerations
 - Dashboard queries include `.Take()` limits
 - Indexes exist on critical fields (EventType, Timestamp)
 - Auto-refresh can be disabled by user if needed
-- Chart.js loaded conditionally (only when needed)
+- Chart.js loaded lazily by `dashboard.js` only when sparkline canvases are present
 - HTMX partial loading reduces full page refreshes
 
 ## Architecture Notes
@@ -225,4 +223,4 @@ Dashboard uses standard MVC filter pipeline. Could be extended with custom filte
 ### State Management
 - Filters: Form inputs with HTMX
 - Expand/collapse: Client-side only (no server state)
-- Page state: Htmx.Components page state (encrypted, session-scoped)
+- Page state: Htmx.Components page state (encrypted transport hidden input with component-scoped table/form partitions)
