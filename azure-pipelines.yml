@@ -75,7 +75,8 @@ stages:
       inputs:
         command: 'test'
         projects: '**/*Tests.csproj'
-        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --results-directory $(Agent.TempDirectory)'
+        publishTestResults: false
+        arguments: '--configuration $(buildConfiguration) --no-build --logger trx --results-directory "$(Agent.TempDirectory)"'
       continueOnError: false
     
     - task: PublishTestResults@2

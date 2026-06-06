@@ -18,7 +18,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
-    <PackageReference Include="Htmx.Components" Version="1.2.0" GeneratePathProperty="true" Condition="'$(HtmxComponentsProjectPath)' == ''" />
+    <PackageReference Include="Htmx.Components" Version="2.0.4" GeneratePathProperty="true" Condition="'$(HtmxComponentsProjectPath)' == ''" />
   </ItemGroup>
 
   <ItemGroup>
