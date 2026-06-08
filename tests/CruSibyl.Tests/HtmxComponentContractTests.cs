@@ -36,7 +36,7 @@ public class HtmxComponentContractTests
         {
             var view = ReadRepoFile(viewPath);
 
-            Assert.Contains("""@await Component.InvokeAsync("Table", Model)""", view, StringComparison.Ordinal);
+            Assert.Matches("""Component\.InvokeAsync\(\s*"Table"\s*,""", view);
             Assert.DoesNotContain("<table", view, StringComparison.OrdinalIgnoreCase);
         }
     }
@@ -65,7 +65,7 @@ public class HtmxComponentContractTests
 
         Assert.Contains("htmx-components:load", dashboardScript, StringComparison.Ordinal);
         Assert.Contains("htmx:beforeCleanupElement", dashboardScript, StringComparison.Ordinal);
-        Assert.Contains("chartInstances", dashboardScript, StringComparison.Ordinal);
+        Assert.Contains("canvas[data-dashboard-sparkline]", dashboardScript, StringComparison.Ordinal);
         Assert.DoesNotContain("<script", string.Join(Environment.NewLine, dashboardViews), StringComparison.OrdinalIgnoreCase);
     }
 

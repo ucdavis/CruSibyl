@@ -123,7 +123,7 @@ try
     {
         options.AddAccessPolicy(AccessPolicies.SystemAccess);
         options.AddAccessPolicy(AccessPolicies.AdminAccess);
-        options.AddPolicy("DevelopmentOnly", policy =>
+        options.AddPolicy(AuthPolicies.DevelopmentOnly, policy =>
             policy.Requirements.Add(new DevelopmentEnvironmentRequirement()));
     });
     appBuilder.Services.AddScoped<IAuthorizationHandler, PermissionHandler>();

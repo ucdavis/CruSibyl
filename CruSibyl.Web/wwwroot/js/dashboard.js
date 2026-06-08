@@ -105,6 +105,9 @@
       script.onload = resolve;
       script.onerror = reject;
       document.head.appendChild(script);
+    }).catch(function (error) {
+      chartLoadPromise = null;
+      throw error;
     });
 
     return chartLoadPromise;

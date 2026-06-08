@@ -154,7 +154,7 @@ appBuilder.Services.AddScoped<IDashboardService, DashboardService>();
 ### HTMX Navigation Flow
 1. User opens dashboard → MVC GET to `/Dashboard/Index`
 2. Server returns `_Content.cshtml` with current deployment data
-3. HTMX-powered panels load details into `#dashboard-detail`
+3. HTMX-powered panels load details into `#dashboard-detail-content`
 
 ### Failure Investigation Flow
 1. User sees critical alert on dashboard
