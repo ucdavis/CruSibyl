@@ -72,7 +72,7 @@ resource webApp 'Microsoft.Web/sites@2025-03-01' = {
       alwaysOn: true
       appCommandLine: 'dotnet /home/site/wwwroot/CruSibyl.Web.dll'
       ftpsState: 'FtpsOnly'
-      linuxFxVersion: 'DOTNETCORE|8.0'
+      linuxFxVersion: 'DOTNETCORE|10.0'
       minTlsVersion: '1.2'
       appSettings: concat([
         {
@@ -126,7 +126,7 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
     siteConfig: {
       alwaysOn: true
       ftpsState: 'FtpsOnly'
-      linuxFxVersion: 'DOTNET-ISOLATED|8.0'
+      linuxFxVersion: 'DOTNET-ISOLATED|10.0'
       minTlsVersion: '1.2'
       cors: {
         allowedOrigins: functionAppCorsAllowedOrigins

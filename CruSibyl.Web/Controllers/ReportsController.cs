@@ -34,6 +34,7 @@ public class ReportsController : Controller
     {
         var modelHandler = await _modelHandlerFactory.Get<DependencyVersionReportModel, NoKey>(nameof(DependencyVersionReportModel), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        tableModel.ComponentId = TableComponentIds.ReportPackageVersions;
 
         return Ok(tableModel);
     }

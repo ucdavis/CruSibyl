@@ -6,19 +6,18 @@
     <h3 class="card-title">WebJob Failure History (30 Days)</h3>
     
     <!-- Filters -->
-    <div class="flex gap-2 mb-4">
+    <form class="flex gap-2 mb-4"
+          hx-get="/Dashboard/FailureHistory"
+          hx-target="#dashboard-detail-content"
+          hx-swap="innerHTML">
       <input type="text" placeholder="Filter by App" class="input input-bordered input-sm" 
              id="app-filter" name="app" value="@Model.AppFilter" />
       <input type="text" placeholder="Filter by Job" class="input input-bordered input-sm" 
              id="job-filter" name="job" value="@Model.JobFilter" />
-      <button class="btn btn-sm btn-primary"
-              hx-get="/Dashboard/FailureHistory"
-              hx-include="#app-filter,#job-filter"
-              hx-target="#dashboard-detail"
-              hx-swap="innerHTML">
+      <button class="btn btn-sm btn-primary" type="submit">
         Apply
       </button>
-    </div>
+    </form>
 
     <!-- Failure Table -->
     <div class="overflow-x-auto">
@@ -57,16 +56,16 @@
               <td>
                 @if (Model.FailureSparklines.ContainsKey(failure.WebJobId))
                 {
-                  <canvas class="sparkline" data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
+                  <canvas data-dashboard-sparkline data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
                 }
               </td>
               <td>
-                <button class="btn btn-xs btn-ghost"
-                        hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
-                        hx-target="#dashboard-detail"
-                        hx-swap="innerHTML">
-                  Details
-                </button>
+                  <button class="btn btn-xs btn-ghost"
+                          hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
+                          hx-target="#dashboard-detail-content"
+                          hx-swap="innerHTML">
+                    Details
+                  </button>
               </td>
             </tr>
           }
@@ -75,34 +74,3 @@
     </div>
   </div>
 </div>
-
-@section ChartScripts {
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script>
-    document.querySelectorAll('.sparkline').forEach(canvas => {
-      const values = canvas.dataset.values.split(',').map(Number);
-      new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels: values.map((_, i) => i),
-          datasets: [{
-            data: values,
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1,
-            fill: false,
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: false,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { display: false },
-            y: { display: false }
-          }
-        }
-      });
-    });
-  </script>
-}

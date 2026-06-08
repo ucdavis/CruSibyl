@@ -45,6 +45,7 @@ public class AdminController : Controller
     {
         var modelHandler = await _modelHandlerFactory.Get<Repo, int>(nameof(Repo), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        tableModel.ComponentId = TableComponentIds.AdminRepos;
 
         return Ok(tableModel);
     }
@@ -55,6 +56,7 @@ public class AdminController : Controller
     {
         var modelHandler = await _modelHandlerFactory.Get<App, int>(nameof(App), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        tableModel.ComponentId = TableComponentIds.AdminApps;
 
         return Ok(tableModel);
     }
@@ -66,6 +68,7 @@ public class AdminController : Controller
     {
         var modelHandler = await _modelHandlerFactory.Get<AdminUserModel, int>(nameof(AdminUserModel), ModelUI.Table);
         var tableModel = await modelHandler.BuildTableModelAndFetchPageAsync();
+        tableModel.ComponentId = TableComponentIds.AdminUsers;
 
         return Ok(tableModel);
     }
