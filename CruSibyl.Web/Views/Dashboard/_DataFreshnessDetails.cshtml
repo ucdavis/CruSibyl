@@ -1,0 +1,49 @@
+@using CruSibyl.Web.Models.Dashboard
+@model DataFreshnessDetailsViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">@Model.Title</h3>
+
+    @if (!Model.Rows.Any())
+    {
+      <div class="alert alert-info">No freshness rows match this filter.</div>
+    }
+    else
+    {
+      <div class="overflow-x-auto">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Related</th>
+              <th>Last Scanned</th>
+              <th>Status</th>
+              <th>Message</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var row in Model.Rows)
+            {
+              <tr>
+                <td><span class="badge badge-outline badge-sm">@row.ItemType</span></td>
+                <td>@row.Name</td>
+                <td>@(row.RelatedName ?? "-")</td>
+                <td>@(row.LastScannedAt.HasValue ? row.LastScannedAt.Value.ToString("g") : "-")</td>
+                <td>
+                  <span class="badge badge-sm @(row.ScanStatus == ScanStatus.Failed ? "badge-error" : "badge-ghost")">
+                    @(row.ScanStatus?.ToString() ?? "-")
+                  </span>
+                </td>
+                <td>@(row.ScanMessage ?? "-")</td>
+                <td>@(row.Detail ?? "-")</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

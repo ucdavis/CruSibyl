@@ -8,7 +8,7 @@
     <!-- Filters -->
     <form class="flex gap-2 mb-4"
           hx-get="/Dashboard/FailureHistory"
-          hx-target="#dashboard-detail-content"
+          hx-target="#dashboard-detail-modal-body"
           hx-swap="innerHTML">
       <input type="text" placeholder="Filter by App" class="input input-bordered input-sm" 
              id="app-filter" name="app" value="@Model.AppFilter" />
@@ -62,8 +62,9 @@
               <td>
                   <button class="btn btn-xs btn-ghost"
                           hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
-                          hx-target="#dashboard-detail-content"
-                          hx-swap="innerHTML">
+                          hx-target="#dashboard-detail-modal-body"
+                          hx-swap="innerHTML"
+                          data-hc-open-modal="dashboard-detail-modal">
                     Details
                   </button>
               </td>

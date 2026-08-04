@@ -3,6 +3,7 @@ using Htmx.Components.NavBar;
 using Microsoft.AspNetCore.Mvc;
 using CruSibyl.Web.Services;
 using Microsoft.AspNetCore.Authorization;
+using CruSibyl.Web.Models.Dashboard;
 
 namespace CruSibyl.Web.Controllers;
 
@@ -28,6 +29,41 @@ public class DashboardController : Controller
     {
         var model = await _dashboardService.GetFailureHistoryAsync(app, job);
         return PartialView("_FailureHistory", model);
+    }
+
+    [HttpGet("/Dashboard/Details/WebJobs")]
+    public async Task<IActionResult> WebJobDetails(WebJobDetailFilter filter = WebJobDetailFilter.TotalEnabled)
+    {
+        var model = await _dashboardService.GetWebJobDetailsAsync(filter);
+        return PartialView("_WebJobDetails", model);
+    }
+
+    [HttpGet("/Dashboard/Details/Platforms")]
+    public async Task<IActionResult> PlatformDetails(PlatformDetailFilter filter = PlatformDetailFilter.WithManifests)
+    {
+        var model = await _dashboardService.GetPlatformDetailsAsync(filter);
+        return PartialView("_PlatformDetails", model);
+    }
+
+    [HttpGet("/Dashboard/Details/Dependencies")]
+    public async Task<IActionResult> DependencyDetails(DependencyDetailFilter filter = DependencyDetailFilter.All)
+    {
+        var model = await _dashboardService.GetDependencyDetailsAsync(filter);
+        return PartialView("_DependencyCurrency", model);
+    }
+
+    [HttpGet("/Dashboard/Details/AppMappings")]
+    public async Task<IActionResult> AppMappingDetails(AppMappingDetailFilter filter = AppMappingDetailFilter.Unmapped)
+    {
+        var model = await _dashboardService.GetAppMappingDetailsAsync(filter);
+        return PartialView("_AppMappingDetails", model);
+    }
+
+    [HttpGet("/Dashboard/Details/Freshness")]
+    public async Task<IActionResult> DataFreshnessDetails(DataFreshnessDetailFilter filter = DataFreshnessDetailFilter.StaleRepoScans)
+    {
+        var model = await _dashboardService.GetDataFreshnessDetailsAsync(filter);
+        return PartialView("_DataFreshnessDetails", model);
     }
 
     [HttpGet("/Dashboard/WebJobDrillDown/{webJobId}")]

@@ -13,6 +13,11 @@ namespace CruSibyl.Web.Services;
 public interface IDashboardService
 {
     Task<DashboardViewModel> GetDashboardOverviewAsync();
+    Task<WebJobDetailsViewModel> GetWebJobDetailsAsync(WebJobDetailFilter filter);
+    Task<PlatformDetailsViewModel> GetPlatformDetailsAsync(PlatformDetailFilter filter);
+    Task<DependencyCurrencyViewModel> GetDependencyDetailsAsync(DependencyDetailFilter filter);
+    Task<AppMappingDetailsViewModel> GetAppMappingDetailsAsync(AppMappingDetailFilter filter);
+    Task<DataFreshnessDetailsViewModel> GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter filter);
     Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string? appFilter = null, string? jobFilter = null);
     Task<WebJobDrillDownViewModel> GetWebJobDrillDownAsync(int webJobId);
     Task<DependencyCurrencyViewModel> GetDependencyCurrencyAsync();
@@ -230,6 +235,298 @@ public class DashboardService : IDashboardService
             JobFilter = jobFilter,
             Failures = failures,
             FailureSparklines = webJobFailureCounts
+        };
+    }
+
+    public async Task<WebJobDetailsViewModel> GetWebJobDetailsAsync(WebJobDetailFilter filter)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
+
+        var webJobs = await _dbContext.WebJobs
+            .Include(wj => wj.App)
+            .Where(wj => wj.IsEnabled && wj.App.IsEnabled)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var selectedWebJobIds = webJobs.Select(wj => wj.Id).ToHashSet();
+
+        if ((filter is WebJobDetailFilter.RecentlyFailed or WebJobDetailFilter.ConsecutiveFailures) && selectedWebJobIds.Count > 0)
+        {
+            var webJobRunEvents = await _dbContext.Events
+                .Where(e => e.EventType == EventType.WebJobStatus)
+                .Where(e => e.Timestamp >= windows.HistoryWindowStartUtc)
+                .Where(e => e.WebJobs.Any(wj => selectedWebJobIds.Contains(wj.Id)))
+                .Include(e => e.WebJobs)
+                .AsNoTracking()
+                .ToListAsync();
+
+            var webJobRuns = webJobRunEvents
+                .SelectMany(evt =>
+                {
+                    var payload = DeserializeWebJobStatusPayload(evt);
+                    var runTimestamp = GetWebJobRunTimestamp(evt, payload);
+                    return evt.WebJobs
+                        .Where(wj => selectedWebJobIds.Contains(wj.Id))
+                        .Select(wj => new WebJobRunSummary(wj.Id, runTimestamp, IsFailedWebJobRun(evt, payload)));
+                })
+                .ToList();
+
+            selectedWebJobIds = filter == WebJobDetailFilter.RecentlyFailed
+                ? webJobRuns
+                    .Where(run => run.RunTimestamp >= windows.RecentFailureWindowStartUtc && run.IsFailure)
+                    .Select(run => run.WebJobId)
+                    .ToHashSet()
+                : webJobRuns
+                    .GroupBy(run => run.WebJobId)
+                    .Where(group =>
+                    {
+                        var latestRuns = group
+                            .OrderByDescending(run => run.RunTimestamp)
+                            .Take(windows.ConsecutiveFailureAttempts)
+                            .ToList();
+
+                        return latestRuns.Count == windows.ConsecutiveFailureAttempts && latestRuns.All(run => run.IsFailure);
+                    })
+                    .Select(group => group.Key)
+                    .ToHashSet();
+        }
+
+        var rows = webJobs
+            .Where(webJob => filter switch
+            {
+                WebJobDetailFilter.Running => IsStatus(webJob.Status, "Running"),
+                WebJobDetailFilter.FailedLastRun => IsStatus(webJob.LastRunStatus, "Failed"),
+                WebJobDetailFilter.RecentlyFailed => selectedWebJobIds.Contains(webJob.Id),
+                WebJobDetailFilter.ConsecutiveFailures => selectedWebJobIds.Contains(webJob.Id),
+                _ => true
+            })
+            .OrderBy(webJob => webJob.App.Name)
+            .ThenBy(webJob => webJob.Name)
+            .Select(webJob => new WebJobDetailRowModel
+            {
+                WebJobId = webJob.Id,
+                AppName = webJob.App.Name,
+                WebJobName = webJob.Name,
+                JobType = webJob.JobType,
+                Status = webJob.Status,
+                LastRunStatus = webJob.LastRunStatus,
+                LastRunAt = webJob.LastRunAt,
+                RunMode = webJob.RunMode,
+                Schedule = webJob.Schedule
+            })
+            .ToList();
+
+        return new WebJobDetailsViewModel
+        {
+            Filter = filter,
+            Title = GetWebJobDetailTitle(filter),
+            Rows = rows
+        };
+    }
+
+    public async Task<PlatformDetailsViewModel> GetPlatformDetailsAsync(PlatformDetailFilter filter)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
+        var rows = await GetPlatformDetailRowsAsync(windows);
+
+        rows = rows
+            .Where(row => filter switch
+            {
+                PlatformDetailFilter.Outdated => row.CurrencyStatus == "Outdated",
+                PlatformDetailFilter.Unknown => row.CurrencyStatus == "Unknown",
+                PlatformDetailFilter.FailedScans => row.RepoScanStatus == ScanStatus.Failed,
+                PlatformDetailFilter.StaleScans => IsStale(row.RepoLastScannedAt, windows),
+                _ => row.ManifestPath != null
+            })
+            .OrderBy(row => row.AppName)
+            .ThenBy(row => row.RepoName)
+            .ThenBy(row => row.ManifestPath)
+            .ToList();
+
+        return new PlatformDetailsViewModel
+        {
+            Filter = filter,
+            Title = GetPlatformDetailTitle(filter),
+            Rows = rows
+        };
+    }
+
+    public async Task<DependencyCurrencyViewModel> GetDependencyDetailsAsync(DependencyDetailFilter filter)
+    {
+        var rows = await GetDependencyCurrencyRowsAsync();
+
+        rows = rows
+            .Where(row => filter switch
+            {
+                DependencyDetailFilter.Outdated => IsOutdatedDependencySeverity(row.SeverityLevel),
+                DependencyDetailFilter.Major => row.SeverityLevel == "High",
+                DependencyDetailFilter.Minor => row.SeverityLevel == "Medium",
+                DependencyDetailFilter.Patch => row.SeverityLevel == "Low" && row.PriorityScore > 0,
+                DependencyDetailFilter.Unknown => row.SeverityLevel == "Unknown",
+                DependencyDetailFilter.HighPriority => IsOutdatedDependencySeverity(row.SeverityLevel) && row.PriorityScore >= HighPriorityDependencyScore,
+                _ => true
+            })
+            .OrderByDescending(row => row.PriorityScore)
+            .ThenBy(row => row.AppName)
+            .ThenBy(row => row.PackageName)
+            .ToList();
+
+        return new DependencyCurrencyViewModel
+        {
+            Dependencies = rows
+        };
+    }
+
+    public async Task<AppMappingDetailsViewModel> GetAppMappingDetailsAsync(AppMappingDetailFilter filter)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
+
+        var apps = await _dbContext.Apps
+            .Where(a => a.IsEnabled)
+            .Select(a => new AppMappingDetailRowModel
+            {
+                AppId = a.Id,
+                AppName = a.Name,
+                ResourceGroup = a.ResourceGroup,
+                RuntimeStack = a.RuntimeStack,
+                RepoId = a.RepoId,
+                RepoName = a.Repo == null ? null : a.Repo.Name,
+                RepoLastScannedAt = a.Repo == null ? null : a.Repo.LastScannedAt,
+                RepoScanStatus = a.Repo == null ? null : a.Repo.ScanStatus,
+                ManifestCount = a.Repo == null ? 0 : a.Repo.Manifests.Count
+            })
+            .ToListAsync();
+
+        var repoNames = await _dbContext.Repos
+            .Select(repo => repo.Name)
+            .ToListAsync();
+
+        var rows = apps
+            .Where(row => filter switch
+            {
+                AppMappingDetailFilter.Manifestless => row.RepoId.HasValue && row.ManifestCount == 0,
+                AppMappingDetailFilter.StaleRepoScans => row.RepoId.HasValue && IsStale(row.RepoLastScannedAt, windows),
+                AppMappingDetailFilter.FailedRepoScans => row.RepoId.HasValue && row.RepoScanStatus == ScanStatus.Failed,
+                _ => !row.RepoId.HasValue
+            })
+            .OrderBy(row => row.AppName)
+            .ToList();
+
+        foreach (var row in rows.Where(row => !row.RepoId.HasValue))
+        {
+            row.CandidateRepoNames = FindCandidateRepoNames(row.AppName, repoNames);
+        }
+
+        return new AppMappingDetailsViewModel
+        {
+            Filter = filter,
+            Title = GetAppMappingDetailTitle(filter),
+            Rows = rows
+        };
+    }
+
+    public async Task<DataFreshnessDetailsViewModel> GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter filter)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
+        var rows = new List<DataFreshnessDetailRowModel>();
+
+        if (filter is DataFreshnessDetailFilter.StaleRepoScans or DataFreshnessDetailFilter.FailedRepoScans)
+        {
+            var repoRows = await _dbContext.Repos
+                .Select(repo => new
+                {
+                    repo.Name,
+                    repo.LastScannedAt,
+                    repo.ScanStatus,
+                    repo.ScanMessage,
+                    ManifestCount = repo.Manifests.Count
+                })
+                .ToListAsync();
+
+            rows.AddRange(repoRows
+                .Where(repo => filter == DataFreshnessDetailFilter.StaleRepoScans
+                    ? IsStale(repo.LastScannedAt, windows)
+                    : repo.ScanStatus == ScanStatus.Failed)
+                .Select(repo => new DataFreshnessDetailRowModel
+                {
+                    ItemType = "Repo",
+                    Name = repo.Name,
+                    LastScannedAt = repo.LastScannedAt,
+                    ScanStatus = repo.ScanStatus,
+                    ScanMessage = repo.ScanMessage,
+                    Detail = $"{repo.ManifestCount} manifest(s)"
+                }));
+        }
+        else if (filter is DataFreshnessDetailFilter.StalePackageScans or DataFreshnessDetailFilter.FailedPackageScans)
+        {
+            var packageRows = await _dbContext.Packages
+                .Select(package => new
+                {
+                    package.Name,
+                    PlatformName = package.Platform.Name,
+                    package.LastScannedAt,
+                    package.ScanStatus,
+                    package.ScanMessage
+                })
+                .ToListAsync();
+
+            rows.AddRange(packageRows
+                .Where(package => filter == DataFreshnessDetailFilter.StalePackageScans
+                    ? IsStale(package.LastScannedAt, windows)
+                    : package.ScanStatus == ScanStatus.Failed)
+                .Select(package => new DataFreshnessDetailRowModel
+                {
+                    ItemType = "Package",
+                    Name = package.Name,
+                    RelatedName = package.PlatformName,
+                    LastScannedAt = package.LastScannedAt,
+                    ScanStatus = package.ScanStatus,
+                    ScanMessage = package.ScanMessage
+                }));
+        }
+        else if (filter == DataFreshnessDetailFilter.AppsWithoutRepos)
+        {
+            rows.AddRange(await _dbContext.Apps
+                .Where(app => app.IsEnabled && !app.RepoId.HasValue)
+                .OrderBy(app => app.Name)
+                .Select(app => new DataFreshnessDetailRowModel
+                {
+                    ItemType = "App",
+                    Name = app.Name,
+                    RelatedName = app.ResourceGroup,
+                    Detail = app.RuntimeStack
+                })
+                .ToListAsync());
+        }
+        else
+        {
+            rows.AddRange(await _dbContext.Repos
+                .Where(repo => repo.Manifests.Count == 0)
+                .OrderBy(repo => repo.Name)
+                .Select(repo => new DataFreshnessDetailRowModel
+                {
+                    ItemType = "Repo",
+                    Name = repo.Name,
+                    LastScannedAt = repo.LastScannedAt,
+                    ScanStatus = repo.ScanStatus,
+                    ScanMessage = repo.ScanMessage,
+                    Detail = "No manifests"
+                })
+                .ToListAsync());
+        }
+
+        return new DataFreshnessDetailsViewModel
+        {
+            Filter = filter,
+            Title = GetDataFreshnessDetailTitle(filter),
+            Rows = rows
+                .OrderBy(row => row.ItemType)
+                .ThenBy(row => row.Name)
+                .ToList()
         };
     }
 
@@ -583,6 +880,111 @@ public class DashboardService : IDashboardService
         };
     }
 
+    private async Task<List<PlatformDetailRowModel>> GetPlatformDetailRowsAsync(DashboardWindowModel windows)
+    {
+        var enabledApps = await _dbContext.Apps
+            .Where(a => a.IsEnabled)
+            .Select(a => new
+            {
+                a.Name,
+                a.RepoId,
+                RepoName = a.Repo == null ? null : a.Repo.Name,
+                RepoLastScannedAt = a.Repo == null ? null : a.Repo.LastScannedAt,
+                RepoScanStatus = a.Repo == null ? null : a.Repo.ScanStatus,
+                ManifestCount = a.Repo == null ? 0 : a.Repo.Manifests.Count
+            })
+            .ToListAsync();
+
+        var mappedRepoIds = enabledApps
+            .Where(app => app.RepoId.HasValue)
+            .Select(app => app.RepoId!.Value)
+            .Distinct()
+            .ToList();
+
+        var manifests = await _dbContext.Manifests
+            .Where(manifest => mappedRepoIds.Contains(manifest.RepoId))
+            .Select(manifest => new
+            {
+                manifest.RepoId,
+                manifest.FilePath,
+                PlatformName = manifest.PlatformVersion.Platform.Name,
+                manifest.PlatformVersion.PlatformId,
+                manifest.PlatformVersion.Version
+            })
+            .ToListAsync();
+
+        var platformVersions = await _dbContext.PlatformVersions
+            .Select(version => new
+            {
+                version.PlatformId,
+                version.Version
+            })
+            .ToListAsync();
+
+        var latestStablePlatformVersions = platformVersions
+            .Select(version => new
+            {
+                version.PlatformId,
+                version.Version,
+                ParsedVersion = TryParseSemVersion(version.Version)
+            })
+            .Where(version => version.ParsedVersion is { IsPrerelease: false })
+            .GroupBy(version => version.PlatformId)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(version => version.ParsedVersion!, SemVersion.PrecedenceComparer)
+                    .First());
+
+        var rows = new List<PlatformDetailRowModel>();
+        var manifestsByRepo = manifests
+            .GroupBy(manifest => manifest.RepoId)
+            .ToDictionary(group => group.Key, group => group.ToList());
+
+        foreach (var app in enabledApps.Where(app => app.RepoId.HasValue))
+        {
+            if (!manifestsByRepo.TryGetValue(app.RepoId!.Value, out var repoManifests) || repoManifests.Count == 0)
+            {
+                rows.Add(new PlatformDetailRowModel
+                {
+                    AppName = app.Name,
+                    RepoName = app.RepoName,
+                    RepoLastScannedAt = app.RepoLastScannedAt,
+                    RepoScanStatus = app.RepoScanStatus,
+                    CurrencyStatus = "No manifests"
+                });
+                continue;
+            }
+
+            foreach (var manifest in repoManifests)
+            {
+                var currentVersion = TryParseSemVersion(manifest.Version);
+                var hasLatestVersion = latestStablePlatformVersions.TryGetValue(manifest.PlatformId, out var latestVersion);
+                var latestStableVersion = latestVersion?.ParsedVersion;
+                var currencyStatus = currentVersion == null || !hasLatestVersion
+                    ? "Unknown"
+                    : currentVersion.ComparePrecedenceTo(latestStableVersion!) < 0
+                        ? "Outdated"
+                        : "Current";
+
+                rows.Add(new PlatformDetailRowModel
+                {
+                    AppName = app.Name,
+                    RepoName = app.RepoName,
+                    RepoLastScannedAt = app.RepoLastScannedAt,
+                    RepoScanStatus = app.RepoScanStatus,
+                    ManifestPath = manifest.FilePath,
+                    PlatformName = manifest.PlatformName,
+                    CurrentVersion = manifest.Version,
+                    LatestStableVersion = hasLatestVersion ? latestVersion?.Version : null,
+                    CurrencyStatus = currencyStatus
+                });
+            }
+        }
+
+        return rows;
+    }
+
     private async Task<List<DependencyCurrencyModel>> GetDependencyCurrencyRowsAsync()
     {
         var apps = await _dbContext.Apps
@@ -795,6 +1197,68 @@ public class DashboardService : IDashboardService
 
     private static SemVersion? TryParseSemVersion(string version)
         => SemVersion.TryParse(version, SemVersionStyles.Any, out var semVersion) ? semVersion : null;
+
+    private static List<string> FindCandidateRepoNames(string appName, IReadOnlyCollection<string> repoNames)
+    {
+        var normalizedAppName = NormalizeName(appName);
+
+        return repoNames
+            .Where(repoName =>
+            {
+                var normalizedRepoName = NormalizeName(repoName);
+                return normalizedRepoName.Contains(normalizedAppName, StringComparison.Ordinal) ||
+                    normalizedAppName.Contains(normalizedRepoName, StringComparison.Ordinal);
+            })
+            .OrderBy(repoName => repoName)
+            .Take(5)
+            .ToList();
+    }
+
+    private static string NormalizeName(string value)
+        => new(value
+            .Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant)
+            .ToArray());
+
+    private static string GetWebJobDetailTitle(WebJobDetailFilter filter)
+        => filter switch
+        {
+            WebJobDetailFilter.Running => "Running WebJobs",
+            WebJobDetailFilter.FailedLastRun => "WebJobs With Failed Last Run",
+            WebJobDetailFilter.RecentlyFailed => "Recently Failed WebJobs",
+            WebJobDetailFilter.ConsecutiveFailures => "WebJobs Failing Consecutive Attempts",
+            _ => "Enabled WebJobs"
+        };
+
+    private static string GetPlatformDetailTitle(PlatformDetailFilter filter)
+        => filter switch
+        {
+            PlatformDetailFilter.Outdated => "Outdated Platform Versions",
+            PlatformDetailFilter.Unknown => "Unknown Platform Version Data",
+            PlatformDetailFilter.FailedScans => "Failed Manifest Scans",
+            PlatformDetailFilter.StaleScans => "Stale Manifest Scans",
+            _ => "Apps With Manifest Platform Data"
+        };
+
+    private static string GetAppMappingDetailTitle(AppMappingDetailFilter filter)
+        => filter switch
+        {
+            AppMappingDetailFilter.Manifestless => "Mapped Apps With Manifestless Repos",
+            AppMappingDetailFilter.StaleRepoScans => "Mapped Apps With Stale Repo Scans",
+            AppMappingDetailFilter.FailedRepoScans => "Mapped Apps With Failed Repo Scans",
+            _ => "Unmapped Enabled Apps"
+        };
+
+    private static string GetDataFreshnessDetailTitle(DataFreshnessDetailFilter filter)
+        => filter switch
+        {
+            DataFreshnessDetailFilter.FailedRepoScans => "Failed Repo Scans",
+            DataFreshnessDetailFilter.StalePackageScans => "Stale Package Scans",
+            DataFreshnessDetailFilter.FailedPackageScans => "Failed Package Scans",
+            DataFreshnessDetailFilter.AppsWithoutRepos => "Apps Without Repos",
+            DataFreshnessDetailFilter.ReposWithoutManifests => "Repos Without Manifests",
+            _ => "Stale Repo Scans"
+        };
 
     private sealed record WebJobRunSummary(int WebJobId, DateTime RunTimestamp, bool IsFailure);
 

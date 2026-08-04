@@ -1,0 +1,59 @@
+@using CruSibyl.Web.Models.Dashboard
+@model PlatformDetailsViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">@Model.Title</h3>
+
+    @if (!Model.Rows.Any())
+    {
+      <div class="alert alert-info">No platform rows match this filter.</div>
+    }
+    else
+    {
+      <div class="overflow-x-auto">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr>
+              <th>App</th>
+              <th>Repo</th>
+              <th>Manifest</th>
+              <th>Platform</th>
+              <th>Current</th>
+              <th>Latest Stable</th>
+              <th>Currency</th>
+              <th>Scan</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var row in Model.Rows)
+            {
+              <tr>
+                <td>@row.AppName</td>
+                <td>@(row.RepoName ?? "-")</td>
+                <td class="font-mono text-xs">@(row.ManifestPath ?? "-")</td>
+                <td>@(row.PlatformName ?? "-")</td>
+                <td class="font-mono text-xs">@(row.CurrentVersion ?? "-")</td>
+                <td class="font-mono text-xs">@(row.LatestStableVersion ?? "-")</td>
+                <td>
+                  <span class="badge badge-sm @(row.CurrencyStatus == "Outdated" ? "badge-warning" : row.CurrencyStatus == "Unknown" ? "badge-ghost" : "badge-success")">
+                    @row.CurrencyStatus
+                  </span>
+                </td>
+                <td>
+                  <span class="badge badge-sm @(row.RepoScanStatus == ScanStatus.Failed ? "badge-error" : "badge-ghost")">
+                    @(row.RepoScanStatus?.ToString() ?? "Unknown")
+                  </span>
+                  @if (row.RepoLastScannedAt.HasValue)
+                  {
+                    <div class="text-xs opacity-70">@row.RepoLastScannedAt.Value.ToString("g")</div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

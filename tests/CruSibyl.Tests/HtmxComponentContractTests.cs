@@ -57,8 +57,13 @@ public class HtmxComponentContractTests
         Assert.Contains("data-hc-stale-region-selector", content, StringComparison.Ordinal);
         Assert.Contains("<htmx-error-region", content, StringComparison.Ordinal);
         Assert.Contains("id=\"dashboard-detail-content\"", content, StringComparison.Ordinal);
+        Assert.Contains("Component.InvokeAsync(\"Modal\"", content, StringComparison.Ordinal);
+        Assert.Contains("dashboard-detail-modal", content, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#dashboard-detail-modal-body\"", content, StringComparison.Ordinal);
+        Assert.Contains("data-hc-open-modal=\"dashboard-detail-modal\"", content, StringComparison.Ordinal);
+        Assert.Contains("/Dashboard/Details/Dependencies?filter=outdated", content, StringComparison.Ordinal);
 
-        Assert.Contains("hx-target=\"#dashboard-detail-content\"", failureHistory, StringComparison.Ordinal);
+        Assert.Contains("hx-target=\"#dashboard-detail-modal-body\"", failureHistory, StringComparison.Ordinal);
         Assert.DoesNotContain(
             dashboardViews,
             view => view.Contains("hx-target=\"#dashboard-detail\"", StringComparison.Ordinal));

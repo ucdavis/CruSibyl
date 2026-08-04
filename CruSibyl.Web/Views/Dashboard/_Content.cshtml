@@ -1,4 +1,5 @@
 @using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Modal.Models
 @model DashboardViewModel
 
 <htmx-request-scope id="main-content"
@@ -112,14 +113,16 @@
     <div class="flex gap-2 mt-4">
       <button class="btn btn-primary"
               hx-get="/Dashboard/FailureHistory"
-              hx-target="#dashboard-detail-content"
-              hx-swap="innerHTML">
+              hx-target="#dashboard-detail-modal-body"
+              hx-swap="innerHTML"
+              data-hc-open-modal="dashboard-detail-modal">
         <i class="fas fa-history"></i> View Failure History
       </button>
       <button class="btn btn-primary"
-              hx-get="/Dashboard/DependencyCurrency"
-              hx-target="#dashboard-detail-content"
-              hx-swap="innerHTML">
+              hx-get="/Dashboard/Details/Dependencies?filter=outdated"
+              hx-target="#dashboard-detail-modal-body"
+              hx-swap="innerHTML"
+              data-hc-open-modal="dashboard-detail-modal">
         <i class="fas fa-cubes"></i> View Dependency Currency
       </button>
     </div>
@@ -139,4 +142,13 @@
     <htmx-error-region class="alert alert-error" hidden></htmx-error-region>
     <div id="dashboard-detail-content" class="mt-4 min-h-16" data-hc-stale-region></div>
   </htmx-request-scope>
+
+  @await Component.InvokeAsync("Modal", new ModalModel
+  {
+    Id = "dashboard-detail-modal",
+    Title = "Dashboard Detail",
+    Size = ModalSize.ExtraLarge,
+    BodyTargetId = "dashboard-detail-modal-body",
+    CloseLabel = "Close dashboard detail"
+  })
 </htmx-request-scope>

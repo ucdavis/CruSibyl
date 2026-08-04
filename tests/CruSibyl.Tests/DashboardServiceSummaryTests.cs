@@ -3,6 +3,7 @@ using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Models.Settings;
+using CruSibyl.Web.Models.Dashboard;
 using CruSibyl.Web.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -98,12 +99,19 @@ public class DashboardServiceSummaryTests
         await database.Context.SaveChangesAsync(cancellationToken);
 
         var model = await database.CreateService().GetDashboardOverviewAsync();
+        var runningDetails = await database.CreateService().GetWebJobDetailsAsync(WebJobDetailFilter.Running);
+        var recentFailureDetails = await database.CreateService().GetWebJobDetailsAsync(WebJobDetailFilter.RecentlyFailed);
+        var consecutiveFailureDetails = await database.CreateService().GetWebJobDetailsAsync(WebJobDetailFilter.ConsecutiveFailures);
 
         Assert.Equal(4, model.WebJobs.TotalEnabledJobs);
         Assert.Equal(1, model.WebJobs.RunningJobs);
         Assert.Equal(1, model.WebJobs.JobsWithFailedLastRun);
         Assert.Equal(2, model.WebJobs.JobsRecentlyFailed);
         Assert.Equal(1, model.WebJobs.JobsFailingConsecutiveAttempts);
+
+        Assert.Equal("running", Assert.Single(runningDetails.Rows).WebJobName);
+        Assert.Equal(["consecutive-failure", "recent-failure"], recentFailureDetails.Rows.Select(row => row.WebJobName).Order().ToArray());
+        Assert.Equal("consecutive-failure", Assert.Single(consecutiveFailureDetails.Rows).WebJobName);
     }
 
     [Fact]
@@ -167,6 +175,8 @@ public class DashboardServiceSummaryTests
         await database.Context.SaveChangesAsync(cancellationToken);
 
         var model = await database.CreateService().GetDashboardOverviewAsync();
+        var unmappedDetails = await database.CreateService().GetAppMappingDetailsAsync(AppMappingDetailFilter.Unmapped);
+        var staleRepoDetails = await database.CreateService().GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.StaleRepoScans);
 
         Assert.Equal(5, model.AppMappings.EnabledApps);
         Assert.Equal(4, model.AppMappings.EnabledAppsWithMappedRepos);
@@ -181,6 +191,14 @@ public class DashboardServiceSummaryTests
         Assert.Equal(1, model.DataFreshness.FailedPackageScans);
         Assert.Equal(1, model.DataFreshness.AppsWithoutRepos);
         Assert.Equal(1, model.DataFreshness.ReposWithoutManifests);
+
+        var unmappedRow = Assert.Single(unmappedDetails.Rows);
+        Assert.Equal("unmapped", unmappedRow.AppName);
+        Assert.False(unmappedRow.RepoId.HasValue);
+
+        var staleRepoRow = Assert.Single(staleRepoDetails.Rows);
+        Assert.Equal("stale", staleRepoRow.Name);
+        Assert.Equal("Repo", staleRepoRow.ItemType);
     }
 
     [Fact]
@@ -220,6 +238,8 @@ public class DashboardServiceSummaryTests
         await database.Context.SaveChangesAsync(cancellationToken);
 
         var model = await database.CreateService().GetDashboardOverviewAsync();
+        var outdatedDetails = await database.CreateService().GetPlatformDetailsAsync(PlatformDetailFilter.Outdated);
+        var unknownDetails = await database.CreateService().GetPlatformDetailsAsync(PlatformDetailFilter.Unknown);
 
         Assert.Equal(6, model.Platform.EnabledAppsWithManifests);
         Assert.Equal(1, model.Platform.AppsOnOutdatedManifestPlatformVersions);
@@ -227,6 +247,14 @@ public class DashboardServiceSummaryTests
         Assert.Equal(2, model.Platform.UnknownPlatformVersionData);
         Assert.Equal(1, model.Platform.FailedManifestScans);
         Assert.Equal(1, model.Platform.StaleManifestScans);
+
+        var outdatedRow = Assert.Single(outdatedDetails.Rows);
+        Assert.Equal("outdated-app", outdatedRow.AppName);
+        Assert.Equal("Outdated", outdatedRow.CurrencyStatus);
+        Assert.Equal("8.0.0", outdatedRow.LatestStableVersion);
+
+        Assert.Equal(2, unknownDetails.Rows.Count);
+        Assert.All(unknownDetails.Rows, row => Assert.Equal("Unknown", row.CurrencyStatus));
     }
 
     [Fact]
@@ -275,6 +303,9 @@ public class DashboardServiceSummaryTests
         await database.Context.SaveChangesAsync(cancellationToken);
 
         var model = await database.CreateService().GetDashboardOverviewAsync();
+        var majorDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Major);
+        var highPriorityDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.HighPriority);
+        var unknownDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Unknown);
 
         Assert.Equal(5, model.Dependency.TotalTrackedDependencies);
         Assert.Equal(3, model.Dependency.OutdatedDependencies);
@@ -285,6 +316,12 @@ public class DashboardServiceSummaryTests
         Assert.Equal(2, model.Dependency.HighPriorityOutdatedDependencies);
         Assert.Equal(1, model.Dependency.EnabledAppsWithDependencyCoverage);
         Assert.Equal(0, model.Dependency.EnabledAppsWithoutDependencyCoverage);
+
+        var majorRow = Assert.Single(majorDetails.Dependencies);
+        Assert.Equal("major-package", majorRow.PackageName);
+        Assert.Equal("High", majorRow.SeverityLevel);
+        Assert.Equal(2, highPriorityDetails.Dependencies.Count);
+        Assert.Equal("unknown-package", Assert.Single(unknownDetails.Dependencies).PackageName);
     }
 
     private static void AddWebJobStatusEvent(
