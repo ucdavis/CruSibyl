@@ -2,8 +2,10 @@ using System.Text.Json;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
+using CruSibyl.Core.Models.Settings;
 using CruSibyl.Web.Models.Dashboard;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace CruSibyl.Web.Services;
 
@@ -18,15 +20,23 @@ public interface IDashboardService
 public class DashboardService : IDashboardService
 {
     private readonly AppDbContext _dbContext;
+    private readonly DashboardSettings _dashboardSettings;
+    private readonly TimeProvider _timeProvider;
 
-    public DashboardService(AppDbContext dbContext)
+    public DashboardService(
+        AppDbContext dbContext,
+        IOptions<DashboardSettings> dashboardSettings,
+        TimeProvider timeProvider)
     {
         _dbContext = dbContext;
+        _dashboardSettings = dashboardSettings.Value;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DashboardViewModel> GetDashboardOverviewAsync()
     {
-        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
         
         var apps = await _dbContext.Apps
             .Include(a => a.WebJobs)
@@ -39,7 +49,7 @@ public class DashboardService : IDashboardService
         // Get recent failure events for these apps
         var recentFailures = await _dbContext.Events
             .Where(e => e.EventType == EventType.WebJobStatus)
-            .Where(e => e.Timestamp >= thirtyDaysAgo)
+            .Where(e => e.Timestamp >= windows.HistoryWindowStartUtc)
             .Where(e => e.Severity == "Error" || e.Severity == "Critical")
             .Where(e => e.WebJobs.Any(wj => webJobIds.Contains(wj.Id)))
             .Include(e => e.WebJobs)
@@ -58,10 +68,9 @@ public class DashboardService : IDashboardService
             var lastFailure = appFailures.FirstOrDefault();
             var lastFailureWebJob = lastFailure?.WebJobs.FirstOrDefault(wj => appWebJobIds.Contains(wj.Id));
 
-            // Check for critical failures (3+ failures in last 24 hours)
-            var last24Hours = DateTime.UtcNow.AddHours(-24);
-            var recentFailureCount = appFailures.Count(e => e.Timestamp >= last24Hours);
-            var hasCriticalFailure = recentFailureCount >= 3;
+            // Check for repeated failures within the configured recent-failure window.
+            var recentFailureCount = appFailures.Count(e => e.Timestamp >= windows.RecentFailureWindowStartUtc);
+            var hasCriticalFailure = recentFailureCount >= windows.ConsecutiveFailureAttempts;
 
             if (hasCriticalFailure && lastFailure != null && lastFailureWebJob != null)
             {
@@ -69,9 +78,8 @@ public class DashboardService : IDashboardService
                     ? JsonSerializer.Deserialize<WebJobStatusPayload>(lastFailure.Payload.Value.GetRawText())
                     : null;
 
-                // Check if failure is consistent (>80% failure rate in last 7 days)
-                var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-                var recentWeekFailures = appFailures.Count(e => e.Timestamp >= sevenDaysAgo && e.WebJobs.Any(wj => wj.Id == lastFailureWebJob.Id));
+                // Preserve the existing consistency heuristic until the summary-query pass revisits it.
+                var recentWeekFailures = appFailures.Count(e => e.Timestamp >= windows.RecentFailureWindowStartUtc && e.WebJobs.Any(wj => wj.Id == lastFailureWebJob.Id));
                 var isConsistent = recentWeekFailures > 5; // Simple heuristic
 
                 criticalAlerts.Add(new CriticalAlert
@@ -103,6 +111,8 @@ public class DashboardService : IDashboardService
 
         return new DashboardViewModel
         {
+            CapturedAtUtc = now,
+            Windows = windows,
             AppHealthCards = appHealthCards.OrderByDescending(a => a.HasCriticalFailure).ThenByDescending(a => a.Importance).ToList(),
             CriticalAlerts = criticalAlerts.OrderByDescending(a => a.FailureTime).ToList()
         };
@@ -110,11 +120,12 @@ public class DashboardService : IDashboardService
 
     public async Task<WebJobFailureHistoryViewModel> GetFailureHistoryAsync(string? appFilter = null, string? jobFilter = null)
     {
-        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
 
         var query = _dbContext.Events
             .Where(e => e.EventType == EventType.WebJobStatus)
-            .Where(e => e.Timestamp >= thirtyDaysAgo)
+            .Where(e => e.Timestamp >= windows.HistoryWindowStartUtc)
             .Where(e => e.Severity == "Error" || e.Severity == "Critical")
             .Include(e => e.WebJobs)
                 .ThenInclude(wj => wj.App)
@@ -167,9 +178,9 @@ public class DashboardService : IDashboardService
             if (!webJobFailureCounts.ContainsKey(webJob.Id))
             {
                 var dailyCounts = new List<int>();
-                for (int i = 0; i < 30; i++)
+                for (int i = 0; i < windows.HistoryWindowDays; i++)
                 {
-                    var dayStart = thirtyDaysAgo.AddDays(i);
+                    var dayStart = windows.HistoryWindowStartUtc.AddDays(i);
                     var dayEnd = dayStart.AddDays(1);
                     var count = events.Count(e => 
                         e.WebJobs.Any(wj => wj.Id == webJob.Id) && 
@@ -192,6 +203,9 @@ public class DashboardService : IDashboardService
 
     public async Task<WebJobDrillDownViewModel> GetWebJobDrillDownAsync(int webJobId)
     {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var windows = CreateDashboardWindowModel(now);
+
         var webJob = await _dbContext.WebJobs
             .Include(wj => wj.App)
             .OrderBy(wj => wj.Id) // just to eliminate the warning about using First without OrderBy
@@ -202,11 +216,10 @@ public class DashboardService : IDashboardService
             throw new ArgumentException($"WebJob with ID {webJobId} not found");
         }
 
-        var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
         var events = await _dbContext.Events
             .Where(e => e.EventType == EventType.WebJobStatus)
             .Where(e => e.WebJobs.Any(wj => wj.Id == webJobId))
-            .Where(e => e.Timestamp >= thirtyDaysAgo)
+            .Where(e => e.Timestamp >= windows.HistoryWindowStartUtc)
             .OrderByDescending(e => e.Timestamp)
             .Take(50)
             .ToListAsync();
@@ -377,6 +390,25 @@ public class DashboardService : IDashboardService
         return new DependencyCurrencyViewModel
         {
             Dependencies = currencyModels.OrderByDescending(d => d.PriorityScore).ToList()
+        };
+    }
+
+    private DashboardWindowModel CreateDashboardWindowModel(DateTime now)
+    {
+        var consecutiveFailureAttempts = Math.Max(1, _dashboardSettings.ConsecutiveFailureAttempts);
+        var recentFailureWindowHours = Math.Max(1, _dashboardSettings.RecentFailureWindowHours);
+        var historyWindowDays = Math.Max(1, _dashboardSettings.HistoryWindowDays);
+        var staleScanDays = Math.Max(1, _dashboardSettings.StaleScanDays);
+
+        return new DashboardWindowModel
+        {
+            ConsecutiveFailureAttempts = consecutiveFailureAttempts,
+            RecentFailureWindowHours = recentFailureWindowHours,
+            HistoryWindowDays = historyWindowDays,
+            StaleScanDays = staleScanDays,
+            RecentFailureWindowStartUtc = now.AddHours(-recentFailureWindowHours),
+            HistoryWindowStartUtc = now.AddDays(-historyWindowDays),
+            StaleScanCutoffUtc = now.AddDays(-staleScanDays)
         };
     }
 }

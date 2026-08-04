@@ -132,10 +132,12 @@ try
     DBContextConfig.Configure(appBuilder.Configuration, appBuilder.Services, out var migrationScaffoldRequested);
 
     appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Authentication"));
+    appBuilder.Services.Configure<DashboardSettings>(appBuilder.Configuration.GetSection("Dashboard"));
 
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddScoped<IDashboardService, DashboardService>();
+    appBuilder.Services.AddSingleton(TimeProvider.System);
     appBuilder.Services.AddHttpContextAccessor();
 
 
