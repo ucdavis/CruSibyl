@@ -303,7 +303,11 @@ public class DashboardServiceSummaryTests
         await database.Context.SaveChangesAsync(cancellationToken);
 
         var model = await database.CreateService().GetDashboardOverviewAsync();
+        var allDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.All);
+        var outdatedDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Outdated);
         var majorDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Major);
+        var minorDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Minor);
+        var patchDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Patch);
         var highPriorityDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.HighPriority);
         var unknownDetails = await database.CreateService().GetDependencyDetailsAsync(DependencyDetailFilter.Unknown);
 
@@ -317,11 +321,81 @@ public class DashboardServiceSummaryTests
         Assert.Equal(1, model.Dependency.EnabledAppsWithDependencyCoverage);
         Assert.Equal(0, model.Dependency.EnabledAppsWithoutDependencyCoverage);
 
+        Assert.Equal(5, allDetails.Dependencies.Count);
+        Assert.Equal(
+            ["major-package", "minor-package", "patch-package"],
+            outdatedDetails.Dependencies.Select(row => row.PackageName).Order().ToArray());
         var majorRow = Assert.Single(majorDetails.Dependencies);
         Assert.Equal("major-package", majorRow.PackageName);
         Assert.Equal("High", majorRow.SeverityLevel);
+        Assert.Equal("minor-package", Assert.Single(minorDetails.Dependencies).PackageName);
+        Assert.Equal("patch-package", Assert.Single(patchDetails.Dependencies).PackageName);
         Assert.Equal(2, highPriorityDetails.Dependencies.Count);
         Assert.Equal("unknown-package", Assert.Single(unknownDetails.Dependencies).PackageName);
+    }
+
+    [Fact]
+    public async Task DetailFilters_ReturnFocusedAppMappingAndFreshnessRows()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var database = await DashboardTestDatabase.CreateAsync(cancellationToken);
+
+        var candidateRepo = AddRepo(database.Context, "payment-api", FixedNow.AddDays(-1), ScanStatus.Completed, withManifest: true);
+        var manifestlessRepo = AddRepo(database.Context, "manifestless", FixedNow.AddDays(-1), ScanStatus.Completed, withManifest: false);
+        var staleRepo = AddRepo(database.Context, "stale", FixedNow.AddDays(-9), ScanStatus.Completed, withManifest: true);
+        var failedRepo = AddRepo(database.Context, "failed", FixedNow.AddDays(-1), ScanStatus.Failed, withManifest: true);
+        failedRepo.ScanMessage = "manifest scan failed";
+
+        database.Context.Apps.AddRange(
+            new App { Name = "payment-api", IsEnabled = true },
+            new App { Name = "manifestless-app", IsEnabled = true, Repo = manifestlessRepo },
+            new App { Name = "stale-app", IsEnabled = true, Repo = staleRepo },
+            new App { Name = "failed-app", IsEnabled = true, Repo = failedRepo },
+            new App { Name = "disabled-payment", IsEnabled = false });
+
+        AddPackage(database.Context, "stale-package", FixedNow.AddDays(-9), ScanStatus.Completed);
+        AddPackage(database.Context, "failed-package", FixedNow.AddDays(-1), ScanStatus.Failed);
+
+        await database.Context.SaveChangesAsync(cancellationToken);
+
+        var service = database.CreateService();
+
+        var unmappedMappingRows = await service.GetAppMappingDetailsAsync(AppMappingDetailFilter.Unmapped);
+        var manifestlessMappingRows = await service.GetAppMappingDetailsAsync(AppMappingDetailFilter.Manifestless);
+        var staleMappingRows = await service.GetAppMappingDetailsAsync(AppMappingDetailFilter.StaleRepoScans);
+        var failedMappingRows = await service.GetAppMappingDetailsAsync(AppMappingDetailFilter.FailedRepoScans);
+        var failedRepoRows = await service.GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.FailedRepoScans);
+        var stalePackageRows = await service.GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.StalePackageScans);
+        var failedPackageRows = await service.GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.FailedPackageScans);
+        var appsWithoutRepoRows = await service.GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.AppsWithoutRepos);
+        var reposWithoutManifestRows = await service.GetDataFreshnessDetailsAsync(DataFreshnessDetailFilter.ReposWithoutManifests);
+
+        var unmappedRow = Assert.Single(unmappedMappingRows.Rows);
+        Assert.Equal("payment-api", unmappedRow.AppName);
+        Assert.Contains(candidateRepo.Name, unmappedRow.CandidateRepoNames);
+
+        Assert.Equal("manifestless-app", Assert.Single(manifestlessMappingRows.Rows).AppName);
+        Assert.Equal("stale-app", Assert.Single(staleMappingRows.Rows).AppName);
+        Assert.Equal("failed-app", Assert.Single(failedMappingRows.Rows).AppName);
+
+        var failedRepoRow = Assert.Single(failedRepoRows.Rows);
+        Assert.Equal("Repo", failedRepoRow.ItemType);
+        Assert.Equal("failed", failedRepoRow.Name);
+        Assert.Equal("manifest scan failed", failedRepoRow.ScanMessage);
+
+        var stalePackageRow = Assert.Single(stalePackageRows.Rows);
+        Assert.Equal("Package", stalePackageRow.ItemType);
+        Assert.Equal("stale-package", stalePackageRow.Name);
+
+        var failedPackageRow = Assert.Single(failedPackageRows.Rows);
+        Assert.Equal("Package", failedPackageRow.ItemType);
+        Assert.Equal("failed-package", failedPackageRow.Name);
+
+        var appWithoutRepoRow = Assert.Single(appsWithoutRepoRows.Rows);
+        Assert.Equal("App", appWithoutRepoRow.ItemType);
+        Assert.Equal("payment-api", appWithoutRepoRow.Name);
+
+        Assert.Equal(["manifestless"], reposWithoutManifestRows.Rows.Select(row => row.Name).ToArray());
     }
 
     private static void AddWebJobStatusEvent(

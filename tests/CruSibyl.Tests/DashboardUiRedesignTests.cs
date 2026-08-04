@@ -60,6 +60,29 @@ public class DashboardUiRedesignTests
         Assert.Contains("disabled=\"@(!metric.CanOpen)\"", metricPartial, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void DashboardController_RegistersModalDetailRoutesAndEditableAppMappingTable()
+    {
+        var controller = ReadRepoFile("CruSibyl.Web/Controllers/DashboardController.cs");
+
+        Assert.Contains("[HttpGet(\"/Dashboard/Details/WebJobs\")]", controller, StringComparison.Ordinal);
+        Assert.Contains("[HttpGet(\"/Dashboard/Details/Platforms\")]", controller, StringComparison.Ordinal);
+        Assert.Contains("[HttpGet(\"/Dashboard/Details/Dependencies\")]", controller, StringComparison.Ordinal);
+        Assert.Contains("[HttpGet(\"/Dashboard/Details/AppMappings\")]", controller, StringComparison.Ordinal);
+        Assert.Contains("[HttpGet(\"/Dashboard/Details/Freshness\")]", controller, StringComparison.Ordinal);
+
+        Assert.Contains("[ModelConfig(DashboardTableTypeIds.AppMappingDetails)]", controller, StringComparison.Ordinal);
+        Assert.Contains(".WithUpdate(UpdateAppMappingAsync)", controller, StringComparison.Ordinal);
+        Assert.Contains(".WithInput(row => row.RepoId", controller, StringComparison.Ordinal);
+        Assert.Contains(".WithKind(InputKind.Select)", controller, StringComparison.Ordinal);
+        Assert.Contains(".WithEditable().WithCellPartial(DashboardCellPartials.RepoMapping)", controller, StringComparison.Ordinal);
+        Assert.Contains(".AddCrudDisplayColumn()", controller, StringComparison.Ordinal);
+
+        Assert.Contains("app.RepoId = row.RepoId;", controller, StringComparison.Ordinal);
+        Assert.Contains("Selected repo not found.", controller, StringComparison.Ordinal);
+        Assert.DoesNotContain("[HttpPost(\"/Dashboard/Details/AppMappings", controller, StringComparison.Ordinal);
+    }
+
     private static string ReadRepoFile(string relativePath)
         => File.ReadAllText(Path.Combine(FindRepoRoot(), relativePath));
 
