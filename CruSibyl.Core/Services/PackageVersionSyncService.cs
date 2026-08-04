@@ -56,6 +56,7 @@ public class PackageVersionSyncService : IPackageVersionSyncService
             {
                 pkg.ScanNumber = scanNumber;
                 pkg.ScanStatus = ScanStatus.InProgress;
+                pkg.ScanMessage = null;
             }
             await dbContext.SaveChangesAsync();
         }
@@ -69,6 +70,7 @@ public class PackageVersionSyncService : IPackageVersionSyncService
             {
                 pkg.ScanNumber = scanNumber;
                 pkg.ScanStatus = ScanStatus.InProgress;
+                pkg.ScanMessage = null;
             }
             await dbContext.SaveChangesAsync();
         }
@@ -134,6 +136,7 @@ public class PackageVersionSyncService : IPackageVersionSyncService
             catch (Exception ex)
             {
                 package.ScanStatus = ScanStatus.Failed;
+                package.LastScannedAt = DateTime.UtcNow;
                 package.ScanMessage = ex.Message;
                 Log.Error(ex, "Failed to sync versions for package {Package}", package.Name);
             }

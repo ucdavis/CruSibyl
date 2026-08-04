@@ -199,24 +199,24 @@ public class AzureSyncService : IAzureSyncService
         {
             var now = DateTime.UtcNow;
 
-            // Get all WebJobs for this subscription
-            var webJobs = await dbContext.WebJobs
-                .Include(wj => wj.App)
+            // Get all WebJob ids for this subscription. Each worker opens its own context.
+            var webJobIds = await dbContext.WebJobs
                 .Where(wj => wj.App.SubscriptionId == subscriptionId && wj.JobType == "Triggered")
+                .Select(wj => wj.Id)
                 .ToListAsync(cancellationToken);
 
             Log.Information("Found {Count} triggered WebJobs to sync with max concurrency {MaxConcurrency}", 
-                webJobs.Count, _azureSettings.MaxConcurrentStatusQueries);
+                webJobIds.Count, _azureSettings.MaxConcurrentStatusQueries);
 
             // Use semaphore to throttle concurrent API calls
             using var semaphore = new SemaphoreSlim(_azureSettings.MaxConcurrentStatusQueries);
 
-            var tasks = webJobs.Select(async webJob =>
+            var tasks = webJobIds.Select(async webJobId =>
             {
                 await semaphore.WaitAsync(cancellationToken);
                 try
                 {
-                    await ProcessWebJobStatus(webJob, now, dbContext, cancellationToken);
+                    await ProcessWebJobStatus(webJobId, now, cancellationToken);
                 }
                 finally
                 {
@@ -225,8 +225,6 @@ public class AzureSyncService : IAzureSyncService
             });
 
             await Task.WhenAll(tasks);
-
-            await dbContext.SaveChangesAsync(cancellationToken);
 
             Log.Information("WebJob status sync completed successfully for subscription {SubscriptionId}", subscriptionId);
         }
@@ -237,8 +235,19 @@ public class AzureSyncService : IAzureSyncService
         }
     }
 
-    private async Task ProcessWebJobStatus(WebJob webJob, DateTime now, AppDbContext dbContext, CancellationToken cancellationToken)
+    private async Task ProcessWebJobStatus(int webJobId, DateTime now, CancellationToken cancellationToken)
     {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync(cancellationToken);
+        var webJob = await dbContext.WebJobs
+            .Include(wj => wj.App)
+            .FirstOrDefaultAsync(wj => wj.Id == webJobId, cancellationToken);
+
+        if (webJob == null)
+        {
+            Log.Warning("WebJob {WebJobId} was not found during status sync", webJobId);
+            return;
+        }
+
         try
         {
             // Get the full run history
@@ -340,6 +349,8 @@ public class AzureSyncService : IAzureSyncService
                     ? (long)(latestRun.EndTime.Value - latestRun.StartTime.Value).TotalMilliseconds 
                     : null);
             webJob.LastStatusCheckAt = now;
+
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Exception ex)
         {

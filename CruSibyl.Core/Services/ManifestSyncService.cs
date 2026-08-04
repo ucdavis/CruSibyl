@@ -59,6 +59,7 @@ public class ManifestSyncService : IManifestSyncService
             {
                 repo.ScanNumber = scanNumber;
                 repo.ScanStatus = ScanStatus.InProgress;
+                repo.ScanMessage = null;
             }
             await _dbContext.SaveChangesAsync();
         }
@@ -73,6 +74,7 @@ public class ManifestSyncService : IManifestSyncService
             {
                 repo.ScanNumber = scanNumber;
                 repo.ScanStatus = ScanStatus.InProgress;
+                repo.ScanMessage = null;
             }
             await _dbContext.SaveChangesAsync();
         }
@@ -98,7 +100,7 @@ public class ManifestSyncService : IManifestSyncService
         {
             var startTime = DateTime.UtcNow;
             TimeSpan timeLimit = TimeSpan.FromMinutes(timeLimitInMinutes);
-            var exitingEarly = false;
+            var failedRepos = new List<string>();
             foreach (var repo in repos)
             {
                 // Github throttles searches to two per minute. GetManifests performs two searches per repo. So 
@@ -107,106 +109,127 @@ public class ManifestSyncService : IManifestSyncService
                 if (elapsed >= timeLimit - TimeSpan.FromMinutes(1))
                 {
                     Log.Information("Breaking out of repo sync loop: within 1 minute of time limit ({TimeLimit} min)", timeLimitInMinutes);
-                    exitingEarly = true;
                     break;
                 }
-                Log.Verbose("Getting {RepoName} manifests", repo.Name);
-                var gitHubManifests = await _gitHubService.GetManifests(repo.Name);
-
-                foreach (var gitHubManifest in gitHubManifests)
+                try
                 {
-                    // Ensure Platforms and PlatformVersions exist
-                    if (!platforms.TryGetValue(gitHubManifest.Platform, out var platform))
-                    {
-                        platform = new Platform { Name = gitHubManifest.Platform, Versions = new() };
-                        platforms[gitHubManifest.Platform] = platform;
-                        _dbContext.Platforms.Add(platform);
-                    }
+                    repo.ScanStatus = ScanStatus.InProgress;
+                    repo.ScanMessage = null;
 
-                    var platformVersion = platform.Versions.FirstOrDefault(v => v.Version == gitHubManifest.PlatformVersion);
-                    if (platformVersion == null)
-                    {
-                        platformVersion = new PlatformVersion
-                        {
-                            Platform = platform,
-                            Version = gitHubManifest.PlatformVersion
-                        };
-                        platform.Versions.Add(platformVersion);
-                        _dbContext.PlatformVersions.Add(platformVersion);
-                    }
+                    Log.Verbose("Getting {RepoName} manifests", repo.Name);
+                    var gitHubManifests = await _gitHubService.GetManifests(repo.Name);
 
-                    var manifestKey = $"{repo.Id}|{gitHubManifest.Path}";
-                    if (!manifests.TryGetValue(manifestKey, out var manifest))
+                    foreach (var gitHubManifest in gitHubManifests)
                     {
-                        manifest = new Manifest
+                        // Ensure Platforms and PlatformVersions exist
+                        if (!platforms.TryGetValue(gitHubManifest.Platform, out var platform))
                         {
-                            Repo = repo,
-                            PlatformVersion = platformVersion,
-                            FilePath = gitHubManifest.Path,
-                            Dependencies = new()
-                        };
-                        manifests[manifestKey] = manifest;
-                        _dbContext.Manifests.Add(manifest);
-                    }
-
-                    foreach (var dep in gitHubManifest.Dependencies)
-                    {
-                        // Ensure Package exists
-                        var packageKey = $"{dep.Name}|{platform.Name}";
-                        if (!packages.TryGetValue(packageKey, out var package))
-                        {
-                            package = new Package { Name = dep.Name, Platform = platform, Versions = new() };
-                            packages[packageKey] = package;
-                            _dbContext.Packages.Add(package);
+                            platform = new Platform { Name = gitHubManifest.Platform, Versions = new() };
+                            platforms[gitHubManifest.Platform] = platform;
+                            _dbContext.Platforms.Add(platform);
                         }
 
-                        // Ensure PackageVersion exists
-                        var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version, dep.Version, StringComparison.OrdinalIgnoreCase));
-                        if (packageVersion == null)
+                        var platformVersion = platform.Versions.FirstOrDefault(v => v.Version == gitHubManifest.PlatformVersion);
+                        if (platformVersion == null)
                         {
-                            var baseVersion = ExtractBaseVersion(dep.Version);
-                            SemVersion? version = null;
-                            try
+                            platformVersion = new PlatformVersion
                             {
-                                version = SemVersion.Parse(baseVersion);
-                            }
-                            catch (FormatException ex)
-                            {
-                                Log.Warning(ex, "Failed to parse baseVersion '{BaseVersion}' from '{VersionSpec}' for package '{Package}'", baseVersion, dep.Version, dep.Name);
-                            }
-                            packageVersion = new PackageVersion
-                            {
-                                Package = package,
-                                Version = dep.Version,
-                                Major = (int?)(version?.Major),
-                                Minor = (int?)(version?.Minor),
-                                Patch = (int?)(version?.Patch),
-                                PreRelease = version?.Prerelease,
+                                Platform = platform,
+                                Version = gitHubManifest.PlatformVersion
                             };
-                            package.Versions.Add(packageVersion);
-                            _dbContext.PackageVersions.Add(packageVersion);
+                            platform.Versions.Add(platformVersion);
+                            _dbContext.PlatformVersions.Add(platformVersion);
                         }
 
-                        // Ensure Dependency exists
-                        var dependencyKey = $"{manifest.Id}|{packageVersion.Id}";
-                        if (!dependencies.ContainsKey(dependencyKey))
+                        var manifestKey = $"{repo.Id}|{gitHubManifest.Path}";
+                        if (!manifests.TryGetValue(manifestKey, out var manifest))
                         {
-                            var newDependency = new Dependency
+                            manifest = new Manifest
                             {
-                                Manifest = manifest,
-                                PackageVersion = packageVersion,
-                                IsDevDependency = dep.IsDevDependency
+                                Repo = repo,
+                                PlatformVersion = platformVersion,
+                                FilePath = gitHubManifest.Path,
+                                Dependencies = new()
                             };
-                            _dbContext.Dependencies.Add(newDependency);
+                            manifests[manifestKey] = manifest;
+                            _dbContext.Manifests.Add(manifest);
+                        }
+
+                        foreach (var dep in gitHubManifest.Dependencies)
+                        {
+                            // Ensure Package exists
+                            var packageKey = $"{dep.Name}|{platform.Name}";
+                            if (!packages.TryGetValue(packageKey, out var package))
+                            {
+                                package = new Package { Name = dep.Name, Platform = platform, Versions = new() };
+                                packages[packageKey] = package;
+                                _dbContext.Packages.Add(package);
+                            }
+
+                            // Ensure PackageVersion exists
+                            var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version, dep.Version, StringComparison.OrdinalIgnoreCase));
+                            if (packageVersion == null)
+                            {
+                                var baseVersion = ExtractBaseVersion(dep.Version);
+                                SemVersion? version = null;
+                                try
+                                {
+                                    version = SemVersion.Parse(baseVersion);
+                                }
+                                catch (FormatException ex)
+                                {
+                                    Log.Warning(ex, "Failed to parse baseVersion '{BaseVersion}' from '{VersionSpec}' for package '{Package}'", baseVersion, dep.Version, dep.Name);
+                                }
+                                packageVersion = new PackageVersion
+                                {
+                                    Package = package,
+                                    Version = dep.Version,
+                                    Major = (int?)(version?.Major),
+                                    Minor = (int?)(version?.Minor),
+                                    Patch = (int?)(version?.Patch),
+                                    PreRelease = version?.Prerelease,
+                                };
+                                package.Versions.Add(packageVersion);
+                                _dbContext.PackageVersions.Add(packageVersion);
+                            }
+
+                            // Ensure Dependency exists
+                            var dependencyKey = $"{manifest.Id}|{packageVersion.Id}";
+                            if (!dependencies.ContainsKey(dependencyKey))
+                            {
+                                var newDependency = new Dependency
+                                {
+                                    Manifest = manifest,
+                                    PackageVersion = packageVersion,
+                                    IsDevDependency = dep.IsDevDependency
+                                };
+                                _dbContext.Dependencies.Add(newDependency);
+                            }
                         }
                     }
-                }
-                if (!exitingEarly)
-                {
                     repo.ScanStatus = ScanStatus.Completed;
+                    repo.LastScannedAt = DateTime.UtcNow;
+                    repo.ScanMessage = null;
+                }
+                catch (Exception ex)
+                {
+                    repo.ScanStatus = ScanStatus.Failed;
+                    repo.LastScannedAt = DateTime.UtcNow;
+                    repo.ScanMessage = ex.Message;
+                    failedRepos.Add(repo.Name);
+                    Log.Error(ex, "Failed to sync manifests for repo {RepoName}", repo.Name);
                 }
                 await _dbContext.SaveChangesAsync();
             }
+
+            if (failedRepos.Count > 0)
+            {
+                return Result.Error(
+                    "Manifest sync failed for {RepoCount} repo(s): {RepoNames}",
+                    failedRepos.Count,
+                    string.Join(", ", failedRepos));
+            }
+
             return Result.Ok();
         }
         catch (Exception ex)
