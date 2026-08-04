@@ -1,0 +1,33 @@
+@using CruSibyl.Core.Domain
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var value = column.GetValue(row);
+    var text = value?.ToString();
+    var badgeClass = text switch
+    {
+        "Failed" => "badge-error",
+        "Error" => "badge-error",
+        "Critical" => "badge-error",
+        "Outdated" => "badge-warning",
+        "Unknown" => "badge-ghost",
+        "No manifests" => "badge-ghost",
+        "Current" => "badge-success",
+        "Running" => "badge-success",
+        "High" => "badge-error",
+        "Medium" => "badge-warning",
+        "Low" => "badge-info",
+        _ when value is ScanStatus.Failed => "badge-error",
+        _ when value is ScanStatus.Completed => "badge-success",
+        _ => "badge-ghost"
+    };
+}
+
+<span class="badge badge-sm @badgeClass">@(text ?? "-")</span>

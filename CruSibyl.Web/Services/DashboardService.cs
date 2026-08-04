@@ -200,6 +200,7 @@ public class DashboardService : IDashboardService
 
             failures.Add(new WebJobFailureHistoryModel
             {
+                RowKey = $"event:{evt.Id}:webjob:{webJob.Id}",
                 WebJobId = webJob.Id,
                 WebJobName = webJob.Name,
                 AppId = webJob.App.Id,
@@ -226,6 +227,14 @@ public class DashboardService : IDashboardService
                     dailyCounts.Add(count);
                 }
                 webJobFailureCounts[webJob.Id] = dailyCounts;
+            }
+        }
+
+        foreach (var failure in failures)
+        {
+            if (webJobFailureCounts.TryGetValue(failure.WebJobId, out var sparklineValues))
+            {
+                failure.SparklineValues = sparklineValues;
             }
         }
 
@@ -526,6 +535,11 @@ public class DashboardService : IDashboardService
             Rows = rows
                 .OrderBy(row => row.ItemType)
                 .ThenBy(row => row.Name)
+                .Select((row, index) =>
+                {
+                    row.RowKey = $"{filter}:{row.ItemType}:{row.Name}:{row.RelatedName}:{index}";
+                    return row;
+                })
                 .ToList()
         };
     }
@@ -886,6 +900,7 @@ public class DashboardService : IDashboardService
             .Where(a => a.IsEnabled)
             .Select(a => new
             {
+                a.Id,
                 a.Name,
                 a.RepoId,
                 RepoName = a.Repo == null ? null : a.Repo.Name,
@@ -905,6 +920,7 @@ public class DashboardService : IDashboardService
             .Where(manifest => mappedRepoIds.Contains(manifest.RepoId))
             .Select(manifest => new
             {
+                manifest.Id,
                 manifest.RepoId,
                 manifest.FilePath,
                 PlatformName = manifest.PlatformVersion.Platform.Name,
@@ -947,6 +963,7 @@ public class DashboardService : IDashboardService
             {
                 rows.Add(new PlatformDetailRowModel
                 {
+                    RowKey = $"app:{app.Id}:repo:{app.RepoId}:no-manifests",
                     AppName = app.Name,
                     RepoName = app.RepoName,
                     RepoLastScannedAt = app.RepoLastScannedAt,
@@ -969,6 +986,7 @@ public class DashboardService : IDashboardService
 
                 rows.Add(new PlatformDetailRowModel
                 {
+                    RowKey = $"app:{app.Id}:manifest:{manifest.Id}",
                     AppName = app.Name,
                     RepoName = app.RepoName,
                     RepoLastScannedAt = app.RepoLastScannedAt,
@@ -1006,6 +1024,7 @@ public class DashboardService : IDashboardService
             let pkg = pkgVer.Package
             let platform = pkg.Platform
             select new DependencySnapshot(
+                dep.Id,
                 dep.Manifest.RepoId,
                 platform.Name,
                 pkg.Name,
@@ -1120,6 +1139,7 @@ public class DashboardService : IDashboardService
 
                 currencyModels.Add(new DependencyCurrencyModel
                 {
+                    RowKey = $"app:{app.Id}:dependency:{dep.DependencyId}",
                     AppId = app.Id,
                     AppName = app.Name,
                     AppImportance = app.Importance,
@@ -1265,6 +1285,7 @@ public class DashboardService : IDashboardService
     private sealed record DependencyAppSnapshot(int Id, string Name, double Importance, int RepoId);
 
     private sealed record DependencySnapshot(
+        int DependencyId,
         int RepoId,
         string PlatformName,
         string PackageName,

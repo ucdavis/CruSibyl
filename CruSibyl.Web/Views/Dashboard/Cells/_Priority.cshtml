@@ -1,0 +1,17 @@
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var score = Convert.ToDouble(column.GetValue(row) ?? 0);
+    var value = Math.Clamp((int)(score * 10), 0, 100);
+}
+
+<div class="radial-progress text-xs" style="--value:@value; --size: 2rem;">
+  @score.ToString("0.0")
+</div>

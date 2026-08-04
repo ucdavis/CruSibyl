@@ -1,0 +1,17 @@
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var importance = Convert.ToDouble(column.GetValue(row) ?? 0);
+}
+
+<div class="flex items-center gap-2">
+  <progress class="progress progress-primary w-16" value="@((int)(importance * 100))" max="100"></progress>
+  <span class="text-xs opacity-70">@importance.ToString("0.0")</span>
+</div>

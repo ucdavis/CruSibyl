@@ -1,4 +1,5 @@
 using CruSibyl.Core.Domain;
+using Htmx.Components.Table.Models;
 
 namespace CruSibyl.Web.Models.Dashboard;
 
@@ -58,6 +59,15 @@ public class WebJobDetailsViewModel
     public List<WebJobDetailRowModel> Rows { get; set; } = new();
 }
 
+public class DashboardDetailTableViewModel
+{
+    public string Title { get; set; } = null!;
+
+    public string EmptyMessage { get; set; } = "No rows match this filter.";
+
+    public ITableModel Table { get; set; } = null!;
+}
+
 public class WebJobDetailRowModel
 {
     public int WebJobId { get; set; }
@@ -90,6 +100,8 @@ public class PlatformDetailsViewModel
 
 public class PlatformDetailRowModel
 {
+    public string RowKey { get; set; } = null!;
+
     public string AppName { get; set; } = null!;
 
     public string? RepoName { get; set; }
@@ -152,6 +164,8 @@ public class DataFreshnessDetailsViewModel
 
 public class DataFreshnessDetailRowModel
 {
+    public string RowKey { get; set; } = null!;
+
     public string ItemType { get; set; } = null!;
 
     public string Name { get; set; } = null!;
