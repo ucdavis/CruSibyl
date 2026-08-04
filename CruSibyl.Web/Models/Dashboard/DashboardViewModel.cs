@@ -117,6 +117,34 @@ public class DataFreshnessOverviewModel
     public int ReposWithoutManifests { get; set; }
 }
 
+public enum DashboardMetricTone
+{
+    Neutral,
+    Info,
+    Success,
+    Warning,
+    Error
+}
+
+public class DashboardMetricModel
+{
+    public string Label { get; set; } = null!;
+
+    public int Count { get; set; }
+
+    public string? Url { get; set; }
+
+    public string IconClass { get; set; } = "fas fa-circle";
+
+    public DashboardMetricTone Tone { get; set; } = DashboardMetricTone.Neutral;
+
+    public string Description { get; set; } = null!;
+
+    public bool OpensWhenZero { get; set; }
+
+    public bool CanOpen => !string.IsNullOrWhiteSpace(Url) && (Count > 0 || OpensWhenZero);
+}
+
 public class AppHealthCardModel
 {
     public int AppId { get; set; }
