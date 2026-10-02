@@ -1,4 +1,3 @@
-﻿using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models.Settings;
 using Ietws;
@@ -9,97 +8,70 @@ namespace CruSibyl.Core.Services;
 public interface IIdentityService
 {
     Task<User?> GetByEmail(string email);
-    Task<User?> GetByKerberos(string kerb);
+    Task<User?> GetByIamId(string iamId);
 }
 
-public class IdentityService : IIdentityService
-{
-    private readonly AppDbContext _dbContext;
-    private readonly AuthSettings _authSettings;
+public record IamPerson(string IamId, string FirstName, string LastName, string MothraId);
+public record IamContact(string IamId, string Email);
 
-    public IdentityService(AppDbContext dbContext, IOptions<AuthSettings> authSettings)
+public interface IIamDirectoryClient
+{
+    Task<IReadOnlyList<IamPerson>> GetPeople(string iamId);
+    Task<IReadOnlyList<IamContact>> GetContacts(string iamId);
+    Task<IReadOnlyList<IamContact>> SearchEmail(string email);
+}
+
+public class IamDirectoryClient(IOptions<AuthSettings> settings) : IIamDirectoryClient
+{
+    public async Task<IReadOnlyList<IamPerson>> GetPeople(string iamId)
     {
-        _dbContext = dbContext;
-        _authSettings = authSettings.Value;
+        var result = await new IetClient(settings.Value.IamKey).People.Get(iamId);
+        return result.ResponseData.Results.Select(p => new IamPerson(p.IamId, p.FirstName, p.LastName, p.MothraId)).ToArray();
     }
 
+    public async Task<IReadOnlyList<IamContact>> GetContacts(string iamId)
+    {
+        var result = await new IetClient(settings.Value.IamKey).Contacts.Get(iamId);
+        return result.ResponseData.Results.Select(p => new IamContact(p.IamId, p.Email)).ToArray();
+    }
+
+    public async Task<IReadOnlyList<IamContact>> SearchEmail(string email)
+    {
+        var result = await new IetClient(settings.Value.IamKey).Contacts.Search(ContactSearchField.email, email);
+        return result.ResponseData.Results.Select(p => new IamContact(p.IamId, p.Email)).ToArray();
+    }
+}
+
+public class IdentityResolutionException(string message) : Exception(message);
+
+public class IdentityService(IIamDirectoryClient directory) : IIdentityService
+{
     public async Task<User?> GetByEmail(string email)
     {
-        var clientws = new IetClient(_authSettings.IamKey);
-        // get IAM from email
-        var iamResult = await clientws.Contacts.Search(ContactSearchField.email, email);
-        var iamId = iamResult.ResponseData.Results.Length > 0 ? iamResult.ResponseData.Results[0].IamId : "";
-        if (string.IsNullOrWhiteSpace(iamId))
-        {
-            return null;
-        }
-        // return info for the user identified by this IAM 
-        var result = await clientws.Kerberos.Search(KerberosSearchField.iamId, iamId);
-
-        if (result.ResponseData.Results.Length > 0)
-        {
-            var ucdKerbPerson = result.ResponseData.Results.First();
-            var user = CreateUser(email, ucdKerbPerson, iamId);
-            return user;
-        }
-        return null;
+        var matches = await directory.SearchEmail(email.Trim());
+        var ids = matches.Where(p => string.Equals(p.Email, email.Trim(), StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.IamId).Distinct(StringComparer.Ordinal).ToArray();
+        if (ids.Length == 0) return null;
+        if (ids.Length != 1 || string.IsNullOrWhiteSpace(ids[0]))
+            throw new IdentityResolutionException("Email does not resolve to one IAM identity.");
+        return await GetByIamId(ids[0]);
     }
 
-    public async Task<User?> GetByKerberos(string kerb)
+    public async Task<User?> GetByIamId(string iamId)
     {
-        var clientws = new IetClient(_authSettings.IamKey);
-        var ucdKerbResult = await clientws.Kerberos.Search(KerberosSearchField.userId, kerb);
-
-        if (ucdKerbResult.ResponseData.Results.Length == 0)
-        {
-            return null;
-        }
-
-        if (ucdKerbResult.ResponseData.Results.Length != 1)
-        {
-            var iamIds = ucdKerbResult.ResponseData.Results.Select(a => a.IamId).Distinct().ToArray();
-            var userIDs = ucdKerbResult.ResponseData.Results.Select(a => a.UserId).Distinct().ToArray();
-            if (iamIds.Length != 1 && userIDs.Length != 1)
-            {
-                throw new Exception($"IAM issue with non unique values for kerbs: {string.Join(',', userIDs)} IAM: {string.Join(',', iamIds)}");
-            }
-        }
-
-        var ucdKerbPerson = ucdKerbResult.ResponseData.Results.First();
-
-        // find their email
-        var ucdContactResult = await clientws.Contacts.Get(ucdKerbPerson.IamId);
-
-        if (ucdContactResult.ResponseData.Results.Length == 0)
-        {
-            return null;
-        }
-
-        var ucdContact = ucdContactResult.ResponseData.Results.First();
-        var rtValue = CreateUser(ucdContact.Email, ucdKerbPerson, ucdKerbPerson.IamId);
-
-        if (string.IsNullOrWhiteSpace(rtValue.Email))
-        {
-            if (!string.IsNullOrWhiteSpace(ucdKerbPerson.UserId))
-            {
-                rtValue.Email = $"{ucdKerbPerson.UserId}@ucdavis.edu";
-            }
-        }
-
-        return rtValue;
-    }
-
-    private User CreateUser(string email, KerberosResult ucdKerbPerson, string iamId)
-    {
-        var user = new User()
-        {
-            FirstName = ucdKerbPerson.FirstName,
-            LastName = ucdKerbPerson.LastName,
-            Kerberos = ucdKerbPerson.UserId,
-            Email = email,
-            Iam = iamId,
-            MothraId = ucdKerbPerson.MothraId
-        };
-        return user;
+        var people = await directory.GetPeople(iamId);
+        if (people.Count == 0) return null;
+        if (people.Count != 1 || people[0].IamId != iamId)
+            throw new IdentityResolutionException("Directory person does not match the requested IAM identity.");
+        var contacts = await directory.GetContacts(iamId);
+        if (contacts.Any(c => c.IamId != iamId))
+            throw new IdentityResolutionException("Directory contacts do not match the requested IAM identity.");
+        var emails = contacts.Select(c => c.Email).Where(e => !string.IsNullOrWhiteSpace(e))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (emails.Length != 1)
+            throw new IdentityResolutionException("Directory must provide one unambiguous email address.");
+        var person = people[0];
+        return new User { Iam = iamId, FirstName = person.FirstName, LastName = person.LastName,
+            Email = emails[0], MothraId = person.MothraId ?? "" };
     }
 }

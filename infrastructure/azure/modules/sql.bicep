@@ -1,4 +1,4 @@
-@description('Azure SQL server name.')
+@description('SQL server name.')
 param name string
 
 @description('Azure region for SQL resources.')
@@ -18,13 +18,20 @@ param adminPassword string
 param databaseName string
 
 @description('SQL database SKU name.')
-param skuName string = 'Basic'
+param skuName string
 
 @description('SQL database SKU tier.')
-param skuTier string = 'Basic'
+param skuTier string
 
-@description('Whether to create the Allow Azure Services firewall rule.')
-param allowAzureServices bool = true
+@description('Whether to allow Azure services and resources to access this SQL server.')
+param allowAzureServices bool = false
+
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+@description('Public network access for this SQL server.')
+param publicNetworkAccess string = 'Enabled'
 
 resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
   name: name
@@ -33,8 +40,8 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01' = {
   properties: {
     administratorLogin: adminLogin
     administratorLoginPassword: adminPassword
-    publicNetworkAccess: 'Enabled'
     minimalTlsVersion: '1.2'
+    publicNetworkAccess: publicNetworkAccess
   }
 }
 
@@ -60,5 +67,5 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01' = {
   }
 }
 
-output serverName string = sqlServer.name
 output databaseName string = database.name
+output serverName string = sqlServer.name

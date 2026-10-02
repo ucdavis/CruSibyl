@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -85,20 +85,27 @@ public class AdminController : Controller
                     Id = u.Id,
                     Name = u.FirstName + " " + u.LastName,
                     Email = u.Email,
-                    Kerberos = u.Kerberos,
+                    Iam = u.Iam,
                     IsSystemAdmin = u.Permissions.Any(p => p.Role.Name == Role.Codes.System)
                 }))
             .WithCreate(async adminUserModel =>
             {
                 var userService = builder.ServiceProvider.GetRequiredService<IUserService>();
                 User? user = null;
-                if (!string.IsNullOrWhiteSpace(adminUserModel.Email))
+                try
                 {
-                    user = await userService.GetUser(adminUserModel.Email, includePermissions: true);
+                    if (!string.IsNullOrWhiteSpace(adminUserModel.Email))
+                    {
+                        user = await userService.GetUser(adminUserModel.Email, includePermissions: true);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(adminUserModel.Iam))
+                    {
+                        user = await userService.GetUser(adminUserModel.Iam, includePermissions: true);
+                    }
                 }
-                else if (!string.IsNullOrWhiteSpace(adminUserModel.Kerberos))
+                catch (IdentityResolutionException)
                 {
-                    user = await userService.GetUser(adminUserModel.Kerberos, includePermissions: true);
+                    return Htmx.Components.Models.Result.Error("The lookup did not resolve to one valid IAM identity.");
                 }
 
                 if (user == null)
@@ -112,7 +119,7 @@ public class AdminController : Controller
                     user.Permissions.Add(new Permission { Role = await _dbContext.Roles.FirstAsync(r => r.Name == Role.Codes.Admin) });
                     userUpdated = true;
                 }
-                if (adminUserModel.IsSystemAdmin)
+                if (adminUserModel.IsSystemAdmin && !user.Permissions.Any(p => p.Role.Name == Role.Codes.System))
                 {
                     user.Permissions.Add(new Permission { Role = await _dbContext.Roles.FirstAsync(r => r.Name == Role.Codes.System) });
                     userUpdated = true;
@@ -125,7 +132,7 @@ public class AdminController : Controller
                 adminUserModel.Id = user.Id;
                 adminUserModel.Name = user.Name;
                 adminUserModel.Email = user.Email;
-                adminUserModel.Kerberos = user.Kerberos;
+                adminUserModel.Iam = user.Iam;
                 return Htmx.Components.Models.Result.Value(adminUserModel);
             })
             .WithDelete(async id =>
@@ -150,9 +157,9 @@ public class AdminController : Controller
                 .WithLabel("Email")
                 .WithPlaceholder("Email to look up")
                 .WithCssClass("form-control"))
-            .WithInput(u => u.Kerberos, config => config
-                .WithLabel("Kerberos")
-                .WithPlaceholder("Kerberos to look up")
+            .WithInput(u => u.Iam, config => config
+                .WithLabel("IAM ID")
+                .WithPlaceholder("IAM ID to look up")
                 .WithCssClass("form-control"))
             .WithInput(u => u.IsSystemAdmin, config => config
                 .WithLabel("System Admin")
@@ -161,7 +168,7 @@ public class AdminController : Controller
                 .WithCrudActions()
                 .AddSelectorColumn(x => x.Name)
                 .AddSelectorColumn(x => x.Email, config => config.WithEditable())
-                .AddSelectorColumn(x => x.Kerberos, config => config.WithEditable())
+                .AddSelectorColumn(x => x.Iam)
                 .AddSelectorColumn(x => x.IsSystemAdmin, config => config.WithEditable())
                 .AddCrudDisplayColumn());
     }

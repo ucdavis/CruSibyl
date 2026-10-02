@@ -1,4 +1,4 @@
-﻿using CruSibyl.Core.Domain;
+using CruSibyl.Core.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace CruSibyl.Core.Data;
@@ -21,7 +21,6 @@ public class DbInitializer
         var JasonUser = await CheckAndCreateUser(new User
         {
             Email = "jsylvestre@ucdavis.edu",
-            Kerberos = "jsylvest",
             FirstName = "Jason",
             LastName = "Sylvestre",
             Iam = "1000009309",
@@ -30,7 +29,6 @@ public class DbInitializer
         var ScottUser = await CheckAndCreateUser(new User
         {
             Email = "srkirkland@ucdavis.edu",
-            Kerberos = "postit",
             FirstName = "Scott",
             LastName = "Kirkland",
             Iam = "1000029584",
@@ -39,7 +37,6 @@ public class DbInitializer
         var RiverUser = await CheckAndCreateUser(new User
         {
             Email = "laholstege@ucdavis.edu",
-            Kerberos = "holstege",
             FirstName = "River",
             LastName = "Holstege",
             Iam = "1000243041",
@@ -49,7 +46,6 @@ public class DbInitializer
         var SpruceUser = await CheckAndCreateUser(new User
         {
             Email = "swebermilne@ucdavis.edu",
-            Kerberos = "sweber",
             FirstName = "Spruce",
             LastName = "Weber-Milne",
             Iam = "1000255034",
@@ -58,7 +54,6 @@ public class DbInitializer
         var RobUser = await CheckAndCreateUser(new User
         {
             Email = "rmartinsen@ucdavis.edu",
-            Kerberos = "rmartins",
             FirstName = "Robert",
             LastName = "Martinsen",
             Iam = "1000571302",

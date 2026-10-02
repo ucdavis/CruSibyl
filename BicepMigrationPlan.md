@@ -1,3 +1,5 @@
+> Historical design record. Superseded by [the Azure deployment guide](infrastructure/azure/README.md); CAS, Azure DevOps, and app-owned hosting-plan details below no longer describe the current implementation. Existing-resource cutover remains separate work.
+
 # CruSibyl Bicep Migration Plan
 
 ## Goal

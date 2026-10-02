@@ -285,3 +285,7 @@ local.settings.json
 
 # Azurite local storage emulator
 .azurite/
+
+# Reproducible deployment tooling and CSS dependencies
+!/package-lock.json
+!/CruSibyl.Web/Tools/package-lock.json

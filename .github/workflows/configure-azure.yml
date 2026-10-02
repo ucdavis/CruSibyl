@@ -1,0 +1,75 @@
+name: Configure Azure
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        required: true
+        default: test
+        options: [test, prod]
+      deploy_infra:
+        description: Deploy infrastructure before applying runtime settings
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: azure-${{ inputs.environment }}
+  cancel-in-progress: false
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DEPLOY_ENV: ${{ inputs.environment }}
+      DEPLOY_INFRA: ${{ inputs.deploy_infra }}
+      APP_NAME: ${{ vars.APP_NAME || 'crusibyl' }}
+      RESOURCE_GROUP: ${{ vars.RESOURCE_GROUP }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      DEPLOYMENT_NAME: ${{ vars.DEPLOYMENT_NAME }}
+      WEB_PLAN_NAME: ${{ vars.WEB_PLAN_NAME }}
+      WEB_PLAN_RESOURCE_GROUP: ${{ vars.WEB_PLAN_RESOURCE_GROUP }}
+      SQL_ADMIN_LOGIN: ${{ vars.SQL_ADMIN_LOGIN }}
+      SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+      SQL_DATABASE_NAME: ${{ vars.SQL_DATABASE_NAME }}
+      SQL_SKU_NAME: ${{ vars.SQL_SKU_NAME }}
+      SQL_SKU_TIER: ${{ vars.SQL_SKU_TIER }}
+      # <deployment-settings:workflow-env>
+      AUTH_CALLBACK_PATH: ${{ vars.AUTH_CALLBACK_PATH }}
+      AUTH_CLIENT_ID: ${{ vars.AUTH_CLIENT_ID }}
+      AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}
+      AUTH_DOMAIN: ${{ vars.AUTH_DOMAIN }}
+      AUTH_INSTANCE: ${{ vars.AUTH_INSTANCE }}
+      AUTH_TENANT_ID: ${{ vars.AUTH_TENANT_ID }}
+      AZURE_MAX_CONCURRENT_STATUS_QUERIES: ${{ vars.AZURE_MAX_CONCURRENT_STATUS_QUERIES }}
+      DASHBOARD_FAILURE_ATTEMPTS: ${{ vars.DASHBOARD_FAILURE_ATTEMPTS }}
+      DASHBOARD_HISTORY_DAYS: ${{ vars.DASHBOARD_HISTORY_DAYS }}
+      DASHBOARD_RECENT_FAILURE_HOURS: ${{ vars.DASHBOARD_RECENT_FAILURE_HOURS }}
+      DASHBOARD_STALE_SCAN_DAYS: ${{ vars.DASHBOARD_STALE_SCAN_DAYS }}
+      FUNCTION_LOG_APP_NAME: ${{ vars.FUNCTION_LOG_APP_NAME }}
+      IAM_KEY: ${{ secrets.IAM_KEY }}
+      REPO_OWNER: ${{ vars.REPO_OWNER }}
+      REPO_READ_TOKEN: ${{ secrets.REPO_READ_TOKEN }}
+      SERILOG_ELASTIC_URL: ${{ secrets.SERILOG_ELASTIC_URL }}
+      WEB_LOG_APP_NAME: ${{ vars.WEB_LOG_APP_NAME }}
+      # </deployment-settings:workflow-env>
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - run: npm run deployment-settings:check
+      - run: npm test
+      - uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Configure infrastructure and runtime settings
+        run: bash infrastructure/azure/scripts/deploy.sh

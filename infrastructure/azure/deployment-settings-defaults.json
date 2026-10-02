@@ -1,0 +1,240 @@
+{
+  "$schema": "./deployment-settings.schema.json",
+  "version": 1,
+  "settings": [
+    {
+      "id": "auth-instance",
+      "githubName": "AUTH_INSTANCE",
+      "appServiceName": "Auth__Instance",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra sign-in Instance",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "https://login.microsoftonline.com/"
+    },
+    {
+      "id": "auth-tenant-id",
+      "githubName": "AUTH_TENANT_ID",
+      "appServiceName": "Auth__TenantId",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra sign-in TenantId",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "a8046f64-66c0-4f00-9046-c8daf92ff62b"
+    },
+    {
+      "id": "auth-domain",
+      "githubName": "AUTH_DOMAIN",
+      "appServiceName": "Auth__Domain",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra sign-in Domain",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "ucdavis.edu"
+    },
+    {
+      "id": "auth-client-id",
+      "githubName": "AUTH_CLIENT_ID",
+      "appServiceName": "Auth__ClientId",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra sign-in ClientId",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty"
+    },
+    {
+      "id": "auth-callback-path",
+      "githubName": "AUTH_CALLBACK_PATH",
+      "appServiceName": "Auth__CallbackPath",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra sign-in CallbackPath",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "/signin-oidc"
+    },
+    {
+      "id": "auth-client-secret",
+      "githubName": "AUTH_CLIENT_SECRET",
+      "appServiceName": "Auth__ClientSecret",
+      "targets": [
+        "web"
+      ],
+      "description": "Entra user sign-in registration credential.",
+      "classification": "secret",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty"
+    },
+    {
+      "id": "iam-key",
+      "githubName": "IAM_KEY",
+      "appServiceName": "Auth__IamKey",
+      "targets": [
+        "web"
+      ],
+      "description": "IAM directory API key for person/contact lookup.",
+      "classification": "secret",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty"
+    },
+    {
+      "id": "repo-read-token",
+      "githubName": "REPO_READ_TOKEN",
+      "appServiceName": "GitHub__AccessToken",
+      "targets": [
+        "functions"
+      ],
+      "description": "Repository read credential for manifest synchronization.",
+      "classification": "secret",
+      "valueType": "string",
+      "requiredWhen": "always",
+      "emitWhen": "nonEmpty"
+    },
+    {
+      "id": "repo-owner",
+      "githubName": "REPO_OWNER",
+      "appServiceName": "GitHub__RepoOwner",
+      "targets": [
+        "functions"
+      ],
+      "description": "GitHub organization to scan.",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "ucdavis"
+    },
+    {
+      "id": "azure-max-concurrent-status-queries",
+      "githubName": "AZURE_MAX_CONCURRENT_STATUS_QUERIES",
+      "appServiceName": "Azure__MaxConcurrentStatusQueries",
+      "targets": [
+        "functions"
+      ],
+      "description": "Maximum concurrent status queries.",
+      "classification": "variable",
+      "valueType": "int",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "10"
+    },
+    {
+      "id": "web-log-app-name",
+      "githubName": "WEB_LOG_APP_NAME",
+      "appServiceName": "Serilog__AppName",
+      "targets": [
+        "web"
+      ],
+      "description": "Web logging application name.",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "CruSibyl"
+    },
+    {
+      "id": "function-log-app-name",
+      "githubName": "FUNCTION_LOG_APP_NAME",
+      "appServiceName": "Serilog__AppName",
+      "targets": [
+        "functions"
+      ],
+      "description": "Functions logging application name.",
+      "classification": "variable",
+      "valueType": "string",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "CruSibyl.Functions"
+    },
+    {
+      "id": "serilog-elastic-url",
+      "githubName": "SERILOG_ELASTIC_URL",
+      "appServiceName": "Serilog__ElasticUrl",
+      "targets": [
+        "web",
+        "functions"
+      ],
+      "description": "Optional Elasticsearch endpoint; empty disables the sink.",
+      "classification": "secret",
+      "valueType": "string",
+      "requiredWhen": "never",
+      "emitWhen": "always"
+    },
+    {
+      "id": "dashboard-failure-attempts",
+      "githubName": "DASHBOARD_FAILURE_ATTEMPTS",
+      "appServiceName": "Dashboard__ConsecutiveFailureAttempts",
+      "targets": [
+        "web"
+      ],
+      "description": "Dashboard ConsecutiveFailureAttempts",
+      "classification": "variable",
+      "valueType": "int",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "3"
+    },
+    {
+      "id": "dashboard-recent-failure-hours",
+      "githubName": "DASHBOARD_RECENT_FAILURE_HOURS",
+      "appServiceName": "Dashboard__RecentFailureWindowHours",
+      "targets": [
+        "web"
+      ],
+      "description": "Dashboard RecentFailureWindowHours",
+      "classification": "variable",
+      "valueType": "int",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "24"
+    },
+    {
+      "id": "dashboard-history-days",
+      "githubName": "DASHBOARD_HISTORY_DAYS",
+      "appServiceName": "Dashboard__HistoryWindowDays",
+      "targets": [
+        "web"
+      ],
+      "description": "Dashboard HistoryWindowDays",
+      "classification": "variable",
+      "valueType": "int",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "30"
+    },
+    {
+      "id": "dashboard-stale-scan-days",
+      "githubName": "DASHBOARD_STALE_SCAN_DAYS",
+      "appServiceName": "Dashboard__StaleScanDays",
+      "targets": [
+        "web"
+      ],
+      "description": "Dashboard StaleScanDays",
+      "classification": "variable",
+      "valueType": "int",
+      "requiredWhen": "never",
+      "emitWhen": "nonEmpty",
+      "defaultValue": "7"
+    }
+  ]
+}
