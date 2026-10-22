@@ -7,6 +7,7 @@ public class DependencyCurrencyViewModel
 
 public class DependencyCurrencyModel
 {
+    public string RowKey { get; set; } = null!;
     public int AppId { get; set; }
     public string AppName { get; set; } = null!;
     public double AppImportance { get; set; }

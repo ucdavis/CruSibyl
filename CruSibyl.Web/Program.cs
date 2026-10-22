@@ -11,12 +11,8 @@ using CruSibyl.Web.Services;
 using Htmx.Components;
 using Htmx.Components.Configuration;
 using Htmx.Components.Models;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Serilog.Events;
 using Serilog.Exceptions;
@@ -94,30 +90,8 @@ try
 
     appBuilder.Services.AddEndpointsApiExplorer();
     appBuilder.Services.AddSwaggerGen();
-    appBuilder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-    })
-    .AddCookie()
-    .AddOpenIdConnect(oidc =>
-    {
-        oidc.ClientId = appBuilder.Configuration["Authentication:ClientId"];
-        oidc.ClientSecret = appBuilder.Configuration["Authentication:ClientSecret"];
-        oidc.Authority = appBuilder.Configuration["Authentication:Authority"];
-        oidc.ResponseType = OpenIdConnectResponseType.Code;
-        oidc.Scope.Add("openid");
-        oidc.Scope.Add("profile");
-        oidc.Scope.Add("email");
-        oidc.Scope.Add("eduPerson");
-        oidc.TokenValidationParameters = new TokenValidationParameters
-        {
-            NameClaimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-        };
-        oidc.ConfigureHtmxAuthPopup("/auth/popup-login");
-        oidc.AddIamFallback();
-    });
-
+    appBuilder.Services.AddEntraAuthentication(appBuilder.Configuration);
+    appBuilder.Services.AddOperationalServices(appBuilder.Configuration, appBuilder.Environment);
 
     appBuilder.Services.AddAuthorization(options =>
     {
@@ -131,11 +105,14 @@ try
 
     DBContextConfig.Configure(appBuilder.Configuration, appBuilder.Services, out var migrationScaffoldRequested);
 
-    appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Authentication"));
+    appBuilder.Services.Configure<AuthSettings>(appBuilder.Configuration.GetSection("Auth"));
+    appBuilder.Services.Configure<DashboardSettings>(appBuilder.Configuration.GetSection("Dashboard"));
 
+    appBuilder.Services.AddScoped<IIamDirectoryClient, IamDirectoryClient>();
     appBuilder.Services.AddScoped<IIdentityService, IdentityService>();
     appBuilder.Services.AddScoped<IUserService, UserService>();
     appBuilder.Services.AddScoped<IDashboardService, DashboardService>();
+    appBuilder.Services.AddSingleton(TimeProvider.System);
     appBuilder.Services.AddHttpContextAccessor();
 
 
@@ -182,6 +159,8 @@ try
         }
     }
 
+
+    app.UseForwardedHeaders();
 
     // Configure the HTTP request pipeline.
     if (app.Environment.IsDevelopment())
@@ -277,6 +256,8 @@ try
             return Results.Content("Delayed development-only response.", "text/plain");
         });
     }
+
+    app.MapHealthChecks("/health").AllowAnonymous();
 
     // default for MVC server-side endpoints
     app.MapControllerRoute(

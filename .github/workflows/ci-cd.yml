@@ -1,0 +1,65 @@
+name: CI/CD
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        required: true
+        default: test
+        options: [test, prod]
+permissions:
+  contents: read
+jobs:
+  validate-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            CruSibyl.Web/Tools/package-lock.json
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: 10.0.x
+      - run: npm ci
+      - run: npm run deployment-settings:check
+      - run: npm test
+      - name: Compile Bicep
+        run: |
+          az bicep build --file infrastructure/azure/main.bicep --stdout > /dev/null
+          az bicep build --file infrastructure/azure/github-oidc.bicep --stdout > /dev/null
+          az bicep build --file infrastructure/azure/runtime-rbac.bicep --stdout > /dev/null
+      - run: npm ci --prefix CruSibyl.Web/Tools
+      - run: dotnet restore CruSibyl.sln
+      - run: dotnet build CruSibyl.sln --configuration Release --no-restore
+      - run: dotnet test tests/CruSibyl.Tests/CruSibyl.Tests.csproj --configuration Release --no-build
+      - name: Publish and archive
+        run: |
+          dotnet publish CruSibyl.Web/CruSibyl.Web.csproj --configuration Release --no-build --output "$RUNNER_TEMP/publish/web"
+          dotnet publish CruSibyl.Functions/CruSibyl.Functions.csproj --configuration Release --no-build --output "$RUNNER_TEMP/publish/functions"
+          mkdir -p "$RUNNER_TEMP/packages"
+          (cd "$RUNNER_TEMP/publish/web" && zip -qr "$RUNNER_TEMP/packages/webapp.zip" .)
+          (cd "$RUNNER_TEMP/publish/functions" && zip -qr "$RUNNER_TEMP/packages/functionapp.zip" .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: ${{ runner.temp }}/packages/*.zip
+          if-no-files-found: error
+  deploy:
+    needs: validate-package
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.environment != 'prod' || github.ref == 'refs/heads/main')
+    uses: ./.github/workflows/deploy-azure.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'test' }}

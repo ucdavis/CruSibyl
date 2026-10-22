@@ -1,0 +1,61 @@
+@using CruSibyl.Web.Models.Dashboard
+@model WebJobDetailsViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">@Model.Title</h3>
+
+    @if (!Model.Rows.Any())
+    {
+      <div class="alert alert-info">No WebJobs match this filter.</div>
+    }
+    else
+    {
+      <div class="overflow-x-auto">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr>
+              <th>App</th>
+              <th>WebJob</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Last Run</th>
+              <th>Run Mode</th>
+              <th>Schedule</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var row in Model.Rows)
+            {
+              <tr>
+                <td>@row.AppName</td>
+                <td>@row.WebJobName</td>
+                <td>@row.JobType</td>
+                <td><span class="badge badge-sm">@row.Status</span></td>
+                <td>
+                  <span class="badge badge-sm @(row.LastRunStatus == "Failed" ? "badge-error" : "badge-ghost")">@row.LastRunStatus</span>
+                  @if (row.LastRunAt.HasValue)
+                  {
+                    <div class="text-xs opacity-70">@row.LastRunAt.Value.ToString("g")</div>
+                  }
+                </td>
+                <td>@(row.RunMode ?? "-")</td>
+                <td>@(row.Schedule ?? "-")</td>
+                <td>
+                  <button class="btn btn-xs btn-ghost"
+                          hx-get="/Dashboard/WebJobDrillDown/@row.WebJobId"
+                          hx-target="#dashboard-detail-modal-body"
+                          hx-swap="innerHTML"
+                          data-hc-open-modal="dashboard-detail-modal">
+                    Details
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

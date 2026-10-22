@@ -1,0 +1,21 @@
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var value = column.GetValue(row)?.ToString();
+    var isWarning = row.Item switch
+    {
+        PlatformDetailRowModel platform => platform.CurrencyStatus == "Outdated" && column.DataName != nameof(PlatformDetailRowModel.CurrentVersion),
+        DependencyCurrencyModel dependency => dependency.PriorityScore > 0 && value != dependency.CurrentVersion,
+        _ => false
+    };
+}
+
+<span class="font-mono text-xs @(isWarning ? "text-warning" : string.IsNullOrWhiteSpace(value) ? "opacity-50" : "")">@(string.IsNullOrWhiteSpace(value) ? "-" : value)</span>

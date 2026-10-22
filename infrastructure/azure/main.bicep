@@ -1,198 +1,180 @@
 targetScope = 'resourceGroup'
 
-@description('Base application name used when deriving resource names.')
+@description('Base name used for generated Azure resource names.')
 param appName string = 'crusibyl'
 
 @allowed([
-  'dev'
   'test'
   'prod'
 ])
-@description('Deployment environment name.')
-param env string = 'test'
+@description('Deployment environment. Only test and prod are supported by this template.')
+param env string
 
-@description('Azure region for deployed resources.')
+@description('Expected Azure subscription ID. Resources are created only when this matches the current subscription and the resource group name ends with the environment suffix.')
+param expectedSubscriptionId string
+
+@description('Azure region for regional resources other than the web app, which uses the existing App Service plan location.')
 param location string = resourceGroup().location
 
-@description('Whether to deploy Log Analytics + Application Insights.')
-param deployMonitoring bool = true
-
-@description('Additional tags to apply to resources.')
-param tags object = {}
-
-@description('SQL admin login for Azure SQL authentication.')
+@description('SQL admin login for SQL authentication.')
 param sqlAdminLogin string
 
 @secure()
-@description('SQL admin password for Azure SQL authentication.')
+@description('SQL admin password for SQL authentication.')
 param sqlAdminPassword string
 
 @description('SQL database name.')
 param sqlDatabaseName string = appName
 
-@description('SQL database SKU name.')
-param sqlSkuName string = 'Basic'
+@secure()
+param existingWebSettings object = {}
 
-@description('SQL database SKU tier.')
-param sqlSkuTier string = 'Basic'
+@secure()
+param existingFunctionSettings object = {}
 
-@description('Shared App Service plan SKU name.')
-param planSkuName string = 'B1'
-
-@description('Shared App Service plan SKU tier.')
-param planSkuTier string = 'Basic'
-
-@description('Shared App Service plan capacity.')
-param planCapacity int = 1
-
-@description('Optional explicit App Service plan name override.')
-param appServicePlanName string = ''
-
-@description('Optional explicit Web App name override.')
-param webAppName string = ''
-
-@description('Optional explicit Function App name override.')
-param functionAppName string = ''
-
-@description('Optional explicit Function storage account name override.')
-param functionStorageAccountName string = ''
-
-@description('Optional explicit SQL server name override.')
-param sqlServerName string = ''
-
-@description('Optional explicit Application Insights name override.')
-param appInsightsName string = ''
-
-@description('Optional explicit Log Analytics workspace name override.')
-param logAnalyticsWorkspaceName string = ''
+@description('Additional resource tags to apply.')
+param tags object = {}
 
 @minValue(30)
 @maxValue(730)
-@description('Log Analytics retention in days when monitoring is enabled.')
-param monitoringRetentionInDays int = 30
+@description('Log Analytics and Application Insights retention in days.')
+param appInsightsRetentionInDays int = 30
 
-@description('Whether to create a resource-group Reader role assignment for the Function App identity.')
-param assignResourceGroupReader bool = false
+@description('Linux App Service runtime stack.')
+param linuxFxVersion string = 'DOTNETCORE|10.0'
+
+@description('Existing App Service plan name.')
+param webPlanName string = env == 'prod' ? 'Nibbler' : 'DefaultPlan2'
+
+@description('Resource group containing the existing App Service plan.')
+param webPlanResourceGroup string = env == 'prod' ? 'service-plans-linux' : 'Default-Web-WestUS'
+
+@description('SQL database SKU name.')
+param sqlSkuName string = env == 'prod' ? 'S0' : 'Basic'
+
+@description('SQL database SKU tier.')
+param sqlSkuTier string = env == 'prod' ? 'Standard' : 'Basic'
+
+@description('Whether to allow Azure services and resources to access SQL server.')
+param sqlAllowAzureServices bool = env == 'test'
 
 @allowed([
-  'Reader'
-  'WebsiteContributor'
+  'Enabled'
+  'Disabled'
 ])
-@description('Built-in role assigned to the Function App identity in this deployment subscription. WebsiteContributor is required for Kudu/WebJobs API access.')
-param azureSyncSubscriptionRole string = 'WebsiteContributor'
+@description('Public network access for SQL server.')
+param sqlPublicNetworkAccess string = 'Enabled'
 
-var appSlug = toLower(replace(replace(replace(appName, '-', ''), '_', ''), ' ', ''))
-var envSlug = toLower(replace(replace(env, '-', ''), ' ', ''))
+var appNameSafe = toLower(replace(replace(appName, ' ', ''), '_', ''))
 var nameToken = substring(uniqueString(resourceGroup().id, appName, env), 0, 6)
-var defaultWebAppName = env == 'prod' ? appSlug : '${appSlug}-${envSlug}'
+var normalizedExpectedSubscriptionId = toLower(expectedSubscriptionId)
+var normalizedCurrentSubscriptionId = toLower(subscription().subscriptionId)
+var expectedResourceGroupSuffix = '-${env}'
+var deploymentGuardPassed = !empty(expectedSubscriptionId) && normalizedCurrentSubscriptionId == normalizedExpectedSubscriptionId && endsWith(toLower(resourceGroup().name), expectedResourceGroupSuffix)
 
-var resolvedAppServicePlanName = appServicePlanName == '' ? toLower('asp-${appSlug}-${envSlug}-${nameToken}') : appServicePlanName
-var resolvedWebAppName = webAppName == '' ? defaultWebAppName : toLower(webAppName)
-var resolvedFunctionAppName = functionAppName == '' ? toLower('fn-${appSlug}-${envSlug}-${nameToken}') : toLower(functionAppName)
-
-var storageNameToken = nameToken
-var functionStoragePrefix = take('st${appSlug}${envSlug}fn', 24 - length(storageNameToken))
-var resolvedFunctionStorageAccountName = functionStorageAccountName == '' ? '${functionStoragePrefix}${storageNameToken}' : toLower(functionStorageAccountName)
-
-var resolvedSqlServerName = sqlServerName == '' ? toLower('sql-${appSlug}-${envSlug}-${nameToken}') : toLower(sqlServerName)
-var resolvedAppInsightsName = appInsightsName == '' ? toLower('appi-${appSlug}-${envSlug}-${nameToken}') : appInsightsName
-var resolvedLogAnalyticsWorkspaceName = logAnalyticsWorkspaceName == '' ? toLower('log-${appSlug}-${envSlug}-${nameToken}') : logAnalyticsWorkspaceName
+var sqlServerName = toLower('sql-${appNameSafe}-${env}-${nameToken}')
+var functionAppName = toLower('fn-${appNameSafe}-${env}-${nameToken}')
+var storageAccountName = '${take(replace(appNameSafe, '-', ''), 12)}${env}fn${nameToken}'
+var webAppName = toLower('web-${appNameSafe}-${env}-${nameToken}')
+var appInsightsName = toLower('appi-${appNameSafe}-${env}-${nameToken}')
+var logAnalyticsWorkspaceName = toLower('log-${appNameSafe}-${env}-${nameToken}')
 
 var resourceTags = union(tags, {
   application: appName
   environment: env
 })
 
-var azureSyncRoleDefinitionGuids = {
-  Reader: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
-  WebsiteContributor: 'de139f84-1756-47ae-9be6-808fbbe84772'
+resource webPlan 'Microsoft.Web/serverfarms@2023-12-01' existing = {
+  name: webPlanName
+  scope: resourceGroup(webPlanResourceGroup)
 }
 
-module functionStorage 'modules/function-storage.bicep' = {
-  name: 'functionStorage'
-  params: {
-    name: resolvedFunctionStorageAccountName
-    location: location
-    tags: resourceTags
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (deploymentGuardPassed) {
+  name: logAnalyticsWorkspaceName
+  location: location
+  tags: resourceTags
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: appInsightsRetentionInDays
   }
 }
 
-module monitoring 'modules/monitoring.bicep' = if (deployMonitoring) {
-  name: 'monitoring'
-  params: {
-    appInsightsName: resolvedAppInsightsName
-    location: location
-    logAnalyticsWorkspaceName: resolvedLogAnalyticsWorkspaceName
-    retentionInDays: monitoringRetentionInDays
-    tags: resourceTags
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (deploymentGuardPassed) {
+  name: appInsightsName
+  location: location
+  kind: 'web'
+  tags: resourceTags
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace!.id
   }
 }
 
-module sql 'modules/sql.bicep' = {
-  name: 'sql'
+module sql 'modules/sql.bicep' = if (deploymentGuardPassed) {
+  name: 'sql-${env}'
   params: {
+    name: sqlServerName
+    location: location
+    tags: resourceTags
     adminLogin: sqlAdminLogin
     adminPassword: sqlAdminPassword
     databaseName: sqlDatabaseName
-    location: location
-    name: resolvedSqlServerName
     skuName: sqlSkuName
     skuTier: sqlSkuTier
-    tags: resourceTags
+    allowAzureServices: sqlAllowAzureServices
+    publicNetworkAccess: sqlPublicNetworkAccess
   }
 }
 
 var sqlServerHostnameSuffix = environment().suffixes.sqlServerHostname
-var sqlServerFqdn = '${resolvedSqlServerName}${startsWith(sqlServerHostnameSuffix, '.') ? '' : '.'}${sqlServerHostnameSuffix}'
-var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;ConnectRetryCount=5;ConnectRetryInterval=10;'
+var sqlServerFqdn = '${sqlServerName}${startsWith(sqlServerHostnameSuffix, '.') ? '' : '.'}${sqlServerHostnameSuffix}'
+var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Persist Security Info=False;User ID=${sqlAdminLogin};Password=${sqlAdminPassword};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
 
-module compute 'modules/compute.bicep' = {
-  name: 'compute'
+module functionStorage 'modules/function-storage.bicep' = if (deploymentGuardPassed) {
+  name: 'function-storage-${env}'
   params: {
-    appInsightsConnectionString: deployMonitoring ? monitoring!.outputs.appInsightsConnectionString : ''
-    appInsightsInstrumentationKey: deployMonitoring ? monitoring!.outputs.appInsightsInstrumentationKey : ''
-    environmentName: env
-    functionAppName: resolvedFunctionAppName
-    functionStorageConnectionString: functionStorage.outputs.connectionString
-    location: location
-    planCapacity: planCapacity
-    planName: resolvedAppServicePlanName
-    planSkuName: planSkuName
-    planSkuTier: planSkuTier
-    sqlConnectionString: sqlConnectionString
+    name: storageAccountName
+    location: webPlan.location
     tags: resourceTags
-    webAppName: resolvedWebAppName
   }
+}
+
+module compute 'modules/compute.bicep' = if (deploymentGuardPassed) {
+  name: 'compute-${env}'
   dependsOn: [
     sql
   ]
-}
-
-module rbac 'modules/rbac.bicep' = {
-  name: 'rbac'
   params: {
-    assignResourceGroupReader: assignResourceGroupReader
-    functionPrincipalId: compute.outputs.functionPrincipalId
+    existingWebSettings: existingWebSettings
+    existingFunctionSettings: existingFunctionSettings
+    webAppLocation: webPlan.location
+    tags: resourceTags
+    webPlanId: webPlan.id
+    webAppName: webAppName
+    functionAppName: functionAppName
+    // The compute and storage modules use the same deployment guard.
+    #disable-next-line BCP318
+    functionStorageConnectionString: functionStorage.outputs.connectionString
+    linuxFxVersion: linuxFxVersion
+    sqlConnectionString: sqlConnectionString
+    environmentName: env
+    appInsightsConnectionString: appInsights!.properties.ConnectionString
+    appInsightsInstrumentationKey: appInsights!.properties.InstrumentationKey
   }
 }
 
-module azureSyncSubscriptionRbac 'modules/azure-sync-subscription-rbac.bicep' = {
-  name: 'azureSyncRbac-${uniqueString(subscription().subscriptionId, resolvedFunctionAppName, azureSyncSubscriptionRole)}'
-  scope: subscription()
-  params: {
-    functionPrincipalId: compute.outputs.functionPrincipalId
-    roleAssignmentNameSeed: azureSyncSubscriptionRole
-    roleDefinitionGuid: azureSyncRoleDefinitionGuids[azureSyncSubscriptionRole]
-  }
-}
-
-output appServicePlanName string = resolvedAppServicePlanName
-output webAppName string = resolvedWebAppName
-output functionAppName string = resolvedFunctionAppName
-output functionStorageAccountName string = functionStorage.outputs.accountName
-output sqlServerName string = sql.outputs.serverName
+output appInsightsConnectionString string = deploymentGuardPassed ? appInsights!.properties.ConnectionString : ''
+output appInsightsName string = deploymentGuardPassed ? appInsights!.name : ''
+output appServiceDefaultHostName string = deploymentGuardPassed ? compute!.outputs.defaultHostName : ''
+output appServicePrincipalId string = deploymentGuardPassed ? compute!.outputs.principalId : ''
+output deploymentGuardPassed bool = deploymentGuardPassed
+output logAnalyticsWorkspaceName string = deploymentGuardPassed ? logAnalyticsWorkspace!.name : ''
 output sqlDatabaseName string = sqlDatabaseName
-output appInsightsName string = deployMonitoring ? monitoring!.outputs.appInsightsName : ''
-output logAnalyticsWorkspaceName string = deployMonitoring ? monitoring!.outputs.logAnalyticsWorkspaceName : ''
-output functionPrincipalId string = compute.outputs.functionPrincipalId
-output azureSyncRbacSubscriptionId string = azureSyncSubscriptionRbac.outputs.subscriptionId
+output sqlServerName string = deploymentGuardPassed ? sql!.outputs.serverName : ''
+output webAppName string = deploymentGuardPassed ? compute!.outputs.webAppName : ''
+
+output functionAppName string = deploymentGuardPassed ? compute!.outputs.functionAppName : ''
+output functionPrincipalId string = deploymentGuardPassed ? compute!.outputs.functionPrincipalId : ''
+output functionStorageAccountName string = deploymentGuardPassed ? functionStorage!.outputs.accountName : ''

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,9 +28,6 @@ public class User
 
     [MaxLength(10)]
     public string Iam { get; set; } = "";
-
-    [MaxLength(20)]
-    public string Kerberos { get; set; } = "";
 
     [MaxLength(20)] //It probably isn't this long....
     public string MothraId { get; set; } = "";

@@ -1,0 +1,16 @@
+{
+  "name": "crusibyl-deployment",
+  "private": true,
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "deployment-settings:sync": "node scripts/sync-deployment-settings.mts --write",
+    "deployment-settings:check": "tsc -p tsconfig.scripts.json --noEmit && node scripts/sync-deployment-settings.mts --check",
+    "test": "node --test scripts/*.test.mts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.3",
+    "typescript": "^5.9.2"
+  }
+}

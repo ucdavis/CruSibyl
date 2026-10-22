@@ -1,0 +1,20 @@
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = (WebJobFailureHistoryModel)Get<ITableRowContext>(Model, "Row").Item;
+}
+
+@if (row.SparklineValues.Count > 0)
+{
+    <canvas data-dashboard-sparkline data-values="@string.Join(",", row.SparklineValues)" width="80" height="20"></canvas>
+}
+else
+{
+    <span class="opacity-50">-</span>
+}

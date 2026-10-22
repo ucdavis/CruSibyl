@@ -1,0 +1,77 @@
+@using CruSibyl.Web.Models.Dashboard
+@model AppMappingDetailsViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">@Model.Title</h3>
+
+    @if (!Model.Rows.Any())
+    {
+      <div class="alert alert-info">No app mappings match this filter.</div>
+    }
+    else
+    {
+      <div class="overflow-x-auto">
+        <table class="table table-zebra table-sm">
+          <thead>
+            <tr>
+              <th>App</th>
+              <th>Resource Group</th>
+              <th>Runtime</th>
+              <th>Repo</th>
+              <th>Manifests</th>
+              <th>Repo Scan</th>
+              <th>Candidate Repos</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var row in Model.Rows)
+            {
+              <tr>
+                <td>@row.AppName</td>
+                <td>@(row.ResourceGroup ?? "-")</td>
+                <td>@(row.RuntimeStack ?? "-")</td>
+                <td>
+                  @if (row.RepoId.HasValue)
+                  {
+                    <span>@row.RepoName</span>
+                    <div class="text-xs opacity-70">#@row.RepoId</div>
+                  }
+                  else
+                  {
+                    <span class="badge badge-warning badge-sm">Unmapped</span>
+                  }
+                </td>
+                <td>@row.ManifestCount</td>
+                <td>
+                  <span class="badge badge-sm @(row.RepoScanStatus == ScanStatus.Failed ? "badge-error" : "badge-ghost")">
+                    @(row.RepoScanStatus?.ToString() ?? "-")
+                  </span>
+                  @if (row.RepoLastScannedAt.HasValue)
+                  {
+                    <div class="text-xs opacity-70">@row.RepoLastScannedAt.Value.ToString("g")</div>
+                  }
+                </td>
+                <td>
+                  @if (row.CandidateRepoNames.Any())
+                  {
+                    <div class="flex flex-wrap gap-1">
+                      @foreach (var repoName in row.CandidateRepoNames)
+                      {
+                        <span class="badge badge-outline badge-sm">@repoName</span>
+                      }
+                    </div>
+                  }
+                  else
+                  {
+                    <span class="opacity-50">-</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

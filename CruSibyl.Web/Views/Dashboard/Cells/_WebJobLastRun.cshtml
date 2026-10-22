@@ -1,0 +1,18 @@
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = (WebJobDetailRowModel)Get<ITableRowContext>(Model, "Row").Item;
+    var badgeClass = row.LastRunStatus == "Failed" ? "badge-error" : row.LastRunStatus == "Succeeded" ? "badge-success" : "badge-ghost";
+}
+
+<span class="badge badge-sm @badgeClass">@(row.LastRunStatus ?? "-")</span>
+@if (row.LastRunAt.HasValue)
+{
+    <div class="text-xs opacity-70">@row.LastRunAt.Value.ToString("g")</div>
+}

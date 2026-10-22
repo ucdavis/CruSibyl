@@ -1,0 +1,17 @@
+@using CruSibyl.Web.Models.Dashboard
+@model DashboardDetailTableViewModel
+
+<div class="card bg-base-100 shadow-xl">
+  <div class="card-body">
+    <h3 class="card-title">@Model.Title</h3>
+
+    @if (!Model.Table.Rows.Any())
+    {
+      <div class="alert alert-info">@Model.EmptyMessage</div>
+    }
+    else
+    {
+      @await Component.InvokeAsync("Table", Model.Table)
+    }
+  </div>
+</div>

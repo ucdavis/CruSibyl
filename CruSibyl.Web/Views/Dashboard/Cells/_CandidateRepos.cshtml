@@ -1,0 +1,25 @@
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = (AppMappingDetailRowModel)Get<ITableRowContext>(Model, "Row").Item;
+}
+
+@if (row.CandidateRepoNames.Any())
+{
+    <div class="flex flex-wrap gap-1">
+        @foreach (var repoName in row.CandidateRepoNames)
+        {
+            <span class="badge badge-outline badge-sm">@repoName</span>
+        }
+    </div>
+}
+else
+{
+    <span class="opacity-50">-</span>
+}

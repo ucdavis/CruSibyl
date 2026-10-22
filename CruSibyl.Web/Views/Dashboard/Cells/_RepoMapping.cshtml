@@ -1,0 +1,32 @@
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+@inject Htmx.Components.Models.ViewPaths ViewPaths
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var table = Get<ITableModel>(Model, "Table");
+    var tableRow = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var row = (AppMappingDetailRowModel)tableRow.Item;
+    var isEditing = column.IsEditable && tableRow.IsEditing;
+}
+
+@if (isEditing)
+{
+    var inputModel = await column.GetInputModel(tableRow);
+    inputModel.ComponentId = table.ComponentId;
+    @await Html.PartialAsync(ViewPaths.Input, inputModel)
+}
+else if (row.RepoId.HasValue)
+{
+    <span>@(row.RepoName ?? $"Repo #{row.RepoId}")</span>
+    <div class="text-xs opacity-70">#@row.RepoId</div>
+}
+else
+{
+    <span class="badge badge-warning badge-sm">Unmapped</span>
+}

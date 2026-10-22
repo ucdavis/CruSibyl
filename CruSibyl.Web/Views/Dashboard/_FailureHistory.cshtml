@@ -8,7 +8,7 @@
     <!-- Filters -->
     <form class="flex gap-2 mb-4"
           hx-get="/Dashboard/FailureHistory"
-          hx-target="#dashboard-detail-content"
+          hx-target="#dashboard-detail-modal-body"
           hx-swap="innerHTML">
       <input type="text" placeholder="Filter by App" class="input input-bordered input-sm" 
              id="app-filter" name="app" value="@Model.AppFilter" />
@@ -19,58 +19,13 @@
       </button>
     </form>
 
-    <!-- Failure Table -->
-    <div class="overflow-x-auto">
-      <table class="table table-zebra table-sm">
-        <thead>
-          <tr>
-            <th>App</th>
-            <th>WebJob</th>
-            <th>Time</th>
-            <th>Status</th>
-            <th>Duration</th>
-            <th>Pattern</th>
-            <th>Trend</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach (var failure in Model.Failures)
-          {
-            <tr>
-              <td>@failure.AppName</td>
-              <td>@failure.WebJobName</td>
-              <td>@failure.FailureTime.ToString("g")</td>
-              <td><span class="badge badge-error badge-sm">@failure.Status</span></td>
-              <td>@(failure.DurationMs.HasValue ? $"{failure.DurationMs.Value / 1000.0:F2}s" : "N/A")</td>
-              <td>
-                @if (failure.IsConsistent)
-                {
-                  <span class="badge badge-warning badge-sm">Consistent</span>
-                }
-                else
-                {
-                  <span class="badge badge-ghost badge-sm">Intermittent</span>
-                }
-              </td>
-              <td>
-                @if (Model.FailureSparklines.ContainsKey(failure.WebJobId))
-                {
-                  <canvas data-dashboard-sparkline data-values="@string.Join(",", Model.FailureSparklines[failure.WebJobId])" width="80" height="20"></canvas>
-                }
-              </td>
-              <td>
-                  <button class="btn btn-xs btn-ghost"
-                          hx-get="/Dashboard/WebJobDrillDown/@failure.WebJobId"
-                          hx-target="#dashboard-detail-content"
-                          hx-swap="innerHTML">
-                    Details
-                  </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </div>
+    @if (Model.Table == null || Model.Failures.Count == 0)
+    {
+      <div class="alert alert-info">No WebJob failures match these filters.</div>
+    }
+    else
+    {
+      @await Component.InvokeAsync("Table", Model.Table)
+    }
   </div>
 </div>

@@ -1,4 +1,4 @@
-﻿using CruSibyl.Core.Data;
+using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
 using CruSibyl.Core.Services;
@@ -19,10 +19,16 @@ public class PermissionHandler : AuthorizationHandler<PermissionRequirement>
 
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
     {
-        var userIamId = context.User.Claims.SingleOrDefault(c => c.Type == "ucdPersonIAMID")?.Value;
-
-        if (string.IsNullOrWhiteSpace(userIamId))
+        if (context.User.Identity?.IsAuthenticated != true) return;
+        string userIamId;
+        try
+        {
+            userIamId = UserService.RequireIamId(context.User.Claims);
+        }
+        catch (IdentityResolutionException)
+        {
             return;
+        }
 
         // Check if the user is a system admin
         var isSystemAdmin = await _dbContext.Permissions

@@ -1,0 +1,38 @@
+@using CruSibyl.Core.Domain
+@using CruSibyl.Web.Models.Dashboard
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    ScanStatus? status = null;
+    DateTime? scannedAt = null;
+    var rowItem = Get<ITableRowContext>(Model, "Row").Item;
+
+    if (rowItem is PlatformDetailRowModel platform)
+    {
+        status = platform.RepoScanStatus;
+        scannedAt = platform.RepoLastScannedAt;
+    }
+    else if (rowItem is AppMappingDetailRowModel mapping)
+    {
+        status = mapping.RepoScanStatus;
+        scannedAt = mapping.RepoLastScannedAt;
+    }
+    else if (rowItem is DataFreshnessDetailRowModel freshness)
+    {
+        status = freshness.ScanStatus;
+        scannedAt = freshness.LastScannedAt;
+    }
+
+    var badgeClass = status == ScanStatus.Failed ? "badge-error" : status == ScanStatus.Completed ? "badge-success" : "badge-ghost";
+}
+
+<span class="badge badge-sm @badgeClass">@(status?.ToString() ?? "-")</span>
+@if (scannedAt.HasValue)
+{
+    <div class="text-xs opacity-70">@scannedAt.Value.ToString("g")</div>
+}

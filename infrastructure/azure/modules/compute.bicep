@@ -1,20 +1,20 @@
 @description('Azure region for compute resources.')
-param location string
+param webAppLocation string
 
 @description('Tags to apply to compute resources.')
 param tags object
 
-@description('Shared App Service plan name.')
-param planName string
+@description('Existing shared Linux App Service plan resource ID.')
+param webPlanId string
 
-@description('Shared App Service plan SKU name.')
-param planSkuName string = 'B1'
+@description('Web runtime stack.')
+param linuxFxVersion string = 'DOTNETCORE|10.0'
 
-@description('Shared App Service plan SKU tier.')
-param planSkuTier string = 'Basic'
+@secure()
+param existingWebSettings object = {}
 
-@description('Shared App Service plan capacity.')
-param planCapacity int = 1
+@secure()
+param existingFunctionSettings object = {}
 
 @description('Web App name.')
 param webAppName string
@@ -44,39 +44,36 @@ param functionAppCorsAllowedOrigins array = [
   'https://portal.azure.com'
 ]
 
-resource sharedPlan 'Microsoft.Web/serverfarms@2025-03-01' = {
-  name: planName
-  location: location
-  kind: 'linux'
-  sku: {
-    name: planSkuName
-    tier: planSkuTier
-    size: planSkuName
-    capacity: planCapacity
-  }
-  tags: tags
-  properties: {
-    reserved: true
-  }
-}
-
 resource webApp 'Microsoft.Web/sites@2025-03-01' = {
   name: webAppName
-  location: location
+  location: webAppLocation
   kind: 'app,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
   tags: tags
   properties: {
-    serverFarmId: sharedPlan.id
+    serverFarmId: webPlanId
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
+      healthCheckPath: '/health'
+      http20Enabled: true
       appCommandLine: 'dotnet /home/site/wwwroot/CruSibyl.Web.dll'
       ftpsState: 'FtpsOnly'
-      linuxFxVersion: 'DOTNETCORE|10.0'
+      linuxFxVersion: linuxFxVersion
       minTlsVersion: '1.2'
-      appSettings: concat([
+      appSettings: concat(map(items(existingWebSettings), setting => { name: setting.key, value: string(setting.value) }), [
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
         {
           name: 'ASPNETCORE_ENVIRONMENT'
+          value: environmentName == 'prod' ? 'Production' : 'Staging'
+        }
+        {
+          name: 'Serilog__Environment'
           value: environmentName
         }
         {
@@ -114,14 +111,14 @@ resource webConnectionStrings 'Microsoft.Web/sites/config@2025-03-01' = {
 
 resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
   name: functionAppName
-  location: location
+  location: webAppLocation
   kind: 'functionapp,linux'
   identity: {
     type: 'SystemAssigned'
   }
   tags: tags
   properties: {
-    serverFarmId: sharedPlan.id
+    serverFarmId: webPlanId
     httpsOnly: true
     siteConfig: {
       alwaysOn: true
@@ -132,14 +129,22 @@ resource functionApp 'Microsoft.Web/sites@2025-03-01' = {
         allowedOrigins: functionAppCorsAllowedOrigins
         supportCredentials: false
       }
-      appSettings: concat([
+      appSettings: concat(map(items(existingFunctionSettings), setting => { name: setting.key, value: string(setting.value) }), [
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
         {
           name: 'AZURE_FUNCTIONS_ENVIRONMENT'
-          value: environmentName
+          value: environmentName == 'prod' ? 'Production' : 'Staging'
         }
         {
           name: 'AzureWebJobsStorage'
           value: functionStorageConnectionString
+        }
+        {
+          name: 'Serilog__Environment'
+          value: environmentName
         }
         {
           name: 'Azure__SubscriptionId'
@@ -178,7 +183,8 @@ resource functionConnectionStrings 'Microsoft.Web/sites/config@2025-03-01' = {
   }
 }
 
-output planName string = sharedPlan.name
+output defaultHostName string = webApp.properties.defaultHostName
+output principalId string = webApp.identity.principalId
 output webAppName string = webApp.name
 output functionAppName string = functionApp.name
 output functionPrincipalId string = functionApp.identity.principalId!

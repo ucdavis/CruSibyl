@@ -1,0 +1,14 @@
+@using Htmx.Components.Table.Models
+@model object
+
+@functions {
+    private static T Get<T>(object model, string propertyName) => (T)model.GetType().GetProperty(propertyName)!.GetValue(model)!;
+}
+
+@{
+    var row = Get<ITableRowContext>(Model, "Row");
+    var column = Get<ITableColumnModel>(Model, "Column");
+    var value = column.GetValue(row);
+}
+
+@(value is long durationMs ? $"{durationMs / 1000.0:F2}s" : "N/A")

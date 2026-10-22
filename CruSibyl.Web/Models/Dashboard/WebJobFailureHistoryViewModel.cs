@@ -1,7 +1,10 @@
+using Htmx.Components.Table.Models;
+
 namespace CruSibyl.Web.Models.Dashboard;
 
 public class WebJobFailureHistoryModel
 {
+    public string RowKey { get; set; } = null!;
     public int WebJobId { get; set; }
     public string WebJobName { get; set; } = null!;
     public int AppId { get; set; }
@@ -11,6 +14,7 @@ public class WebJobFailureHistoryModel
     public long? DurationMs { get; set; }
     public string? ErrorOutput { get; set; }
     public bool IsConsistent { get; set; }
+    public List<int> SparklineValues { get; set; } = new();
 }
 
 public class WebJobFailureHistoryViewModel
@@ -19,4 +23,5 @@ public class WebJobFailureHistoryViewModel
     public string? JobFilter { get; set; }
     public List<WebJobFailureHistoryModel> Failures { get; set; } = new();
     public Dictionary<int, List<int>> FailureSparklines { get; set; } = new(); // WebJobId -> daily failure counts (30 days)
+    public ITableModel? Table { get; set; }
 }
