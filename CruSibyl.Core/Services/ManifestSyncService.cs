@@ -1,10 +1,7 @@
-using System.Diagnostics;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using CruSibyl.Core.Data;
 using CruSibyl.Core.Domain;
 using CruSibyl.Core.Models;
-using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using Semver;
 using Serilog;
@@ -19,12 +16,12 @@ public interface IManifestSyncService
 public class ManifestSyncService : IManifestSyncService
 {
     private readonly IGitHubService _gitHubService;
-    private readonly AppDbContext _dbContext;
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
 
-    public ManifestSyncService(IGitHubService gitHubService, AppDbContext dbContext)
+    public ManifestSyncService(IGitHubService gitHubService, IDbContextFactory<AppDbContext> dbContextFactory)
     {
         _gitHubService = gitHubService;
-        _dbContext = dbContext;
+        _dbContextFactory = dbContextFactory;
     }
 
     public async Task<Result> SyncManifestsAsync(int timeLimitInMinutes)
@@ -33,8 +30,59 @@ public class ManifestSyncService : IManifestSyncService
         {
             throw new ArgumentException("Time limit must be greater than 1 minute", nameof(timeLimitInMinutes));
         }
+
+        var repos = await GetReposToScanAsync();
+        var startTime = DateTime.UtcNow;
+        var timeLimit = TimeSpan.FromMinutes(timeLimitInMinutes);
+        var failedRepos = new List<string>();
+        foreach (var repo in repos)
+        {
+            // Leave one minute for the GitHub searches and final persistence.
+            if (DateTime.UtcNow - startTime >= timeLimit - TimeSpan.FromMinutes(1))
+            {
+                Log.Information("Breaking out of repo sync loop: within 1 minute of time limit ({TimeLimit} min)", timeLimitInMinutes);
+                break;
+            }
+
+            try
+            {
+                await SyncRepositoryAsync(repo.Id);
+            }
+            catch (Exception ex)
+            {
+                // SyncRepositoryAsync has disposed its context; none of its pending graph is reused.
+                Log.Error(ex, "Failed to sync manifests for repo {RepoName}", repo.Name);
+                var failure = repo.Name;
+                try
+                {
+                    await using var failureContext = await _dbContextFactory.CreateDbContextAsync();
+                    var failedRepo = await failureContext.Repos.SingleAsync(r => r.Id == repo.Id);
+                    failedRepo.ScanStatus = ScanStatus.Failed;
+                    failedRepo.LastScannedAt = DateTime.UtcNow;
+                    failedRepo.ScanMessage = ex.Message;
+                    await failureContext.SaveChangesAsync();
+                }
+                catch (Exception metadataException)
+                {
+                    Log.Error(metadataException, "Failed to record manifest scan failure for repo {RepoName}", repo.Name);
+                    failure += $" (failure metadata could not be saved: {metadataException.Message})";
+                }
+                failedRepos.Add(failure);
+            }
+        }
+
+        return failedRepos.Count > 0
+            ? Result.Error("Manifest sync failed for {RepoCount} repo(s): {RepoNames}", failedRepos.Count, string.Join(", ", failedRepos))
+            : Result.Ok();
+    }
+
+    private sealed record RepositoryToScan(int Id, string Name);
+
+    private async Task<RepositoryToScan[]> GetReposToScanAsync()
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
         // TODO: This scan metadata logic is kind of messy. Consider moving the data to a separate table
-        var scanInfo = await _dbContext.Repos
+        var scanInfo = await dbContext.Repos
             .GroupBy(r => 1)
             .Select(g => new
             {
@@ -54,20 +102,20 @@ public class ManifestSyncService : IManifestSyncService
         {
             // If all repos are complete, increment ScanNumber and start a new batch
             scanNumber += 1;
-            repos = await _dbContext.Repos.ToArrayAsync();
+            repos = await dbContext.Repos.ToArrayAsync();
             foreach (var repo in repos)
             {
                 repo.ScanNumber = scanNumber;
                 repo.ScanStatus = ScanStatus.InProgress;
                 repo.ScanMessage = null;
             }
-            await _dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
         }
         else if (!scanInfo.AllSameScanNumber)
         {
             // This can happen if some repos have been recently added or updated
             scanNumber = Math.Max(scanNumber, 1);
-            repos = await _dbContext.Repos
+            repos = await dbContext.Repos
                 .Where(r => (r.ScanNumber ?? 0) != scanNumber)
                 .ToArrayAsync();
             foreach (var repo in repos)
@@ -76,167 +124,134 @@ public class ManifestSyncService : IManifestSyncService
                 repo.ScanStatus = ScanStatus.InProgress;
                 repo.ScanMessage = null;
             }
-            await _dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
         }
 
-        // Get only repos that are not complete for the current batch
-        repos = await _dbContext.Repos
+        // Keep only scalar identifiers after disposing the coordination context.
+        return await dbContext.Repos
             .Where(r => (r.ScanNumber ?? 0) == scanNumber && r.ScanStatus != ScanStatus.Completed)
+            .OrderBy(r => r.Id)
+            .Select(r => new RepositoryToScan(r.Id, r.Name))
             .ToArrayAsync();
+    }
 
-        var platforms = await _dbContext.Platforms
+    private async Task SyncRepositoryAsync(int repoId)
+    {
+        await using var dbContext = await _dbContextFactory.CreateDbContextAsync();
+        var repo = await dbContext.Repos.SingleAsync(r => r.Id == repoId);
+        var platforms = await dbContext.Platforms
             .Include(p => p.Versions)
             .ToDictionaryAsync(p => p.Name, StringComparer.OrdinalIgnoreCase);
-        var packages = await _dbContext.Packages
+        var packages = await dbContext.Packages
             .Include(p => p.Versions)
             .Include(p => p.Platform)
             .ToDictionaryAsync(p => $"{p.Name}|{p.Platform.Name}", StringComparer.OrdinalIgnoreCase);
-        var manifests = await _dbContext.Manifests
+        var manifests = await dbContext.Manifests
+            .Where(m => m.RepoId == repo.Id)
             .ToDictionaryAsync(m => $"{m.RepoId}|{m.FilePath}", StringComparer.OrdinalIgnoreCase);
-        var dependencies = await _dbContext.Dependencies
+        var dependencies = await dbContext.Dependencies
+            .Where(d => d.Manifest.RepoId == repo.Id)
             .ToDictionaryAsync(d => $"{d.ManifestId}|{d.PackageVersionId}", StringComparer.OrdinalIgnoreCase);
 
-        try
+        repo.ScanStatus = ScanStatus.InProgress;
+        repo.ScanMessage = null;
+
+        Log.Verbose("Getting {RepoName} manifests", repo.Name);
+        var gitHubManifests = await _gitHubService.GetManifests(repo.Name);
+
+        foreach (var gitHubManifest in gitHubManifests)
         {
-            var startTime = DateTime.UtcNow;
-            TimeSpan timeLimit = TimeSpan.FromMinutes(timeLimitInMinutes);
-            var failedRepos = new List<string>();
-            foreach (var repo in repos)
+            // Ensure Platforms and PlatformVersions exist
+            if (!platforms.TryGetValue(gitHubManifest.Platform, out var platform))
             {
-                // Github throttles searches to two per minute. GetManifests performs two searches per repo. So 
-                // we check if we are within 1 minute of the time limit.
-                var elapsed = DateTime.UtcNow - startTime;
-                if (elapsed >= timeLimit - TimeSpan.FromMinutes(1))
+                platform = new Platform { Name = gitHubManifest.Platform, Versions = new() };
+                platforms[gitHubManifest.Platform] = platform;
+                dbContext.Platforms.Add(platform);
+            }
+
+            var platformVersion = platform.Versions.FirstOrDefault(v => v.Version == gitHubManifest.PlatformVersion);
+            if (platformVersion == null)
+            {
+                platformVersion = new PlatformVersion
                 {
-                    Log.Information("Breaking out of repo sync loop: within 1 minute of time limit ({TimeLimit} min)", timeLimitInMinutes);
-                    break;
+                    Platform = platform,
+                    Version = gitHubManifest.PlatformVersion
+                };
+                platform.Versions.Add(platformVersion);
+                dbContext.PlatformVersions.Add(platformVersion);
+            }
+
+            var manifestKey = $"{repo.Id}|{gitHubManifest.Path}";
+            if (!manifests.TryGetValue(manifestKey, out var manifest))
+            {
+                manifest = new Manifest
+                {
+                    Repo = repo,
+                    PlatformVersion = platformVersion,
+                    FilePath = gitHubManifest.Path,
+                    Dependencies = new()
+                };
+                manifests[manifestKey] = manifest;
+                dbContext.Manifests.Add(manifest);
+            }
+
+            foreach (var dep in gitHubManifest.Dependencies)
+            {
+                // Ensure Package exists
+                var packageKey = $"{dep.Name}|{platform.Name}";
+                if (!packages.TryGetValue(packageKey, out var package))
+                {
+                    package = new Package { Name = dep.Name, Platform = platform, Versions = new() };
+                    packages[packageKey] = package;
+                    dbContext.Packages.Add(package);
                 }
-                try
+
+                // Ensure PackageVersion exists
+                var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version, dep.Version, StringComparison.OrdinalIgnoreCase));
+                if (packageVersion == null)
                 {
-                    repo.ScanStatus = ScanStatus.InProgress;
-                    repo.ScanMessage = null;
-
-                    Log.Verbose("Getting {RepoName} manifests", repo.Name);
-                    var gitHubManifests = await _gitHubService.GetManifests(repo.Name);
-
-                    foreach (var gitHubManifest in gitHubManifests)
+                    var baseVersion = ExtractBaseVersion(dep.Version);
+                    SemVersion? version = null;
+                    try
                     {
-                        // Ensure Platforms and PlatformVersions exist
-                        if (!platforms.TryGetValue(gitHubManifest.Platform, out var platform))
-                        {
-                            platform = new Platform { Name = gitHubManifest.Platform, Versions = new() };
-                            platforms[gitHubManifest.Platform] = platform;
-                            _dbContext.Platforms.Add(platform);
-                        }
-
-                        var platformVersion = platform.Versions.FirstOrDefault(v => v.Version == gitHubManifest.PlatformVersion);
-                        if (platformVersion == null)
-                        {
-                            platformVersion = new PlatformVersion
-                            {
-                                Platform = platform,
-                                Version = gitHubManifest.PlatformVersion
-                            };
-                            platform.Versions.Add(platformVersion);
-                            _dbContext.PlatformVersions.Add(platformVersion);
-                        }
-
-                        var manifestKey = $"{repo.Id}|{gitHubManifest.Path}";
-                        if (!manifests.TryGetValue(manifestKey, out var manifest))
-                        {
-                            manifest = new Manifest
-                            {
-                                Repo = repo,
-                                PlatformVersion = platformVersion,
-                                FilePath = gitHubManifest.Path,
-                                Dependencies = new()
-                            };
-                            manifests[manifestKey] = manifest;
-                            _dbContext.Manifests.Add(manifest);
-                        }
-
-                        foreach (var dep in gitHubManifest.Dependencies)
-                        {
-                            // Ensure Package exists
-                            var packageKey = $"{dep.Name}|{platform.Name}";
-                            if (!packages.TryGetValue(packageKey, out var package))
-                            {
-                                package = new Package { Name = dep.Name, Platform = platform, Versions = new() };
-                                packages[packageKey] = package;
-                                _dbContext.Packages.Add(package);
-                            }
-
-                            // Ensure PackageVersion exists
-                            var packageVersion = package.Versions.FirstOrDefault(v => string.Equals(v.Version, dep.Version, StringComparison.OrdinalIgnoreCase));
-                            if (packageVersion == null)
-                            {
-                                var baseVersion = ExtractBaseVersion(dep.Version);
-                                SemVersion? version = null;
-                                try
-                                {
-                                    version = SemVersion.Parse(baseVersion);
-                                }
-                                catch (FormatException ex)
-                                {
-                                    Log.Warning(ex, "Failed to parse baseVersion '{BaseVersion}' from '{VersionSpec}' for package '{Package}'", baseVersion, dep.Version, dep.Name);
-                                }
-                                packageVersion = new PackageVersion
-                                {
-                                    Package = package,
-                                    Version = dep.Version,
-                                    Major = (int?)(version?.Major),
-                                    Minor = (int?)(version?.Minor),
-                                    Patch = (int?)(version?.Patch),
-                                    PreRelease = version?.Prerelease,
-                                };
-                                package.Versions.Add(packageVersion);
-                                _dbContext.PackageVersions.Add(packageVersion);
-                            }
-
-                            // Ensure Dependency exists
-                            var dependencyKey = $"{manifest.Id}|{packageVersion.Id}";
-                            if (!dependencies.ContainsKey(dependencyKey))
-                            {
-                                var newDependency = new Dependency
-                                {
-                                    Manifest = manifest,
-                                    PackageVersion = packageVersion,
-                                    IsDevDependency = dep.IsDevDependency
-                                };
-                                _dbContext.Dependencies.Add(newDependency);
-                            }
-                        }
+                        version = SemVersion.Parse(baseVersion);
                     }
-                    repo.ScanStatus = ScanStatus.Completed;
-                    repo.LastScannedAt = DateTime.UtcNow;
-                    repo.ScanMessage = null;
+                    catch (FormatException ex)
+                    {
+                        Log.Warning(ex, "Failed to parse baseVersion '{BaseVersion}' from '{VersionSpec}' for package '{Package}'", baseVersion, dep.Version, dep.Name);
+                    }
+                    packageVersion = new PackageVersion
+                    {
+                        Package = package,
+                        Version = dep.Version,
+                        Major = (int?)(version?.Major),
+                        Minor = (int?)(version?.Minor),
+                        Patch = (int?)(version?.Patch),
+                        PreRelease = version?.Prerelease,
+                    };
+                    package.Versions.Add(packageVersion);
+                    dbContext.PackageVersions.Add(packageVersion);
                 }
-                catch (Exception ex)
+
+                // Ensure Dependency exists
+                var dependencyKey = $"{manifest.Id}|{packageVersion.Id}";
+                if (!dependencies.ContainsKey(dependencyKey))
                 {
-                    repo.ScanStatus = ScanStatus.Failed;
-                    repo.LastScannedAt = DateTime.UtcNow;
-                    repo.ScanMessage = ex.Message;
-                    failedRepos.Add(repo.Name);
-                    Log.Error(ex, "Failed to sync manifests for repo {RepoName}", repo.Name);
+                    var newDependency = new Dependency
+                    {
+                        Manifest = manifest,
+                        PackageVersion = packageVersion,
+                        IsDevDependency = dep.IsDevDependency
+                    };
+                    dbContext.Dependencies.Add(newDependency);
                 }
-                await _dbContext.SaveChangesAsync();
             }
-
-            if (failedRepos.Count > 0)
-            {
-                return Result.Error(
-                    "Manifest sync failed for {RepoCount} repo(s): {RepoNames}",
-                    failedRepos.Count,
-                    string.Join(", ", failedRepos));
-            }
-
-            return Result.Ok();
         }
-        catch (Exception ex)
-        {
-            Log.Error(ex, "Error Syncing");
-            return Result.Error(ex.Message);
-        }
+        repo.ScanStatus = ScanStatus.Completed;
+        repo.LastScannedAt = DateTime.UtcNow;
+        repo.ScanMessage = null;
+
+        await dbContext.SaveChangesAsync();
     }
 
     private static string ExtractBaseVersion(string versionSpec)

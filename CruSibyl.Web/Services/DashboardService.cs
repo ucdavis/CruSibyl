@@ -372,7 +372,7 @@ public class DashboardService : IDashboardService
                 DependencyDetailFilter.Outdated => IsOutdatedDependencySeverity(row.SeverityLevel),
                 DependencyDetailFilter.Major => row.SeverityLevel == "High",
                 DependencyDetailFilter.Minor => row.SeverityLevel == "Medium",
-                DependencyDetailFilter.Patch => row.SeverityLevel == "Low" && row.PriorityScore > 0,
+                DependencyDetailFilter.Patch => row.SeverityLevel == "Low",
                 DependencyDetailFilter.Unknown => row.SeverityLevel == "Unknown",
                 DependencyDetailFilter.HighPriority => IsOutdatedDependencySeverity(row.SeverityLevel) && row.PriorityScore >= HighPriorityDependencyScore,
                 _ => true
@@ -886,7 +886,7 @@ public class DashboardService : IDashboardService
             OutdatedDependencies = outdatedRows.Count,
             MajorBehindDependencies = currencyRows.Count(row => row.SeverityLevel == "High"),
             MinorBehindDependencies = currencyRows.Count(row => row.SeverityLevel == "Medium"),
-            PatchBehindDependencies = currencyRows.Count(row => row.SeverityLevel == "Low" && row.PriorityScore > 0),
+            PatchBehindDependencies = currencyRows.Count(row => row.SeverityLevel == "Low"),
             UnknownCurrencyDependencies = currencyRows.Count(row => row.SeverityLevel == "Unknown"),
             HighPriorityOutdatedDependencies = outdatedRows.Count(row => row.PriorityScore >= HighPriorityDependencyScore),
             EnabledAppsWithDependencyCoverage = enabledApps.Count(app => app.DependencyCount > 0),

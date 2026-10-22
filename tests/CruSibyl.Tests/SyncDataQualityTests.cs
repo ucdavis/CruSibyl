@@ -54,11 +54,12 @@ public class SyncDataQualityTests
             new Repo { Name = "broken-repo" });
         await database.Context.SaveChangesAsync(cancellationToken);
 
-        var service = new ManifestSyncService(new ManifestSyncGitHubService(), database.Context);
+        var service = new ManifestSyncService(new ManifestSyncGitHubService(), database.ContextFactory);
 
         var result = await service.SyncManifestsAsync(timeLimitInMinutes: 9);
 
         Assert.True(result.IsError);
+        database.Context.ChangeTracker.Clear();
 
         var healthyRepo = await database.Context.Repos
             .Include(repo => repo.Manifests)
@@ -74,6 +75,139 @@ public class SyncDataQualityTests
         Assert.Equal(ScanStatus.Failed, brokenRepo.ScanStatus);
         Assert.NotNull(brokenRepo.LastScannedAt);
         Assert.Contains("GitHub search failed", brokenRepo.ScanMessage, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SyncManifestsAsync_SaveFailureRollsBackGraphAndContinues(bool failMetadataSave)
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var database = await SyncTestDatabase.CreateAsync(cancellationToken);
+        var brokenRepo = new Repo { Name = "broken-save" };
+        var healthyRepo = new Repo { Name = "healthy-after-failure" };
+        database.Context.Repos.AddRange(brokenRepo, healthyRepo);
+        await database.Context.SaveChangesAsync(cancellationToken);
+
+        // Fail after the manifest, platform and package have already been inserted.
+        await database.Context.Database.ExecuteSqlRawAsync("""
+            CREATE TRIGGER fail_dependency_insert BEFORE INSERT ON Dependencies
+            WHEN (SELECT FilePath FROM Manifests WHERE Id = NEW.ManifestId) = 'broken.csproj'
+            BEGIN SELECT RAISE(ABORT, 'dependency persistence failed'); END;
+            """, cancellationToken);
+        if (failMetadataSave)
+        {
+            await database.Context.Database.ExecuteSqlRawAsync($"""
+                CREATE TRIGGER fail_scan_metadata BEFORE UPDATE ON Repos
+                WHEN NEW.Name = 'broken-save' AND NEW.ScanStatus = {(int)ScanStatus.Failed}
+                BEGIN SELECT RAISE(ABORT, 'failure metadata persistence failed'); END;
+                """, cancellationToken);
+        }
+
+        var github = new StubManifestGitHubService(name =>
+            [ManifestWithDependency(name == "broken-save" ? "broken.csproj" : "healthy.csproj",
+                name == "broken-save" ? "failed-only-package" : "healthy-package")]);
+        var service = new ManifestSyncService(github, database.ContextFactory);
+        var result = await service.SyncManifestsAsync(9);
+
+        Assert.True(result.IsError);
+        Assert.Contains("broken-save", result.Message, StringComparison.Ordinal);
+        database.Context.ChangeTracker.Clear();
+        brokenRepo = await database.Context.Repos.SingleAsync(r => r.Name == "broken-save", cancellationToken);
+        healthyRepo = await database.Context.Repos.SingleAsync(r => r.Name == "healthy-after-failure", cancellationToken);
+        Assert.Equal(ScanStatus.Completed, healthyRepo.ScanStatus);
+        Assert.NotNull(healthyRepo.LastScannedAt);
+        Assert.Null(healthyRepo.ScanMessage);
+        if (failMetadataSave)
+        {
+            Assert.Contains("failure metadata could not be saved", result.Message, StringComparison.Ordinal);
+            Assert.Equal(ScanStatus.InProgress, brokenRepo.ScanStatus);
+            Assert.Null(brokenRepo.LastScannedAt);
+        }
+        else
+        {
+            Assert.Equal(ScanStatus.Failed, brokenRepo.ScanStatus);
+            Assert.NotNull(brokenRepo.LastScannedAt);
+            Assert.NotNull(brokenRepo.ScanMessage);
+        }
+
+        Assert.Equal("healthy.csproj", (await database.Context.Manifests.SingleAsync(cancellationToken)).FilePath);
+        Assert.Equal("healthy-package", (await database.Context.Packages.SingleAsync(cancellationToken)).Name);
+        Assert.Equal(1, await database.Context.Platforms.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.PlatformVersions.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.PackageVersions.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.Dependencies.CountAsync(cancellationToken));
+    }
+
+    [Fact]
+    public async Task SyncManifestsAsync_ProcessingFailureDiscardsPendingGraph()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var database = await SyncTestDatabase.CreateAsync(cancellationToken);
+        database.Context.Repos.AddRange(new Repo { Name = "broken-processing" }, new Repo { Name = "healthy" });
+        await database.Context.SaveChangesAsync(cancellationToken);
+        var github = new StubManifestGitHubService(name => name == "broken-processing"
+            ? [ManifestWithDependency("partial.csproj", "failed-only-package"), new ManifestData { Platform = null! }]
+            : [ManifestWithDependency("healthy.csproj", "healthy-package")]);
+
+        var result = await new ManifestSyncService(github, database.ContextFactory).SyncManifestsAsync(9);
+
+        Assert.True(result.IsError);
+        database.Context.ChangeTracker.Clear();
+        var brokenRepo = await database.Context.Repos.SingleAsync(r => r.Name == "broken-processing", cancellationToken);
+        Assert.Equal(ScanStatus.Failed, brokenRepo.ScanStatus);
+        Assert.NotNull(brokenRepo.LastScannedAt);
+        Assert.NotNull(brokenRepo.ScanMessage);
+        Assert.Equal(ScanStatus.Completed, (await database.Context.Repos.SingleAsync(r => r.Name == "healthy", cancellationToken)).ScanStatus);
+        Assert.Equal("healthy.csproj", (await database.Context.Manifests.SingleAsync(cancellationToken)).FilePath);
+        Assert.Equal("healthy-package", (await database.Context.Packages.SingleAsync(cancellationToken)).Name);
+        Assert.Equal(1, await database.Context.Dependencies.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.Platforms.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.PlatformVersions.CountAsync(cancellationToken));
+        Assert.Equal(1, await database.Context.PackageVersions.CountAsync(cancellationToken));
+    }
+
+    [Fact]
+    public async Task SyncManifestsAsync_RepositoriesReusePersistedCatalogAcrossContextsAndBatches()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        await using var database = await SyncTestDatabase.CreateAsync(cancellationToken);
+        database.Context.Repos.AddRange(new Repo { Name = "first" }, new Repo { Name = "second" });
+        await database.Context.SaveChangesAsync(cancellationToken);
+        var github = new StubManifestGitHubService(_ => [ManifestWithDependency("app.csproj", "shared-package")]);
+        var service = new ManifestSyncService(github, database.ContextFactory);
+
+        for (var batch = 1; batch <= 2; batch++)
+        {
+            var result = await service.SyncManifestsAsync(9);
+            Assert.False(result.IsError, result.Message);
+            database.Context.ChangeTracker.Clear();
+            var repos = await database.Context.Repos.ToListAsync(cancellationToken);
+            Assert.All(repos, repo =>
+            {
+                Assert.Equal(ScanStatus.Completed, repo.ScanStatus);
+                Assert.Equal(batch, repo.ScanNumber);
+            });
+            Assert.Equal(1, await database.Context.Platforms.CountAsync(cancellationToken));
+            Assert.Equal(1, await database.Context.PlatformVersions.CountAsync(cancellationToken));
+            Assert.Equal(1, await database.Context.Packages.CountAsync(cancellationToken));
+            Assert.Equal(1, await database.Context.PackageVersions.CountAsync(cancellationToken));
+            Assert.Equal(2, await database.Context.Manifests.CountAsync(cancellationToken));
+            Assert.Equal(2, await database.Context.Dependencies.CountAsync(cancellationToken));
+        }
+    }
+
+    private static ManifestData ManifestWithDependency(string path, string packageName) => new()
+    {
+        Platform = "dotnet",
+        PlatformVersion = "10.0.0",
+        Path = path,
+        Dependencies = [new DependencyData { Name = packageName, Version = "1.0.0" }]
+    };
+
+    private sealed class StubManifestGitHubService(Func<string, List<ManifestData>> getManifests) : IGitHubService
+    {
+        public Task<List<ManifestData>> GetManifests(string repo) => Task.FromResult(getManifests(repo));
     }
 
     [Fact]

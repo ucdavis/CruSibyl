@@ -257,8 +257,10 @@ public class DashboardServiceSummaryTests
         Assert.All(unknownDetails.Rows, row => Assert.Equal("Unknown", row.CurrencyStatus));
     }
 
-    [Fact]
-    public async Task GetDashboardOverviewAsync_ClassifiesDependencyCurrencyFromNumericVersionParts()
+    [Theory]
+    [InlineData(0.8, 2)]
+    [InlineData(0.0, 0)]
+    public async Task GetDashboardOverviewAsync_ClassifiesDependencyCurrencyFromNumericVersionParts(double importance, int expectedHighPriorityCount)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var database = await DashboardTestDatabase.CreateAsync(cancellationToken);
@@ -267,7 +269,7 @@ public class DashboardServiceSummaryTests
         var repo = AddRepo(database.Context, "dependency-repo", FixedNow.AddDays(-1), ScanStatus.Completed);
         var manifest = new Manifest { Repo = repo, FilePath = "package.json", PlatformVersion = platformVersion };
         repo.Manifests.Add(manifest);
-        database.Context.Apps.Add(new App { Name = "dependency-app", IsEnabled = true, Importance = 0.8, Repo = repo });
+        database.Context.Apps.Add(new App { Name = "dependency-app", IsEnabled = true, Importance = importance, Repo = repo });
 
         AddDependency(
             database.Context,
@@ -316,8 +318,9 @@ public class DashboardServiceSummaryTests
         Assert.Equal(1, model.Dependency.MajorBehindDependencies);
         Assert.Equal(1, model.Dependency.MinorBehindDependencies);
         Assert.Equal(1, model.Dependency.PatchBehindDependencies);
+        Assert.Equal(model.Dependency.OutdatedDependencies, model.Dependency.MajorBehindDependencies + model.Dependency.MinorBehindDependencies + model.Dependency.PatchBehindDependencies);
         Assert.Equal(1, model.Dependency.UnknownCurrencyDependencies);
-        Assert.Equal(2, model.Dependency.HighPriorityOutdatedDependencies);
+        Assert.Equal(expectedHighPriorityCount, model.Dependency.HighPriorityOutdatedDependencies);
         Assert.Equal(1, model.Dependency.EnabledAppsWithDependencyCoverage);
         Assert.Equal(0, model.Dependency.EnabledAppsWithoutDependencyCoverage);
 
@@ -330,7 +333,7 @@ public class DashboardServiceSummaryTests
         Assert.Equal("High", majorRow.SeverityLevel);
         Assert.Equal("minor-package", Assert.Single(minorDetails.Dependencies).PackageName);
         Assert.Equal("patch-package", Assert.Single(patchDetails.Dependencies).PackageName);
-        Assert.Equal(2, highPriorityDetails.Dependencies.Count);
+        Assert.Equal(expectedHighPriorityCount, highPriorityDetails.Dependencies.Count);
         Assert.Equal("unknown-package", Assert.Single(unknownDetails.Dependencies).PackageName);
     }
 

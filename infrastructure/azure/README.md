@@ -21,7 +21,7 @@ This setup does not rename, delete, transfer, or migrate existing Azure resource
 
 ## Schema prerequisite
 
-**The runtime model no longer contains `User.Kerberos`. The user must generate the SQL Server and SQLite migrations. Historical migrations and snapshots are intentionally unchanged.** Complete that step before releasing the package or attempting migration-backed application startup. The web app still applies migrations at startup; this refactor does not bypass pending model-change validation. Keep the web deployment before the Function deployment so database initialization can finish first.
+The included `DropKerberos` SQL Server and SQLite migrations remove `User.Kerberos`, matching the runtime model and updated snapshots. The web app applies migrations at startup. Keep the web deployment before the Function deployment so database initialization can finish first.
 
 ## One-time setup for each environment
 
@@ -104,7 +104,7 @@ gh api --method PUT repos/ucdavis/CruSibyl/environments/test
 gh api --method PUT repos/ucdavis/CruSibyl/environments/prod
 ```
 
-Configure production's deployment branch restrictions and required reviewers as appropriate. After verifying the bootstrap outputs, populate the selected environment's variables:
+Configure the `prod` Environment to allow deployments only from the branch `main` using a selected-branches rule. This rule is required; the CI/CD and Configure Azure workflow guards supplement it. Configure required reviewers as appropriate. After verifying the bootstrap outputs, populate the selected environment's variables:
 
 | GitHub variable | Bootstrap output |
 | --- | --- |
